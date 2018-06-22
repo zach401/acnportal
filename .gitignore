@@ -188,4 +188,4 @@ fabric.properties
 .idea/
 
 # Custom
-.p
+*.p
