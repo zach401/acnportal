@@ -11,6 +11,11 @@ class TestCase:
         self.period = period
         self.EVs = EVs
 
+    def step(self):
+        pass
+
+
+
 
 def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, period=1, max_duration=720):
     sessions = pickle.load(open(file_name, 'rb'))

@@ -186,3 +186,6 @@ fabric.properties
 
 # All .idea files
 .idea/
+
+# Custom
+.p
