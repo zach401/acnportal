@@ -11,8 +11,14 @@ class TestCase:
         self.period = period
         self.EVs = EVs
 
-    def step(self):
+        self.charging_data = {}
+
+    def step(self, pilot_signals):
+        for ev in self.EVs:
+            charge_rate = ev.charge(pilot_signals[ev.session_id])
+            self.charging_data[ev.session_id] = charge_rate
         pass
+
 
 
 
