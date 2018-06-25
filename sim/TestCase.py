@@ -17,7 +17,13 @@ class TestCase:
         for ev in self.EVs:
             charge_rate = ev.charge(pilot_signals[ev.session_id])
             self.charging_data[ev.session_id] = charge_rate
-        pass
+
+    def get_active_EVs(self):
+        active_EVs = []
+        for ev in self.EVs:
+            if ev.remaining_demand > 0:
+                active_EVs.append(ev)
+        return active_EVs
 
 
 

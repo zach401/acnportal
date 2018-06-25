@@ -1,10 +1,11 @@
-import Interface
+from Interface import Interface
 
 class BaseAlgorithm:
     """ This is a base-class meant to be inherited from to implement new algorithms.
         Each new algorithm should override the schedule method.
     """
-    def __init__(self):
+    def __init__(self, interface):
+        self.interface = interface
         pass
 
     def schedule(self, active_EVs):
@@ -23,6 +24,28 @@ class BaseAlgorithm:
 
         :return: None
         """
-        active_EVs = Interface.get_active_EVs()
+        active_EVs = self.interface.get_active_EVs()
         schedules = self.schedule(active_EVs)
-        Interface.submit_schedules(schedules)
+        self.interface.submit_schedules(schedules)
+
+class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
+
+    def __init__(self, interface):
+        super().__init__(interface)
+
+    def schedule(self, active_EVs):
+        schedule = {}
+        earliest_EV = self.get_earliest_EV(active_EVs)
+        for ev in active_EVs:
+            charge_rate = 0
+            if ev.session_id == earliest_EV.session_id:
+                charge_rate = 10
+            schedule[ev.session_id] = charge_rate
+        return schedule
+
+    def get_earliest_EV(self, EVs):
+        earliest_EV = None
+        for ev in EVs:
+            if earliest_EV == None or earliest_EV.departure > ev.departure:
+                earliest_EV = ev
+        return earliest_EV
