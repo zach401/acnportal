@@ -37,10 +37,12 @@ class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
         schedule = {}
         earliest_EV = self.get_earliest_EV(active_EVs)
         for ev in active_EVs:
-            charge_rate = 0
+            charge_rates = []
             if ev.session_id == earliest_EV.session_id:
-                charge_rate = 10
-            schedule[ev.session_id] = charge_rate
+                charge_rates.append(10)
+            else:
+                charge_rates.append(0)
+            schedule[ev.session_id] = charge_rates
         return schedule
 
     def get_earliest_EV(self, EVs):

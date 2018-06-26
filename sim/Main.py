@@ -14,3 +14,5 @@ if __name__ == '__main__':
     sim.define_scheduler(scheduler)
 
     sim.run()
+
+    print(sim.get_simulation_data())

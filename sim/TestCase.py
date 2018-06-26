@@ -12,18 +12,27 @@ class TestCase:
         self.EVs = EVs
 
         self.charging_data = {}
+        for ev in EVs:
+            self.charging_data[ev.session_id] = []
 
-    def step(self, pilot_signals):
-        for ev in self.EVs:
+    def step(self, pilot_signals, iteration):
+        active_EVs = self.get_active_EVs(iteration)
+        for ev in active_EVs:
             charge_rate = ev.charge(pilot_signals[ev.session_id])
-            self.charging_data[ev.session_id] = charge_rate
+            self.charging_data[ev.session_id].append({'time': iteration, 'charge_rate': charge_rate})
+        pass
 
-    def get_active_EVs(self):
+
+    def get_active_EVs(self, iteration):
         active_EVs = []
         for ev in self.EVs:
-            if ev.remaining_demand > 0:
+            if ev.remaining_demand > 0 and ev.arrival <= iteration and ev.departure > iteration:
                 active_EVs.append(ev)
         return active_EVs
+
+
+    def get_charging_data(self):
+        return self.charging_data
 
 
 

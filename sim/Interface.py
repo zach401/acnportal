@@ -24,5 +24,5 @@ class Interface:
         :param schedules: (dict) Dictionary where key is the id of the EV and value is a list of scheduled charging rates.
         :return: None
         """
-        self.simulator.schedule = schedules
+        self.simulator.update_schedules(schedules)
         pass
