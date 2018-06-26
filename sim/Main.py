@@ -3,6 +3,7 @@ from datetime import datetime
 from BaseAlgorithm import *
 from Interface import Interface
 from Simulator import Simulator
+from GraphDrawer import GraphDrawer
 
 if __name__ == '__main__':
     test_case = TestCase.generate_test_case_local('test_session.p',
@@ -15,4 +16,6 @@ if __name__ == '__main__':
 
     sim.run()
 
-    print(sim.get_simulation_data())
+    #print(sim.get_simulation_data())
+    gd = GraphDrawer(sim)
+    gd.draw_charge_rates()
