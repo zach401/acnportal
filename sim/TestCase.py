@@ -5,6 +5,10 @@ from EV import EV
 
 
 class TestCase:
+    '''
+    TestCase represents a garage of charging stations over a certain simulation time.
+    Stores the data of the test case when the simulation is run.
+    '''
     def __init__(self, EVs, voltage=220, max_rate=32, period=1):
         self.VOLTAGE = voltage
         self.DEFAULT_MAX_RATE = max_rate
@@ -16,14 +20,27 @@ class TestCase:
             self.charging_data[ev.session_id] = []
 
     def step(self, pilot_signals, iteration):
+        '''
+        Updates the states of the EVs connected the system and stores the relevant data.
+
+        :param pilot_signals: (dict) A dictionary where key is the EV id and the value is a number with the charging rate
+        :param iteration: (int) The current time stamp of the simulation
+        :return: None
+        '''
         active_EVs = self.get_active_EVs(iteration)
         for ev in active_EVs:
             charge_rate = ev.charge(pilot_signals[ev.session_id])
             self.charging_data[ev.session_id].append({'time': iteration, 'charge_rate': charge_rate})
-        pass
 
 
     def get_active_EVs(self, iteration):
+        '''
+        Returns the EVs that is currently attached to the charging stations and
+        has not had their energy demand met.
+
+        :param iteration: (int) The current time stamp of the simulation
+        :return: (list) List of EVs currently plugged in and not finished charging
+        '''
         active_EVs = []
         for ev in self.EVs:
             if ev.remaining_demand > 0 and ev.arrival <= iteration and ev.departure > iteration:

@@ -26,15 +26,14 @@ end_time = start_time + timedelta(days=1)
 dt = end_time - start_time
 delta_days = dt.days
 
-print(start_time.timestamp())
-
-for i in range(1,10):
+for i in range(1,20):
     arrival_time = random_date(start_time, end_time)
     departure_time = random_date(arrival_time, arrival_time + timedelta(days=1))
-    requested_energy = random.uniform(1,10)
+    requested_energy = random.uniform(1,8)
     station_id = i
     sessions.append([arrival_time, departure_time, requested_energy, station_id])
 
 pickle.dump(sessions, open( file_name, "wb"))
+print('Random test session generated and saved in the file: ' + file_name)
 
 

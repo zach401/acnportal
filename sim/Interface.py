@@ -1,7 +1,6 @@
 """
 This module contains methods for directly interacting with the simulator. 
 """
-from Simulator import Simulator
 
 class Interface:
 
@@ -12,7 +11,7 @@ class Interface:
     def get_active_EVs(self):
         """ Returns a list of active EVs for use by the algorithm.
 
-        :return: list of EVs currently plugged in and not finished charging
+        :return: (list) List of EVs currently plugged in and not finished charging
         """
         active_EVs = self.simulator.get_active_EVs()
         return active_EVs

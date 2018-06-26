@@ -1,3 +1,8 @@
+'''
+This is currently the main starting point of the simulator of the
+ACN research portal.
+'''
+
 import TestCase
 from datetime import datetime
 from BaseAlgorithm import *

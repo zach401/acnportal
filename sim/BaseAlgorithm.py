@@ -1,4 +1,3 @@
-from Interface import Interface
 
 class BaseAlgorithm:
     """ This is a base-class meant to be inherited from to implement new algorithms.
