@@ -19,6 +19,15 @@ class Interface:
     def get_max_charging_rate(self):
         return self.simulator.test_case.DEFAULT_MAX_RATE
 
+    def get_allowable_pilot_signals(self):
+        return self.simulator.test_case.ALLOWABLE_RATES
+
+    def get_last_applied_pilot_signals(self):
+        return self.simulator.get_last_applied_pilot_signals()
+
+
+
+
     '''
     TODO: 
     - add a function to receive the pilot signals in the last iteration

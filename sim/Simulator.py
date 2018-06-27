@@ -11,6 +11,7 @@ class Simulator:
         self.scheduler = None
         self.schedules = {}
         self.max_iterations = max_iterations
+        self.last_applied_pilot_signals = {}
 
     def define_scheduler(self, scheduler):
         '''
@@ -37,6 +38,7 @@ class Simulator:
                 schedule_horizon = self.get_schedule_horizon()
             pilot_signals = self.get_current_pilot_signals()
             self.test_case.step(pilot_signals, self.iteration)
+            self.last_applied_pilot_signals = pilot_signals
             self.iteration = self.iteration + 1
 
 
@@ -55,6 +57,9 @@ class Simulator:
                 pilot = sch_list[iterations_since_last_update]
             pilot_signals[ev_id] = pilot
         return pilot_signals
+
+    def get_last_applied_pilot_signals(self):
+        return self.last_applied_pilot_signals
 
     def get_schedule_horizon(self):
         min_horizon = 0
