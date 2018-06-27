@@ -28,14 +28,17 @@ class Simulator:
 
         :return: None
         '''
+        schedule_horizon = 0
         while self.iteration < self.max_iterations:
-            if self.iteration >= self.last_schedule_update + 1:
+            if self.iteration >= self.last_schedule_update + schedule_horizon:
                 # call the scheduling algorithm
                 self.scheduler.run()
                 self.last_schedule_update = self.iteration
+                schedule_horizon = self.get_schedule_horizon()
             pilot_signals = self.get_current_pilot_signals()
             self.test_case.step(pilot_signals, self.iteration)
             self.iteration = self.iteration + 1
+
 
     def get_current_pilot_signals(self):
         '''
@@ -52,6 +55,13 @@ class Simulator:
                 pilot = sch_list[iterations_since_last_update]
             pilot_signals[ev_id] = pilot
         return pilot_signals
+
+    def get_schedule_horizon(self):
+        min_horizon = 0
+        for ev_id, sch_list in self.schedules.items():
+            if min_horizon > len(sch_list):
+                min_horizon = len(sch_list)
+        return min_horizon
 
     def update_schedules(self, new_schedule):
         '''
