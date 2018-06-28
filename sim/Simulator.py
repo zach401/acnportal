@@ -4,7 +4,7 @@ class Simulator:
     The Simulator class is the central class of the ACN research portal simulator.
     '''
 
-    def __init__(self, tc, max_iterations=1000):
+    def __init__(self, tc, max_iterations=3000):
         self.iteration = 0
         self.last_schedule_update = -1
         self.test_case = tc
@@ -30,7 +30,7 @@ class Simulator:
         :return: None
         '''
         schedule_horizon = 0
-        while self.iteration < self.max_iterations:
+        while self.iteration < self.test_case.last_departure:
             if self.iteration >= self.last_schedule_update + schedule_horizon:
                 # call the scheduling algorithm
                 self.scheduler.run()

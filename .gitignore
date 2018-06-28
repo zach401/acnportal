@@ -189,3 +189,4 @@ fabric.properties
 
 # Custom
 *.p
+*.pkl

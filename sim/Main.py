@@ -11,16 +11,25 @@ from Simulator import Simulator
 from GraphDrawer import GraphDrawer
 
 if __name__ == '__main__':
+    '''
     test_case = TestCase.generate_test_case_local('test_session.p',
                                                   datetime.strptime("21/11/06", "%d/%m/%y"),
                                                   datetime.strptime("21/11/22", "%d/%m/%y"))
+    '''
+    test_case = TestCase.generate_test_case_local('April_2018_Sessions.pkl',
+                                                  datetime.strptime("18/04/18", "%d/%m/%y"),
+                                                  datetime.strptime("20/04/18", "%d/%m/%y"))
+
+
     sim = Simulator(test_case)
     interface = Interface(sim)
-    scheduler = EarliestDeadlineFirstAlgorithm(interface)
+    scheduler = LeastLaxityFirstAlgorithm(interface)
     sim.define_scheduler(scheduler)
 
     sim.run()
 
     #print(sim.get_simulation_data())
     gd = GraphDrawer(sim)
-    gd.draw_charge_rates()
+    #gd.draw_charge_rates()
+    gd.draw_station_activity()
+    gd.draw_EV_behavioral_stats()

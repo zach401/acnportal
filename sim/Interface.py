@@ -25,16 +25,6 @@ class Interface:
     def get_last_applied_pilot_signals(self):
         return self.simulator.get_last_applied_pilot_signals()
 
-
-
-
-    '''
-    TODO: 
-    - add a function to receive the pilot signals in the last iteration
-    - add a function to receive the available charging rates of the system
-    '''
-
-
     def submit_schedules(self, schedules):
         """ Sends scheduled charging rates the the appropiate next step (simulator or influxDB).
 

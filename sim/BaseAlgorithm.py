@@ -77,12 +77,18 @@ class LeastLaxityFirstAlgorithm(BaseAlgorithm):
     def schedule(self, active_EVs):
         schedule = {}
         least_slack_EV = self.get_least_slack_EV(active_EVs)
+        last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
         for ev in active_EVs:
             charge_rates = []
+            last_pilot_signal = 0
+            if ev.session_id in last_applied_pilot_signals:
+                last_pilot_signal = last_applied_pilot_signals[ev.session_id]
             if ev.session_id == least_slack_EV.session_id:
-                charge_rates.append(self.max_charging_rate)
+                new_rate = self.increase_charging_rate(last_pilot_signal)
+                charge_rates.append(new_rate)
             else:
-                charge_rates.append(0)
+                new_rate = self.decrease_charging_rate(last_pilot_signal)
+                charge_rates.append(new_rate)
             schedule[ev.session_id] = charge_rates
         return schedule
 
