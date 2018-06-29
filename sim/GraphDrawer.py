@@ -14,6 +14,10 @@ class GraphDrawer:
         self.figures = self.figures + 1
 
     def draw_charge_rates(self):
+        '''
+        Simple graph to draw the charging rates for every EV against time
+        :return: None
+        '''
         plt.figure(self.figures)
         test_case_data = self.simulator.get_simulation_data()
         for ev_id, data in test_case_data.items():
@@ -29,6 +33,11 @@ class GraphDrawer:
         self.figures = self.figures + 1
 
     def draw_station_activity(self):
+        '''
+        Plots an activity plot of the test case. It shows the session activities at every charging station
+        in terms of present EVs and charge rates.
+        :return: None
+        '''
         plt.figure(self.figures)
         EVs = self.simulator.test_case.EVs
         charging_data = self.simulator.test_case.charging_data
@@ -60,7 +69,11 @@ class GraphDrawer:
 
     def plot_EV_behavioral_stats(self):
         '''
-        Plot the bahavior of the EVs during a test case
+        Plot the bahavior of the EVs during a test case.
+            Figure 1:
+                - A histogram showing the total number of EVs arriving and departing every hour of the day
+                - A histogram showing the distribution of energy demand for all the EVs in the test case.
+                - A histogram showing the distribution of stay duration of all the EVs in the test case.
         :return: None
         '''
         plt.figure(self.figures)
@@ -102,6 +115,15 @@ class GraphDrawer:
         self.figures = self.figures + 1
 
     def plot_algorithm_result_stats(self):
+        '''
+        Plots the results after the simulation has been run.
+            Figure 1:
+                - A histogram showing the distribution of how many percent the EV requested energy has been met.
+                - A histogram showing the the stay time for the EVs that did not finsh charging.
+            Figure 2:
+                - A line graph of the total current draw of the test case.
+        :return:
+        '''
         plt.figure(self.figures)
         energy_percentage = []
         stay_duration_not_finished_EVs = []
