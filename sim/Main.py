@@ -17,13 +17,13 @@ if __name__ == '__main__':
                                                   datetime.strptime("21/11/22", "%d/%m/%y"))
     '''
     test_case = TestCase.generate_test_case_local('April_2018_Sessions.pkl',
-                                                  datetime.strptime("18/04/18", "%d/%m/%y"),
-                                                  datetime.strptime("20/04/18", "%d/%m/%y"))
+                                                  datetime.strptime("12/04/18", "%d/%m/%y"),
+                                                  datetime.strptime("18/04/18", "%d/%m/%y"))
 
 
     sim = Simulator(test_case)
     interface = Interface(sim)
-    scheduler = LeastLaxityFirstAlgorithm(interface)
+    scheduler = EarliestDeadlineFirstAlgorithm(interface)
     sim.define_scheduler(scheduler)
 
     sim.run()
@@ -32,4 +32,5 @@ if __name__ == '__main__':
     gd = GraphDrawer(sim)
     #gd.draw_charge_rates()
     gd.draw_station_activity()
-    gd.draw_EV_behavioral_stats()
+    gd.plot_EV_behavioral_stats()
+    gd.plot_algorithm_result_stats()

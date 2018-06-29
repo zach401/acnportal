@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
+import math
 
 class GraphDrawer:
 
@@ -7,6 +8,10 @@ class GraphDrawer:
         self.simulator = simulator
         self.figures = 0
         plt.close('all')
+
+    def new_figure(self):
+        plt.figure(self.figures)
+        self.figures = self.figures + 1
 
     def draw_charge_rates(self):
         plt.figure(self.figures)
@@ -29,7 +34,7 @@ class GraphDrawer:
         charging_data = self.simulator.test_case.charging_data
         max_rate = self.simulator.test_case.DEFAULT_MAX_RATE
         for ev in EVs:
-            x, y = [ev.arrival, ev.departure], [ev.station_id, ev.station_id]
+            x, y = [ev.arrival, ev.departure - 1], [ev.station_id, ev.station_id]
             plt.plot(x, y, color='y', linewidth=7.0)
             if ev.session_id in charging_data:
                 start = ev.arrival
@@ -47,17 +52,24 @@ class GraphDrawer:
                         start = end
                         charge_rate = sample['charge_rate']
                     counter = counter + 1
+        plt.xlabel('Time')
+        plt.ylabel('Station')
+        plt.title('Charging station activity')
         plt.show()
         self.figures = self.figures + 1
 
-    def draw_EV_behavioral_stats(self):
+    def plot_EV_behavioral_stats(self):
+        '''
+        Plot the bahavior of the EVs during a test case
+        :return: None
+        '''
         plt.figure(self.figures)
-
         arrival_hours = []
         departure_hours = []
         requested_energy = []
         stay_durations = []
         for ev in self.simulator.test_case.EVs:
+            # - Gather data for arrivals and departures
             arrival_time = datetime.fromtimestamp(ev.arrival * 60 * self.simulator.test_case.period +
                                                   self.simulator.test_case.start_timestamp)
             departure_time = datetime.fromtimestamp(ev.departure * 60 * self.simulator.test_case.period +
@@ -66,7 +78,9 @@ class GraphDrawer:
             departure_time = departure_time - timedelta(hours=-7)
             arrival_hours.append(arrival_time.hour)
             departure_hours.append(departure_time.hour)
+            # - Gather data for requested energy
             requested_energy.append(ev.requested_energy / (60 / self.simulator.test_case.period))
+            # - Gather data for stay times
             stay_durations.append(((ev.departure - ev.arrival) * self.simulator.test_case.period) / 60)
 
         plt.subplot(1,3,1)
@@ -85,7 +99,40 @@ class GraphDrawer:
         plt.xlabel('Parking duration [hours]')
         plt.ylabel('Number of EVs')
         plt.title('Parking duration of the EVs using the ACN')
-
-
-
         self.figures = self.figures + 1
+
+    def plot_algorithm_result_stats(self):
+        plt.figure(self.figures)
+        energy_percentage = []
+        stay_duration_not_finished_EVs = []
+        total_current = [0] * math.ceil(self.simulator.test_case.last_departure)
+        for ev in self.simulator.test_case.EVs:
+            # - Calculate the percentage of requested energy met
+            percentage = (ev.energy_delivered / ev.requested_energy) * 100
+            if percentage > 100:
+                percentage = 100
+            energy_percentage.append(percentage)
+            # - Calculate the stay time of EVs not fully charged
+            if ev.remaining_demand > 0:
+                stay_duration_not_finished_EVs.append(((ev.departure - ev.arrival) * self.simulator.test_case.period) / 60)
+            # - Accumulate the total current used by all sessions
+            for sample in self.simulator.test_case.charging_data[ev.session_id]:
+                total_current[sample['time']] = total_current[sample['time']] + sample['charge_rate']
+
+
+        plt.subplot(1, 2, 1)
+        plt.hist(energy_percentage, bins=50, edgecolor='black', range=(0,100))
+        plt.xlabel('Percentage of requested energy received')
+        plt.ylabel('Number of EVs')
+        plt.title('How much of the EVs energy demand that was met')
+        plt.subplot(1, 2, 2)
+        plt.hist(stay_duration_not_finished_EVs, bins=20, edgecolor='black')
+        plt.xlabel('Stay duration [hours]')
+        plt.ylabel('Number of EVs not fully charged')
+        plt.title('Stay duration of EVs that did not get their requested energy fulfilled')
+        self.figures = self.figures + 1
+        self.new_figure()
+        plt.plot(total_current)
+        plt.xlabel('time')
+        plt.ylabel('Current draw [A]')
+        plt.title('Total current draw of the test case')

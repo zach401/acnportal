@@ -36,8 +36,8 @@ class BaseAlgorithm:
 
     def decrease_charging_rate(self, current_rate):
         new_index = self.allowable_rates.index(current_rate) - 1
-        if new_index < 0:
-            new_index = 0
+        if new_index < 1:
+            new_index = 1
         return self.allowable_rates[new_index]
 
 class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
