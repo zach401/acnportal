@@ -31,7 +31,7 @@ class Simulator:
         '''
         schedule_horizon = 0
         while self.iteration < self.test_case.last_departure:
-            if self.iteration >= self.last_schedule_update + schedule_horizon:
+            if self.iteration >= self.last_schedule_update + schedule_horizon or self.test_case.event_occured(self.iteration):
                 # call the scheduling algorithm
                 self.scheduler.run()
                 self.last_schedule_update = self.iteration

@@ -53,6 +53,13 @@ class TestCase:
     def get_charging_data(self):
         return self.charging_data
 
+
+    def event_occured(self, iteration):
+        for ev in self.EVs:
+            if ev.arrival == iteration or ev.departure == iteration:
+                return True
+        return False
+
     @property
     def last_departure(self):
         last_departure = 0

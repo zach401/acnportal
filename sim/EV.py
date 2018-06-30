@@ -1,5 +1,6 @@
 import numpy as np
 
+# Piecewise linear: https://www.sciencedirect.com/science/article/pii/S0378775316317396
 
 class EV:
     def __init__(self, arrive, depart, requested_energy, max_rate, station, session):
