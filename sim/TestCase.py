@@ -31,7 +31,7 @@ class TestCase:
         '''
         active_EVs = self.get_active_EVs(iteration)
         for ev in active_EVs:
-            charge_rate = ev.charge(pilot_signals[ev.session_id])
+            charge_rate = ev.charge(pilot_signals[ev.session_id], tail=True)
             self.charging_data[ev.session_id].append({'time': iteration, 'charge_rate': charge_rate})
 
 
@@ -72,13 +72,13 @@ class TestCase:
 
 
 
-def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, period=1, max_duration=720):
+def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, period=1, max_duration=3600):
     sessions = pickle.load(open(file_name, 'rb'))
     EVs = []
     uid = 0
     min_arrival = None
     for s in sessions:
-        if start <= s[0]-timedelta(hours=7) and s[0]-timedelta(hours=7) <= end and s[2] >= 0.5:
+        if start <= s[0]-timedelta(hours=7) and s[1]-timedelta(hours=7) <= end and s[2] >= 0.5:
             ev = EV(s[0].timestamp() // 60 // period,
                     (math.ceil(s[1].timestamp() / 60 / period)),
                     ((s[2] * (60/period) * 1e3) / voltage),

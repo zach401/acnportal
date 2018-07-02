@@ -18,7 +18,8 @@ if __name__ == '__main__':
     '''
     test_case = TestCase.generate_test_case_local('April_2018_Sessions.pkl',
                                                   datetime.strptime("18/04/18", "%d/%m/%y"),
-                                                  datetime.strptime("23/04/18", "%d/%m/%y"))
+                                                  datetime.strptime("20/04/18", "%d/%m/%y"),
+                                                  period=5)
 
 
     sim = Simulator(test_case)
