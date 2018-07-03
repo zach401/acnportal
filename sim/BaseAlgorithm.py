@@ -4,9 +4,7 @@ class BaseAlgorithm:
         Each new algorithm should override the schedule method.
     """
     def __init__(self, interface):
-        self.interface = interface
-        self.max_charging_rate = interface.get_max_charging_rate()
-        self.allowable_rates = interface.get_allowable_pilot_signals()
+        pass
 
     def schedule(self, active_EVs):
         """ Creates a schedule of charging rates for each EV in the active_EV list.
@@ -28,13 +26,24 @@ class BaseAlgorithm:
         schedules = self.schedule(active_EVs)
         self.interface.submit_schedules(schedules)
 
-    def increase_charging_rate(self, current_rate):
+    def interface_setup(self, interface):
+        self.interface = interface
+        self.max_charging_rate = interface.get_max_charging_rate()
+        self.allowable_rates = interface.get_allowable_pilot_signals()
+
+    def get_increased_charging_rate(self, current_rate):
         new_index = self.allowable_rates.index(current_rate) + 1
         if new_index >= len(self.allowable_rates):
             new_index = len(self.allowable_rates) - 1
         return self.allowable_rates[new_index]
 
-    def decrease_charging_rate(self, current_rate):
+    def get_decreased_charging_rate(self, current_rate):
+        new_index = self.allowable_rates.index(current_rate) - 1
+        if new_index < 0:
+            new_index = 0
+        return self.allowable_rates[new_index]
+
+    def get_decreased_charging_rate_nz(self, current_rate):
         new_index = self.allowable_rates.index(current_rate) - 1
         if new_index < 1:
             new_index = 1
@@ -42,8 +51,8 @@ class BaseAlgorithm:
 
 class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
 
-    def __init__(self, interface):
-        super().__init__(interface)
+    def __init__(self):
+        pass
 
     def schedule(self, active_EVs):
         schedule = {}
@@ -55,10 +64,10 @@ class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
             if ev.session_id in last_applied_pilot_signals:
                 last_pilot_signal = last_applied_pilot_signals[ev.session_id]
             if ev.session_id == earliest_EV.session_id:
-                new_rate = self.increase_charging_rate(last_pilot_signal)
+                new_rate = self.get_increased_charging_rate(last_pilot_signal)
                 charge_rates.append(new_rate)
             else:
-                new_rate = self.decrease_charging_rate(last_pilot_signal)
+                new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal)
                 charge_rates.append(new_rate)
             schedule[ev.session_id] = charge_rates
         return schedule
@@ -71,8 +80,9 @@ class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
         return earliest_EV
 
 class LeastLaxityFirstAlgorithm(BaseAlgorithm):
-    def __init__(self, interface):
-        super().__init__(interface)
+
+    def __init__(self):
+        pass
 
     def schedule(self, active_EVs):
         schedule = {}
@@ -84,10 +94,10 @@ class LeastLaxityFirstAlgorithm(BaseAlgorithm):
             if ev.session_id in last_applied_pilot_signals:
                 last_pilot_signal = last_applied_pilot_signals[ev.session_id]
             if ev.session_id == least_slack_EV.session_id:
-                new_rate = self.increase_charging_rate(last_pilot_signal)
+                new_rate = self.get_increased_charging_rate(last_pilot_signal)
                 charge_rates.append(new_rate)
             else:
-                new_rate = self.decrease_charging_rate(last_pilot_signal)
+                new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal)
                 charge_rates.append(new_rate)
             schedule[ev.session_id] = charge_rates
         return schedule

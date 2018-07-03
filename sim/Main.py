@@ -6,9 +6,8 @@ ACN research portal.
 import TestCase
 from datetime import datetime
 from BaseAlgorithm import *
-from Interface import Interface
-from Simulator import Simulator
 from GraphDrawer import GraphDrawer
+from ACNsim import ACNsim
 
 if __name__ == '__main__':
     '''
@@ -20,18 +19,14 @@ if __name__ == '__main__':
                                                   datetime.strptime("18/04/18", "%d/%m/%y"),
                                                   datetime.strptime("20/04/18", "%d/%m/%y"),
                                                   period=5)
+    scheduler = LeastLaxityFirstAlgorithm()
+    acnsim = ACNsim(test_case, scheduler)
 
-
-    sim = Simulator(test_case)
-    interface = Interface(sim)
-    scheduler = EarliestDeadlineFirstAlgorithm(interface)
-    sim.define_scheduler(scheduler)
-
-    sim.run()
+    charging_data = acnsim.run()
 
     #print(sim.get_simulation_data())
-    gd = GraphDrawer(sim)
+    gd = GraphDrawer(test_case)
     #gd.draw_charge_rates()
-    gd.draw_station_activity()
-    gd.plot_EV_behavioral_stats()
-    gd.plot_algorithm_result_stats()
+    gd.draw_station_activity(test_case)
+    gd.plot_EV_behavioral_stats(test_case)
+    gd.plot_algorithm_result_stats(test_case)

@@ -18,8 +18,7 @@ class TestCase:
         self.EVs = EVs
 
         self.charging_data = {}
-        for ev in EVs:
-            self.charging_data[ev.session_id] = []
+        self.clear_data()
 
     def step(self, pilot_signals, iteration):
         '''
@@ -60,6 +59,10 @@ class TestCase:
                 return True
         return False
 
+    def clear_data(self):
+        for ev in self.EVs:
+            self.charging_data[ev.session_id] = []
+
     @property
     def last_departure(self):
         last_departure = 0
@@ -67,9 +70,6 @@ class TestCase:
             if ev.departure > last_departure:
                 last_departure = ev.departure
         return last_departure
-
-
-
 
 
 def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, period=1, max_duration=3600):
