@@ -3,18 +3,19 @@ from datetime import datetime
 from BaseAlgorithm import *
 from Interface import Interface
 from Simulator import Simulator
+from GraphDrawer import GraphDrawer
 
 class ACNsim:
 
-    def __init__(self, test_case, scheduler):
-        self.test_case = test_case
-        self.scheduler = scheduler
+    def __init__(self):
+        pass
 
-    def run(self):
-        sim = Simulator(self.test_case)
+    def simulate(self, test_case, scheduler):
+        sim = Simulator(test_case)
         interface = Interface(sim)
-        self.scheduler.interface_setup(interface)
-        sim.define_scheduler(self.scheduler)
+        scheduler.interface_setup(interface)
+        sim.define_scheduler(scheduler)
 
-        charging_data = sim.run()
-        return charging_data
+        self.simulation_data = sim.run()
+        return self.simulation_data
+

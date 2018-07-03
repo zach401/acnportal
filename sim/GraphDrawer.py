@@ -31,7 +31,7 @@ class GraphDrawer:
         plt.show()
         self.figures = self.figures + 1
 
-    def draw_station_activity(self, test_case):
+    def plot_station_activity(self, test_case):
         '''
         Plots an activity plot of the test case. It shows the session activities at every charging station
         in terms of present EVs and charge rates.

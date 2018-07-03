@@ -44,6 +44,9 @@ class EV:
         self.energy_delivered += charge_rate
         return charge_rate
 
+    def reset(self):
+        self.energy_delivered = 0
+
     @property
     def remaining_demand(self):
         return self.requested_energy - self.energy_delivered

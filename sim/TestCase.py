@@ -62,6 +62,7 @@ class TestCase:
     def clear_data(self):
         for ev in self.EVs:
             self.charging_data[ev.session_id] = []
+            ev.reset()
 
     @property
     def last_departure(self):

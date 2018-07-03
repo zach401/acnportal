@@ -20,13 +20,11 @@ if __name__ == '__main__':
                                                   datetime.strptime("20/04/18", "%d/%m/%y"),
                                                   period=5)
     scheduler = LeastLaxityFirstAlgorithm()
-    acnsim = ACNsim(test_case, scheduler)
+    acnsim = ACNsim()
 
-    charging_data = acnsim.run()
+    acnsim.simulate(test_case, scheduler)
 
-    #print(sim.get_simulation_data())
     gd = GraphDrawer(test_case)
-    #gd.draw_charge_rates()
-    gd.draw_station_activity(test_case)
+    gd.plot_station_activity(test_case)
     gd.plot_EV_behavioral_stats(test_case)
     gd.plot_algorithm_result_stats(test_case)

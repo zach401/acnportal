@@ -41,7 +41,6 @@ class Simulator:
             self.last_applied_pilot_signals = pilot_signals
             self.iteration = self.iteration + 1
         charging_data = self.test_case.get_charging_data()
-        #self.test_case.clear_data()
         return charging_data
 
 
