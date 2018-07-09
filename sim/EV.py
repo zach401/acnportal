@@ -11,6 +11,7 @@ class EV:
         self.max_rate = max_rate
         self.station_id = station
         self.session_id = session
+        self.finishing_time = -1
 
 
     def charge(self, pilot, tail=False, noise_level=0):

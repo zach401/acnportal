@@ -117,3 +117,65 @@ class LeastLaxityFirstAlgorithm(BaseAlgorithm):
     def get_slack_time(self, EV):
         slack = (EV.requested_energy - EV.energy_delivered) / self.max_charging_rate
         return slack
+
+class MLLF(BaseAlgorithm):
+
+    def __init__(self):
+        self.queue = []
+        pass
+
+    def schedule(self, active_EVs):
+        preemtion = False
+        schedule = {}
+        current_time = self.interface.get_current_time()
+        last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
+        queue_length = 3
+
+        # check queue and remove non-active EVs
+        for session_id in self.queue:
+            found = False
+            for ev in active_EVs:
+                if ev.session_id == session_id:
+                    found = True
+                    break
+            if found == False:
+                self.queue.remove(session_id)
+
+        # choose the evs that should be evaluated for laxity and then sort them
+        ev_laxity = []
+        for ev in active_EVs:
+            if not preemtion and ev.session_id not in self.queue:
+                ev_info = {'session_id': ev.session_id, 'laxity': self.get_laxity(ev, current_time)}
+                ev_laxity.append(ev_info)
+
+        sorted_ev_laxity = self.sort_by_laxity(ev_laxity)
+
+        # add the EVs to the queue
+        ql = len(self.queue)
+        for i in range(min(queue_length - ql, len(sorted_ev_laxity))):
+            ev = sorted_ev_laxity[i]
+            self.queue.append(ev['session_id'])
+
+        # calculate the new pilot signals
+        for ev in active_EVs:
+            charge_rates = []
+            last_pilot_signal = 0
+            if ev.session_id in last_applied_pilot_signals:
+                last_pilot_signal = last_applied_pilot_signals[ev.session_id]
+            # determine pilot signal
+            if ev.session_id in self.queue:
+                new_rate = self.get_increased_charging_rate(last_pilot_signal)
+                charge_rates.append(new_rate)
+            else:
+                new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal)
+                charge_rates.append(new_rate)
+            schedule[ev.session_id] = charge_rates
+        return schedule
+
+
+    def get_laxity(self, EV, current_time):
+        laxity = (EV.departure - current_time) - (EV.requested_energy - EV.energy_delivered) / self.max_charging_rate
+        return laxity
+
+    def sort_by_laxity(self, list):
+        return sorted(list, key=lambda ev: ev['laxity'])

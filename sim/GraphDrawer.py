@@ -60,6 +60,7 @@ class GraphDrawer:
                         start = end
                         charge_rate = sample['charge_rate']
                     counter = counter + 1
+            plt.plot(ev.finishing_time, ev.station_id,'ko')
         plt.xlabel('Time')
         plt.ylabel('Station')
         plt.title('Charging station activity')

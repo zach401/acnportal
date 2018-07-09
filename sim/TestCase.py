@@ -31,7 +31,11 @@ class TestCase:
         active_EVs = self.get_active_EVs(iteration)
         for ev in active_EVs:
             charge_rate = ev.charge(pilot_signals[ev.session_id], tail=True)
-            self.charging_data[ev.session_id].append({'time': iteration, 'charge_rate': charge_rate})
+            self.charging_data[ev.session_id].append({'time': iteration,
+                                                      'charge_rate': charge_rate,
+                                                      'pilot_signal': pilot_signals[ev.session_id],
+                                                      'remaining_demand': ev.remaining_demand})
+            ev.finishing_time = iteration
 
 
     def get_active_EVs(self, iteration):

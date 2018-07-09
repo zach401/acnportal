@@ -19,7 +19,7 @@ if __name__ == '__main__':
                                                   datetime.strptime("18/04/18", "%d/%m/%y"),
                                                   datetime.strptime("20/04/18", "%d/%m/%y"),
                                                   period=5)
-    scheduler = LeastLaxityFirstAlgorithm()
+    scheduler = EarliestDeadlineFirstAlgorithm()
     acnsim = ACNsim()
 
     acnsim.simulate(test_case, scheduler)

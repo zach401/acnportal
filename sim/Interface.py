@@ -25,6 +25,9 @@ class Interface:
     def get_last_applied_pilot_signals(self):
         return self.simulator.get_last_applied_pilot_signals()
 
+    def get_current_time(self):
+        return self.simulator.iteration
+
     def submit_schedules(self, schedules):
         """ Sends scheduled charging rates the the appropiate next step (simulator or influxDB).
 
