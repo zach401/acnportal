@@ -158,3 +158,38 @@ class GraphDrawer:
         plt.xlabel('time')
         plt.ylabel('Current draw [A]')
         plt.title('Total current draw of the test case')
+
+    def plot_EV_stats(self, test_case, session_id):
+        data = test_case.charging_data[session_id]
+        time = []
+        pilot_signal = []
+        charge_rate = []
+        remaining_demand = []
+        for sample in data:
+            time.append(sample['time'])
+            pilot_signal.append(sample['pilot_signal'])
+            charge_rate.append(sample['charge_rate'])
+            remaining_demand.append(sample['remaining_demand'])
+        self.new_figure()
+        plt.subplot(2, 1, 1)
+        plt.plot(time, pilot_signal)
+        plt.plot(time, charge_rate)
+        plt.subplot(2, 1, 2)
+        plt.plot(time, remaining_demand)
+
+    def print_station_sessions(self, test_case):
+        stations = {}
+        for ev in test_case.EVs:
+            if ev.station_id in stations:
+                stations[ev.station_id].append(ev.session_id)
+            else:
+                stations[ev.station_id] = [ev.session_id]
+
+        sorted_stations = sorted(stations)
+        for station_id, sessions in sorted(stations.items()):
+            line = str(station_id) + ': '
+            for element in sessions:
+                line = line + str(element) + ', '
+            line = line + '\n'
+            print(line)
+

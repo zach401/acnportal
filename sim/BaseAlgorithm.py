@@ -129,7 +129,7 @@ class MLLF(BaseAlgorithm):
         schedule = {}
         current_time = self.interface.get_current_time()
         last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
-        queue_length = 3
+        queue_length = 5
 
         # check queue and remove non-active EVs
         for session_id in self.queue:

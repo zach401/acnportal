@@ -48,7 +48,7 @@ class TestCase:
         '''
         active_EVs = []
         for ev in self.EVs:
-            if ev.remaining_demand > 0 and ev.arrival <= iteration and ev.departure > iteration:
+            if ev.remaining_demand > 1 and ev.arrival <= iteration and ev.departure > iteration:
                 active_EVs.append(ev)
         return active_EVs
 
