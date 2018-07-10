@@ -133,18 +133,21 @@ class MLLF(BaseAlgorithm):
 
         # check queue and remove non-active EVs
         for session_id in self.queue:
-            found = False
-            for ev in active_EVs:
-                if ev.session_id == session_id:
-                    found = True
-                    break
-            if found == False:
-                self.queue.remove(session_id)
+            if preemtion:
+                self.queue = []
+            else:
+                found = False
+                for ev in active_EVs:
+                    if ev.session_id == session_id:
+                        found = True
+                        break
+                if found == False:
+                    self.queue.remove(session_id)
 
         # choose the evs that should be evaluated for laxity and then sort them
         ev_laxity = []
         for ev in active_EVs:
-            if not preemtion and ev.session_id not in self.queue:
+            if preemtion or (not preemtion and ev.session_id not in self.queue):
                 ev_info = {'session_id': ev.session_id, 'laxity': self.get_laxity(ev, current_time)}
                 ev_laxity.append(ev_info)
 

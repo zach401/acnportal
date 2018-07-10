@@ -20,12 +20,27 @@ class Interface:
         return self.simulator.test_case.DEFAULT_MAX_RATE
 
     def get_allowable_pilot_signals(self):
+        '''
+        Get the allowable pilot signal levels for a test case.
+
+        :return: (list) A list with the allowable pilot signal levels. The values are sorted in increasing order.
+        '''
         return self.simulator.test_case.ALLOWABLE_RATES
 
     def get_last_applied_pilot_signals(self):
+        '''
+        Get the pilot signals that were applied in the last iteration of the simulation
+
+        :return: (dict) A dictionary with the session ID as key and the pilot signal as value
+        '''
         return self.simulator.get_last_applied_pilot_signals()
 
     def get_current_time(self):
+        '''
+        Get the current time (the current iteration) of the simulator
+
+        :return: (int) the current iteration time in the simulator
+        '''
         return self.simulator.iteration
 
     def submit_schedules(self, schedules):
