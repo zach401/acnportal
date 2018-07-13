@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     acnsim.simulate(test_case, scheduler)
 
-    gd = GraphDrawer(test_case)
+    gd = GraphDrawer()
     gd.plot_station_activity(test_case)
     gd.plot_EV_behavioral_stats(test_case)
     gd.plot_algorithm_result_stats(test_case)

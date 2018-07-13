@@ -4,7 +4,7 @@ import math
 
 class GraphDrawer:
 
-    def __init__(self, simulator):
+    def __init__(self):
         self.figures = 0
         plt.close('all')
 
