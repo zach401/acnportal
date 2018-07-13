@@ -135,21 +135,20 @@ class MLLF(BaseAlgorithm):
     to allow new sessions with smaller laxity to interrupt the current sessions in the queue.
     '''
 
-    def __init__(self):
+    def __init__(self, preemption=False, queue_length=4):
         self.queue = []
-        pass
+        self.preemption = preemption
+        self.queue_length = queue_length
 
     def schedule(self, active_EVs):
-        preemtion = True
         schedule = {}
         current_time = self.interface.get_current_time()
         last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
-        queue_length = 5
 
         # No preemtion: check queue and remove non-active EVs
         # Preemtion: Always empty the queue
         for session_id in self.queue:
-            if preemtion:
+            if self.preemption:
                 self.queue = []
             else:
                 found = False
@@ -164,7 +163,7 @@ class MLLF(BaseAlgorithm):
         # If no preemtion the EVs already in the queue should be omitted.
         ev_laxity = []
         for ev in active_EVs:
-            if preemtion or (not preemtion and ev.session_id not in self.queue):
+            if self.preemption or (not self.preemption and ev.session_id not in self.queue):
                 ev_info = {'session_id': ev.session_id, 'laxity': self.get_laxity(ev, current_time)}
                 ev_laxity.append(ev_info)
 
@@ -172,7 +171,7 @@ class MLLF(BaseAlgorithm):
 
         # add the EVs to the queue
         ql = len(self.queue)
-        for i in range(min(queue_length - ql, len(sorted_ev_laxity))):
+        for i in range(min(self.queue_length - ql, len(sorted_ev_laxity))):
             ev = sorted_ev_laxity[i]
             self.queue.append(ev['session_id'])
 
