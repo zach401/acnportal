@@ -17,7 +17,7 @@ if __name__ == '__main__':
     '''
     test_case = TestCase.generate_test_case_local('April_2018_Sessions.pkl',
                                                   datetime.strptime("18/04/18", "%d/%m/%y"),
-                                                  datetime.strptime("20/04/18", "%d/%m/%y"),
+                                                  datetime.strptime("25/04/18", "%d/%m/%y"),
                                                   period=5)
     scheduler = MLLF()
     acnsim = ACNsim()
@@ -29,4 +29,4 @@ if __name__ == '__main__':
     gd.plot_EV_behavioral_stats(test_case)
     gd.plot_algorithm_result_stats(test_case)
     gd.print_station_sessions(test_case)
-    gd.plot_EV_stats(test_case, 88)
+    gd.plot_EV_stats(test_case, 102)

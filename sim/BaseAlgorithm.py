@@ -119,19 +119,35 @@ class LeastLaxityFirstAlgorithm(BaseAlgorithm):
         return slack
 
 class MLLF(BaseAlgorithm):
+    '''
+    Multicore Least Laxity First
+
+    This algorithm builds upon the Least Laxity scheduling algorithm but also includes
+    the possiblity to have many processes (sessions) running at the same time.
+    The algorithm calculates a laxity value of every session and then rank them according
+    to this value. The sessions with least laxity get moved to a queue which will get prioritized in
+    the charging schedule. A session in this queue will receive the maximum pilot signal. The other
+    sessions will get the minumum pilot signal
+
+    There is an option to select if the charging schedule will allow preemtion of the active queue.
+    If there is no preemtion allowed a session once entered the active queue will not leave until it
+    has finished charging. If preemtion is allowed the ready queue will get recalculated every iteration
+    to allow new sessions with smaller laxity to interrupt the current sessions in the queue.
+    '''
 
     def __init__(self):
         self.queue = []
         pass
 
     def schedule(self, active_EVs):
-        preemtion = False
+        preemtion = True
         schedule = {}
         current_time = self.interface.get_current_time()
         last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
         queue_length = 5
 
-        # check queue and remove non-active EVs
+        # No preemtion: check queue and remove non-active EVs
+        # Preemtion: Always empty the queue
         for session_id in self.queue:
             if preemtion:
                 self.queue = []
@@ -144,7 +160,8 @@ class MLLF(BaseAlgorithm):
                 if found == False:
                     self.queue.remove(session_id)
 
-        # choose the evs that should be evaluated for laxity and then sort them
+        # choose the EVs that should be evaluated for laxity and then sort them
+        # If no preemtion the EVs already in the queue should be omitted.
         ev_laxity = []
         for ev in active_EVs:
             if preemtion or (not preemtion and ev.session_id not in self.queue):

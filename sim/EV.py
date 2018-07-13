@@ -1,3 +1,5 @@
+from builtins import property
+
 import numpy as np
 
 # Piecewise linear: https://www.sciencedirect.com/science/article/pii/S0378775316317396
@@ -51,3 +53,7 @@ class EV:
     @property
     def remaining_demand(self):
         return self.requested_energy - self.energy_delivered
+
+    @property
+    def fully_charged(self):
+        return not (self.remaining_demand > 1)

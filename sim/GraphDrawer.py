@@ -60,7 +60,8 @@ class GraphDrawer:
                         start = end
                         charge_rate = sample['charge_rate']
                     counter = counter + 1
-            plt.plot(ev.finishing_time, ev.station_id,'ko')
+            if ev.finishing_time > 0:
+                plt.plot(ev.finishing_time, ev.station_id,'ko')
         plt.xlabel('Time')
         plt.ylabel('Station')
         plt.title('Charging station activity')
@@ -92,7 +93,7 @@ class GraphDrawer:
             arrival_hours.append(arrival_time.hour)
             departure_hours.append(departure_time.hour)
             # - Gather data for requested energy
-            requested_energy.append(ev.requested_energy / (60 / test_case.period))
+            requested_energy.append((ev.requested_energy / (60 / test_case.period))*test_case.VOLTAGE/1000)
             # - Gather data for stay times
             stay_durations.append(((ev.departure - ev.arrival) * test_case.period) / 60)
 
@@ -104,7 +105,7 @@ class GraphDrawer:
         plt.legend(['Arrivals', 'Departures'])
         plt.subplot(1, 3, 2)
         plt.hist(requested_energy, bins=15, edgecolor='black')
-        plt.xlabel('Requested energy [Ah]')
+        plt.xlabel('Requested energy [kWh]')
         plt.ylabel('Number of EVs')
         plt.title('Requested energy by the EVs using the ACN')
         plt.subplot(1, 3, 3)
@@ -135,11 +136,11 @@ class GraphDrawer:
                 percentage = 100
             energy_percentage.append(percentage)
             # - Calculate the stay time of EVs not fully charged
-            if ev.remaining_demand > 0:
+            if not ev.fully_charged:
                 stay_duration_not_finished_EVs.append(((ev.departure - ev.arrival) * test_case.period) / 60)
             # - Accumulate the total current used by all sessions
             for sample in test_case.charging_data[ev.session_id]:
-                total_current[sample['time']] = total_current[sample['time']] + sample['charge_rate']
+                total_current[sample['time']] = total_current[sample['time']] + sample['charge_rate']*test_case.VOLTAGE/1000
 
 
         plt.subplot(1, 2, 1)
@@ -156,8 +157,8 @@ class GraphDrawer:
         self.new_figure()
         plt.plot(total_current)
         plt.xlabel('time')
-        plt.ylabel('Current draw [A]')
-        plt.title('Total current draw of the test case')
+        plt.ylabel('Power [kW]')
+        plt.title('Power usage of the test case')
 
     def plot_EV_stats(self, test_case, session_id):
         data = test_case.charging_data[session_id]

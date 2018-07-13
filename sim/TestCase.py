@@ -35,7 +35,8 @@ class TestCase:
                                                       'charge_rate': charge_rate,
                                                       'pilot_signal': pilot_signals[ev.session_id],
                                                       'remaining_demand': ev.remaining_demand})
-            ev.finishing_time = iteration
+            if ev.fully_charged:
+                ev.finishing_time = iteration
 
 
     def get_active_EVs(self, iteration):
@@ -48,7 +49,7 @@ class TestCase:
         '''
         active_EVs = []
         for ev in self.EVs:
-            if ev.remaining_demand > 1 and ev.arrival <= iteration and ev.departure > iteration:
+            if not ev.fully_charged and ev.arrival <= iteration and ev.departure > iteration:
                 active_EVs.append(ev)
         return active_EVs
 
