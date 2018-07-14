@@ -1,2 +1,4 @@
-Writing an scheduling algorithm
-===============================
+.. _writing-a-scheduling-algorithm:
+
+Writing a scheduling algorithm
+==============================

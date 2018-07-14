@@ -93,7 +93,7 @@ Define scheduling algorithm
 ---------------------------
 
 The ``BaseAlgorithm`` module has already som predefined charging algorithms that can be used if no other algorithm has yet been
-defined. The section ## covers how to implement a custom scheduling algorithm which can be used in the same way as the ones
+defined. The section :ref:`writing-a-scheduling-algorithm` covers how to implement a custom scheduling algorithm which can be used in the same way as the ones
 covered in this section.
 
 The predefined scheduling algorithms are:
@@ -106,7 +106,7 @@ The predefined scheduling algorithms are:
 
 :MLLF:
     Multi Least Laxity First. An algorithm that ranks the EVs according to their laxity and then prioritizes the EVs with
-    least laxities. As the laxity ranking changes as the EVs charge there is an option to allow preemtion of the sessions, i.e.
+    least laxities. As the laxity ranking changes as the EVs charge there is an option to allow preemption of the sessions, i.e.
     an EV can interrupt another EV that is charging at full rate when it get a smaller laxity value.
 
 To define which algorithm to use, simply create an object of the corresponding scheduling class to be used:
@@ -147,6 +147,32 @@ An code example is presented below which will plot the charging activity for eac
 The corresponding output graphs are also included.
 
 .. code-block:: python
+
+    gd = GraphDrawer()
+    gd.plot_station_activity(test_case)
+    gd.plot_EV_behavioral_stats(test_case)
+
+
+Sample code
+-----------
+
+Below follows a script with all the commands used above which can be used as a reference for using the simulator.
+
+.. code-block:: python
+
+    from datetime import datetime
+    import TestCase
+    from BaseAlgorithm import *
+    from GraphDrawer import GraphDrawer
+    from ACNsim import ACNsim
+
+    test_case = TestCase.generate_test_case_local('sessions_data.pkl',
+                                                  datetime.strptime("18/04/18", "%d/%m/%y"),
+                                                  datetime.strptime("25/04/18", "%d/%m/%y"))
+    scheduler = MLLF(preemtion=True, queue_length=2)
+
+    acnsim = ACNsim()
+    acnsim.simulate(test_case, scheduler)
 
     gd = GraphDrawer()
     gd.plot_station_activity(test_case)

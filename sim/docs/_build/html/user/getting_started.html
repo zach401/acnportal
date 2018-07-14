@@ -16,7 +16,7 @@
     <script type="text/javascript" src="../_static/bizstyle.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Writing an scheduling algorithm" href="algorithm_guide.html" />
+    <link rel="next" title="Writing a scheduling algorithm" href="algorithm_guide.html" />
     <link rel="prev" title="User documentation" href="index.html" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <!--[if lt IE 9]>
@@ -30,7 +30,7 @@
           <a href="../genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="algorithm_guide.html" title="Writing an scheduling algorithm"
+          <a href="algorithm_guide.html" title="Writing a scheduling algorithm"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="index.html" title="User documentation"
@@ -50,6 +50,7 @@
 <li><a class="reference internal" href="#define-scheduling-algorithm">Define scheduling algorithm</a></li>
 <li><a class="reference internal" href="#run-simulation">Run simulation</a></li>
 <li><a class="reference internal" href="#analyze-simulation-result">Analyze simulation result</a></li>
+<li><a class="reference internal" href="#sample-code">Sample code</a></li>
 </ul>
 </li>
 </ul>
@@ -59,7 +60,7 @@
                         title="previous chapter">User documentation</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="algorithm_guide.html"
-                        title="next chapter">Writing an scheduling algorithm</a></p>
+                        title="next chapter">Writing a scheduling algorithm</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -192,7 +193,7 @@ file has data for the whole year the, only one week in April will be extracted i
 <div class="section" id="define-scheduling-algorithm">
 <h2>Define scheduling algorithm<a class="headerlink" href="#define-scheduling-algorithm" title="Permalink to this headline">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code> module has already som predefined charging algorithms that can be used if no other algorithm has yet been
-defined. The section ## covers how to implement a custom scheduling algorithm which can be used in the same way as the ones
+defined. The section <a class="reference internal" href="algorithm_guide.html#writing-a-scheduling-algorithm"><span class="std std-ref">Writing a scheduling algorithm</span></a> covers how to implement a custom scheduling algorithm which can be used in the same way as the ones
 covered in this section.</p>
 <p>The predefined scheduling algorithms are:</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -206,7 +207,7 @@ covered in this section.</p>
 <tr class="field-even field"><td>&#160;</td><td class="field-body">An algorithm that prioritize the EV with least laxity first. All other EVs are charged with minimum rate.</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">MLLF:</th><td class="field-body">Multi Least Laxity First. An algorithm that ranks the EVs according to their laxity and then prioritizes the EVs with
-least laxities. As the laxity ranking changes as the EVs charge there is an option to allow preemtion of the sessions, i.e.
+least laxities. As the laxity ranking changes as the EVs charge there is an option to allow preemption of the sessions, i.e.
 an EV can interrupt another EV that is charging at full rate when it get a smaller laxity value.</td>
 </tr>
 </tbody>
@@ -243,6 +244,29 @@ The corresponding output graphs are also included.</p>
 </pre></div>
 </div>
 </div>
+<div class="section" id="sample-code">
+<h2>Sample code<a class="headerlink" href="#sample-code" title="Permalink to this headline">¶</a></h2>
+<p>Below follows a script with all the commands used above which can be used as a reference for using the simulator.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span> <span class="nn">TestCase</span>
+<span class="kn">from</span> <span class="nn">BaseAlgorithm</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">GraphDrawer</span> <span class="kn">import</span> <span class="n">GraphDrawer</span>
+<span class="kn">from</span> <span class="nn">ACNsim</span> <span class="kn">import</span> <span class="n">ACNsim</span>
+
+<span class="n">test_case</span> <span class="o">=</span> <span class="n">TestCase</span><span class="o">.</span><span class="n">generate_test_case_local</span><span class="p">(</span><span class="s1">&#39;sessions_data.pkl&#39;</span><span class="p">,</span>
+                                              <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;18/04/18&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">/%m/%y&quot;</span><span class="p">),</span>
+                                              <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;25/04/18&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">/%m/%y&quot;</span><span class="p">))</span>
+<span class="n">scheduler</span> <span class="o">=</span> <span class="n">MLLF</span><span class="p">(</span><span class="n">preemtion</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">queue_length</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="n">acnsim</span> <span class="o">=</span> <span class="n">ACNsim</span><span class="p">()</span>
+<span class="n">acnsim</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">test_case</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+
+<span class="n">gd</span> <span class="o">=</span> <span class="n">GraphDrawer</span><span class="p">()</span>
+<span class="n">gd</span><span class="o">.</span><span class="n">plot_station_activity</span><span class="p">(</span><span class="n">test_case</span><span class="p">)</span>
+<span class="n">gd</span><span class="o">.</span><span class="n">plot_EV_behavioral_stats</span><span class="p">(</span><span class="n">test_case</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
 </div>
 
 
@@ -258,7 +282,7 @@ The corresponding output graphs are also included.</p>
           <a href="../genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="algorithm_guide.html" title="Writing an scheduling algorithm"
+          <a href="algorithm_guide.html" title="Writing a scheduling algorithm"
              >next</a> |</li>
         <li class="right" >
           <a href="index.html" title="User documentation"
