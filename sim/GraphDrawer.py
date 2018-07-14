@@ -42,8 +42,15 @@ class GraphDrawer:
         charging_data = test_case.charging_data
         max_rate = test_case.DEFAULT_MAX_RATE
         for ev in EVs:
-            x, y = [ev.arrival, ev.departure - 1], [ev.station_id, ev.station_id]
-            plt.plot(x, y, color='y', linewidth=7.0)
+            if ev.fully_charged:
+                x, y = [ev.arrival, ev.finishing_time], [ev.station_id, ev.station_id]
+                x2, y2 = [ev.finishing_time, ev.departure - 1], [ev.station_id, ev.station_id]
+                plt.plot(x, y, color='y', linewidth=7.0)
+                plt.plot(x2, y2, color='g', linewidth=7.0)
+            else:
+                x, y = [ev.arrival, ev.departure - 1], [ev.station_id, ev.station_id]
+                plt.plot(x, y, color='y', linewidth=7.0)
+
             if ev.session_id in charging_data:
                 start = ev.arrival
                 end = ev.departure
@@ -57,11 +64,11 @@ class GraphDrawer:
                         if sample['charge_rate'] != 0:
                             color = (charge_rate/max_rate)
                             plt.plot(xc, yc, color=([1.0, 0.0, 0.0, color]), linewidth=7.0)
-                        start = end
+                        start = end + 0.01
                         charge_rate = sample['charge_rate']
                     counter = counter + 1
-            if ev.finishing_time > 0:
-                plt.plot(ev.finishing_time, ev.station_id,'ko')
+            #if ev.finishing_time > 0:
+                #plt.plot(ev.finishing_time, ev.station_id,'ko')
         plt.xlabel('Time')
         plt.ylabel('Station')
         plt.title('Charging station activity')
