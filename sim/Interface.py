@@ -17,15 +17,15 @@ class Interface:
         return active_EVs
 
     def get_max_charging_rate(self):
-        return self.simulator.test_case.DEFAULT_MAX_RATE
+        return self.simulator.garage.max_rate
 
-    def get_allowable_pilot_signals(self):
+    def get_allowable_pilot_signals(self, station_id):
         '''
         Get the allowable pilot signal levels for a test case.
 
         :return: (list) A list with the allowable pilot signal levels. The values are sorted in increasing order.
         '''
-        return self.simulator.test_case.ALLOWABLE_RATES
+        return self.simulator.garage.get_allowable_rates(station_id)
 
     def get_last_applied_pilot_signals(self):
         '''

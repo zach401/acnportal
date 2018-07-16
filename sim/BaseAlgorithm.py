@@ -29,25 +29,24 @@ class BaseAlgorithm:
     def interface_setup(self, interface):
         self.interface = interface
         self.max_charging_rate = interface.get_max_charging_rate()
-        self.allowable_rates = interface.get_allowable_pilot_signals()
 
-    def get_increased_charging_rate(self, current_rate):
-        new_index = self.allowable_rates.index(current_rate) + 1
-        if new_index >= len(self.allowable_rates):
-            new_index = len(self.allowable_rates) - 1
-        return self.allowable_rates[new_index]
+    def get_increased_charging_rate(self, current_rate, allowable_rates):
+        new_index = allowable_rates.index(current_rate) + 1
+        if new_index >= len(allowable_rates):
+            new_index = len(allowable_rates) - 1
+        return allowable_rates[new_index]
 
-    def get_decreased_charging_rate(self, current_rate):
-        new_index = self.allowable_rates.index(current_rate) - 1
+    def get_decreased_charging_rate(self, current_rate, allowable_rates):
+        new_index = allowable_rates.index(current_rate) - 1
         if new_index < 0:
             new_index = 0
-        return self.allowable_rates[new_index]
+        return allowable_rates[new_index]
 
-    def get_decreased_charging_rate_nz(self, current_rate):
-        new_index = self.allowable_rates.index(current_rate) - 1
+    def get_decreased_charging_rate_nz(self, current_rate, allowable_rates):
+        new_index = allowable_rates.index(current_rate) - 1
         if new_index < 1:
             new_index = 1
-        return self.allowable_rates[new_index]
+        return allowable_rates[new_index]
 
 class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
 
@@ -61,13 +60,14 @@ class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
         for ev in active_EVs:
             charge_rates = []
             last_pilot_signal = 0
+            allowable_pilot_signals = self.interface.get_allowable_pilot_signals(ev.station_id)
             if ev.session_id in last_applied_pilot_signals:
                 last_pilot_signal = last_applied_pilot_signals[ev.session_id]
             if ev.session_id == earliest_EV.session_id:
-                new_rate = self.get_increased_charging_rate(last_pilot_signal)
+                new_rate = self.get_increased_charging_rate(last_pilot_signal, allowable_pilot_signals)
                 charge_rates.append(new_rate)
             else:
-                new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal)
+                new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal, allowable_pilot_signals)
                 charge_rates.append(new_rate)
             schedule[ev.session_id] = charge_rates
         return schedule
@@ -91,13 +91,14 @@ class LeastLaxityFirstAlgorithm(BaseAlgorithm):
         for ev in active_EVs:
             charge_rates = []
             last_pilot_signal = 0
+            allowable_pilot_signals = self.interface.get_allowable_pilot_signals(ev.station_id)
             if ev.session_id in last_applied_pilot_signals:
                 last_pilot_signal = last_applied_pilot_signals[ev.session_id]
             if ev.session_id == least_slack_EV.session_id:
-                new_rate = self.get_increased_charging_rate(last_pilot_signal)
+                new_rate = self.get_increased_charging_rate(last_pilot_signal, allowable_pilot_signals)
                 charge_rates.append(new_rate)
             else:
-                new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal)
+                new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal, allowable_pilot_signals)
                 charge_rates.append(new_rate)
             schedule[ev.session_id] = charge_rates
         return schedule
@@ -179,14 +180,15 @@ class MLLF(BaseAlgorithm):
         for ev in active_EVs:
             charge_rates = []
             last_pilot_signal = 0
+            allowable_pilot_signals = self.interface.get_allowable_pilot_signals(ev.station_id)
             if ev.session_id in last_applied_pilot_signals:
                 last_pilot_signal = last_applied_pilot_signals[ev.session_id]
             # determine pilot signal
             if ev.session_id in self.queue:
-                new_rate = self.get_increased_charging_rate(last_pilot_signal)
+                new_rate = self.get_increased_charging_rate(last_pilot_signal, allowable_pilot_signals)
                 charge_rates.append(new_rate)
             else:
-                new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal)
+                new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal, allowable_pilot_signals)
                 charge_rates.append(new_rate)
             schedule[ev.session_id] = charge_rates
         return schedule

@@ -4,10 +4,11 @@ class Simulator:
     The Simulator class is the central class of the ACN research portal simulator.
     '''
 
-    def __init__(self, tc, max_iterations=3000):
+    def __init__(self, garage, max_iterations=3000):
         self.iteration = 0
         self.last_schedule_update = -1
-        self.test_case = tc
+        #self.test_case = tc
+        self.garage = garage
         self.scheduler = None
         self.schedules = {}
         self.max_iterations = max_iterations
@@ -30,18 +31,18 @@ class Simulator:
         :return: None
         '''
         schedule_horizon = 0
-        while self.iteration < self.test_case.last_departure:
-            if self.iteration >= self.last_schedule_update + schedule_horizon or self.test_case.event_occured(self.iteration):
+        while self.iteration < self.garage.last_departure:
+            if self.iteration >= self.last_schedule_update + schedule_horizon or self.garage.event_occured(self.iteration):
                 # call the scheduling algorithm
                 self.scheduler.run()
                 self.last_schedule_update = self.iteration
                 schedule_horizon = self.get_schedule_horizon()
             pilot_signals = self.get_current_pilot_signals()
-            self.test_case.step(pilot_signals, self.iteration)
+            self.garage.update_state(pilot_signals, self.iteration)
             self.last_applied_pilot_signals = pilot_signals
             self.iteration = self.iteration + 1
-        charging_data = self.test_case.get_charging_data()
-        return charging_data
+        #charging_data = self.test_case.get_charging_data()
+        #return charging_data
 
 
     def get_current_pilot_signals(self):
@@ -86,14 +87,14 @@ class Simulator:
 
         :return:  (list) List of EVs currently plugged in and not finished charging
         '''
-        return self.test_case.get_active_EVs(self.iteration)
+        return self.garage.get_active_EVs(self.iteration)
 
     def get_simulation_data(self):
         '''
         Returns the data from the simulation.
         :return: (dict) Dictionary where key is the id of the EV and value is a list of dicts representing every sample.
         '''
-        return self.test_case.get_charging_data()
+        return self.garage.get_charging_data()
 
 
 

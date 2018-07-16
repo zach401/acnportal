@@ -3,7 +3,7 @@ from datetime import datetime
 from BaseAlgorithm import *
 from Interface import Interface
 from Simulator import Simulator
-from GraphDrawer import GraphDrawer
+from Garage import Garage
 
 class ACNsim:
 
@@ -11,7 +11,10 @@ class ACNsim:
         pass
 
     def simulate(self, test_case, scheduler):
-        sim = Simulator(test_case)
+        garage = Garage()
+        garage.set_test_case(test_case)
+
+        sim = Simulator(garage)
         interface = Interface(sim)
         scheduler.interface_setup(interface)
         sim.define_scheduler(scheduler)
