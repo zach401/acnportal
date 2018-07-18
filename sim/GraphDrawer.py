@@ -95,8 +95,8 @@ class GraphDrawer:
                                                   test_case.start_timestamp)
             departure_time = datetime.fromtimestamp(ev.departure * 60 * test_case.period +
                                                   test_case.start_timestamp)
-            arrival_time = arrival_time - timedelta(hours=-7)
-            departure_time = departure_time - timedelta(hours=-7)
+            arrival_time = arrival_time - timedelta(hours=7)
+            departure_time = departure_time - timedelta(hours=7)
             arrival_hours.append(arrival_time.hour)
             departure_hours.append(departure_time.hour)
             # - Gather data for requested energy

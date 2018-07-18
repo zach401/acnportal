@@ -105,4 +105,4 @@ def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, pe
         ev.departure -= min_arrival
         if ev.departure - ev.arrival > max_duration:
             ev.departure = ev.arrival + max_duration
-    return TestCase(EVs, start.timestamp(),voltage, max_rate, period)
+    return TestCase(EVs, (min_arrival*60*period),voltage, max_rate, period)

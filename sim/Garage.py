@@ -44,8 +44,8 @@ class Garage:
 
     def generate_test_case(self, start_dt, end_dt, period=1):
         # define start and end time
-        start = start_dt.timestamp()
-        end = end_dt.timestamp()
+        start = (start_dt + timedelta(hours=7)).timestamp()
+        end = (end_dt + timedelta(hours=7)).timestamp()
         # get the arrival rates
         arrival_rate_week, arrival_rate_weekends = self.get_arrival_rates()
         last_arrival = start
@@ -96,7 +96,7 @@ class Garage:
         for ev in EVs:
             ev.arrival -= min_arrival
             ev.departure -= min_arrival
-        self.test_case = TestCase(EVs, start, voltage, max_rate, period)
+        self.test_case = TestCase(EVs, (min_arrival*60*period), voltage, max_rate, period)
 
 
     def find_free_EVSE(self, EVs, current_time):
@@ -122,7 +122,7 @@ class Garage:
         arrival_rates_weekend = [0] * 24
         arrival_rates_week = [0] * 24
         for s in sessions:
-            arrival = s[0] - timedelta(hours=7)
+            arrival = s[0]# - timedelta(hours=7)
             hour_of_day = arrival.hour
             if arrival.weekday() < 5:
                 days_week.add(arrival.strftime('%y-%m-%d'))
