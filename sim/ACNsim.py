@@ -1,5 +1,5 @@
 import TestCase
-from datetime import datetime
+from datetime import datetime, timedelta
 from BaseAlgorithm import *
 from Interface import Interface
 from Simulator import Simulator
@@ -12,7 +12,10 @@ class ACNsim:
 
     def simulate(self, test_case, scheduler):
         garage = Garage()
-        garage.set_test_case(test_case)
+        #garage.set_test_case(test_case)
+        now = datetime.now()
+        today = now.replace(hour=0, minute=0, second=0)
+        garage.generate_test_case(today, today + timedelta(days=2))
 
         sim = Simulator(garage)
         interface = Interface(sim)
@@ -20,5 +23,5 @@ class ACNsim:
         sim.define_scheduler(scheduler)
 
         self.simulation_data = sim.run()
-        return self.simulation_data
+        return garage.test_case
 

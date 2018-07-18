@@ -17,11 +17,11 @@ if __name__ == '__main__':
     scheduler = MLLF()
     acnsim = ACNsim()
 
-    acnsim.simulate(test_case, scheduler)
+    test_case = acnsim.simulate(test_case, scheduler)
 
     gd = GraphDrawer()
     gd.plot_station_activity(test_case)
     gd.plot_EV_behavioral_stats(test_case)
     gd.plot_algorithm_result_stats(test_case)
     gd.print_station_sessions(test_case)
-    gd.plot_EV_stats(test_case, 102)
+    #gd.plot_EV_stats(test_case, 102)

@@ -13,6 +13,25 @@ for i in range(24):
 stay_duration_list = []
 energy_demand = []
 
+days_weekend = set()
+days_week = set()
+arrival_rates_weekend = [0]*24
+arrival_rates_week = [0]*24
+for s in sessions:
+    arrival = s[0]-timedelta(hours=7)
+    hour_of_day = arrival.hour
+    if arrival.weekday() < 5:
+        days_week.add(arrival.strftime('%y-%m-%d'))
+        arrival_rates_week[hour_of_day] = arrival_rates_week[hour_of_day] + 1
+    else:
+        days_weekend.add(arrival.strftime('%y-%m-%d'))
+        arrival_rates_weekend[hour_of_day] = arrival_rates_weekend[hour_of_day] + 1
+nbr_weekdays = len(days_week)
+nbr_weekenddays = len(days_weekend)
+arrival_rates_week[:] = [x / nbr_weekdays for x in arrival_rates_week]
+arrival_rates_weekend[:] = [x / nbr_weekenddays for x in arrival_rates_weekend]
+
+# stay duration
 for s in sessions:
     arrival = s[0]-timedelta(hours=7)
     departure = s[1]-timedelta(hours=7)
@@ -28,9 +47,13 @@ def normal_curve(x, mu, sigma):
 
 
 plt.figure(1)
+hourly_mean = []
+hourly_var = []
 for key, data in stay_duration_hours.items():
     mu = np.mean(data)
     sigma = np.var(data)
+    hourly_mean.append(mu)
+    hourly_var.append(sigma)
     if sigma == 0:
         sigma = 1
     x = key//6
