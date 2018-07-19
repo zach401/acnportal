@@ -85,8 +85,10 @@ def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, pe
     min_arrival = None
     for s in sessions:
         if start <= s[0]-timedelta(hours=7) and s[1]-timedelta(hours=7) <= end and s[2] >= 0.5:
-            ev = EV(s[0].timestamp() // 60 // period,
-                    (math.ceil(s[1].timestamp() / 60 / period)),
+            arrival = s[0]-timedelta(hours=7)
+            departure = s[1]-timedelta(hours=7)
+            ev = EV(arrival.timestamp() // 60 // period,
+                    (math.ceil(departure.timestamp() / 60 / period)),
                     ((s[2] * (60/period) * 1e3) / voltage),
                     max_rate,
                     s[3],

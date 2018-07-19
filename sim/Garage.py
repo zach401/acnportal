@@ -1,6 +1,7 @@
 from EVSE import EVSE
 from EV import EV
 from TestCase import TestCase
+from StatModel import StatModel
 import math
 import pickle
 from datetime import datetime, timedelta
@@ -13,6 +14,7 @@ class Garage:
     def __init__(self):
         self.EVSEs = []
         self.test_case = None
+        self.stat_model = StatModel()
 
         self.define_garage()
         pass
@@ -47,7 +49,6 @@ class Garage:
         start = (start_dt + timedelta(hours=7)).timestamp()
         end = (end_dt + timedelta(hours=7)).timestamp()
         # get the arrival rates
-        arrival_rate_week, arrival_rate_weekends = self.get_arrival_rates()
         last_arrival = start
         # specifications
         max_rate = 32
@@ -59,11 +60,8 @@ class Garage:
         while last_arrival < end:
             weekday = datetime.fromtimestamp(last_arrival).weekday()
             hour = datetime.fromtimestamp(last_arrival).hour
-            rate = 0
-            if weekday < 5:
-                rate = arrival_rate_week[hour] / 3600
-            else:
-                rate = arrival_rate_weekends[hour] / 3600
+            # get the rate used in the poisson process
+            rate = self.stat_model.get_arrival_rate(weekday, hour)
             rand = 1 - random.random() # a number in range (0, 1]
             next_full_hour = (datetime.fromtimestamp(last_arrival).replace(microsecond=0,second=0,minute=0) + timedelta(hours=1)).timestamp()
             next_arrival = last_arrival + 3601
@@ -74,18 +72,21 @@ class Garage:
                 last_arrival = next_full_hour
             else:
                 # an EV arrived
-                stay_duration = np.random.normal(400, math.sqrt(32000))
+                new_hour = datetime.fromtimestamp(next_arrival).hour
+                stay_duration = self.stat_model.get_stay_duration(new_hour)
+                #while stay_duration <= 0:
+                #    stay_duration = np.abs(np.random.normal(stay_hourly_mean[hour], math.sqrt(stay_hourly_var[hour])))
                 energy = 20
                 free_charging_station_id = self.find_free_EVSE(EVs, next_arrival // 60 // period)
                 if free_charging_station_id != None:
                     ev = EV(next_arrival // 60 // period,
-                            math.ceil((next_arrival + stay_duration * 60) / 60 / period),
+                            math.ceil((next_arrival + stay_duration * 3600) / 60 / period),
                             ((energy * (60 / period) * 1e3) / voltage),
                             max_rate,
                             free_charging_station_id,
                             uid)
-                    if ev.departure - ev.arrival < ev.requested_energy / ev.max_rate:
-                        ev.departure = math.ceil(ev.requested_energy / ev.max_rate) + ev.arrival
+                    #if ev.departure - ev.arrival < ev.requested_energy / ev.max_rate:
+                    #    ev.departure = math.ceil(ev.requested_energy / ev.max_rate) + ev.arrival
                     uid += 1
                     if not min_arrival:
                         min_arrival = ev.arrival
@@ -114,28 +115,6 @@ class Garage:
         else:
             return None
 
-
-    def get_arrival_rates(self):
-        sessions = pickle.load(open('April_2018_Sessions.pkl', 'rb'))
-        days_weekend = set()
-        days_week = set()
-        arrival_rates_weekend = [0] * 24
-        arrival_rates_week = [0] * 24
-        for s in sessions:
-            arrival = s[0]# - timedelta(hours=7)
-            hour_of_day = arrival.hour
-            if arrival.weekday() < 5:
-                days_week.add(arrival.strftime('%y-%m-%d'))
-                arrival_rates_week[hour_of_day] = arrival_rates_week[hour_of_day] + 1
-            else:
-                days_weekend.add(arrival.strftime('%y-%m-%d'))
-                arrival_rates_weekend[hour_of_day] = arrival_rates_weekend[hour_of_day] + 1
-        nbr_weekdays = len(days_week)
-        nbr_weekenddays = len(days_weekend)
-        arrival_rates_week[:] = [x / nbr_weekdays for x in arrival_rates_week]
-        arrival_rates_weekend[:] = [x / nbr_weekenddays for x in arrival_rates_weekend]
-        return arrival_rates_week, arrival_rates_weekend
-
     def update_state(self, pilot_signals, iteration):
         self.test_case.step(pilot_signals, iteration)
 
@@ -150,6 +129,8 @@ class Garage:
 
     def get_allowable_rates(self, station_id):
         EVSE = next((x for x in self.EVSEs if x.station_id == station_id), None)
+        if EVSE == None:
+            return [0]
         return EVSE.allowable_pilot_signals
 
     @property

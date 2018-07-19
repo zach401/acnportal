@@ -35,7 +35,7 @@ arrival_rates_weekend[:] = [x / nbr_weekenddays for x in arrival_rates_weekend]
 for s in sessions:
     arrival = s[0]-timedelta(hours=7)
     departure = s[1]-timedelta(hours=7)
-    stay_duration = (departure - arrival).total_seconds() / 60
+    stay_duration = (departure - arrival).total_seconds() / 3600
     #if stay_duration >= 0 and stay_duration <= 1000:
     stay_duration_hours[arrival.hour].append(stay_duration)
     stay_duration_list.append(stay_duration)
@@ -59,8 +59,8 @@ for key, data in stay_duration_hours.items():
     x = key//6
     y = key%6
     plt.subplot(4, 6, key + 1)
-    plt.hist(data, bins=20, range=(0, 2000), normed=True)
-    xx = np.linspace(0,2000)
+    plt.hist(data, bins=20, range=(0, 40), normed=True)
+    xx = np.linspace(0,40)
     yy = normal_curve(xx, mu, np.sqrt(sigma))
     plt.plot(xx, yy)
 
