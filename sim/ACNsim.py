@@ -10,13 +10,7 @@ class ACNsim:
     def __init__(self):
         pass
 
-    def simulate(self, test_case, scheduler):
-        garage = Garage()
-        #garage.set_test_case(test_case)
-        now = datetime.now()
-        today = now.replace(hour=0, minute=0, second=0)
-        garage.generate_test_case(today, today + timedelta(days=5))
-
+    def simulate(self, scheduler, garage):
         sim = Simulator(garage)
         interface = Interface(sim)
         scheduler.interface_setup(interface)
@@ -24,4 +18,14 @@ class ACNsim:
 
         self.simulation_data = sim.run()
         return garage.test_case
+
+    def simulate_real(self, scheduler, test_case):
+        garage = Garage()
+        garage.set_test_case(test_case)
+        return self.simulate(scheduler, garage)
+
+    def simulate_model(self, scheduler, start=datetime.now(), end=(datetime.now() + timedelta(days=2)), period=1):
+        garage = Garage()
+        garage.generate_test_case(start, end, period)
+        return self.simulate(scheduler, garage)
 

@@ -22,6 +22,7 @@ class Garage:
     def define_garage(self):
         '''
         Creates the EVSEs of the garage.
+
         :return: None
         '''
         self.EVSEs.append(EVSE('CA-148', 'AeroVironment'))
@@ -42,9 +43,31 @@ class Garage:
                 self.EVSEs.append(EVSE('CA-' + str(i), 'AeroVironment'))
 
     def set_test_case(self, test_case):
+        '''
+        Manually set test case for the simulation.
+        This function is used if the test case is generated from real data.
+
+        :param test_case: (TestCase) The manually generated test case
+        :return: None
+        '''
         self.test_case = test_case
 
     def generate_test_case(self, start_dt, end_dt, period=1):
+        '''
+        Function for auto-generating a test case. The test case is generated from a statistical model based
+        on real data from Caltech ACN.
+
+        - A Poisson process with variable rates depending of the time of day
+        is used to model the arrivals of the EVs to the garage.
+        - To model the stay durations, cumulative distribution functions are empirically derived from
+        the distributions for every hour of the day.
+        - To model the energy demand, cumulative distribution functions are also derived from the real data
+
+        :param start_dt: (datetime) When the simulation should start.
+        :param end_dt: (datetime) When the simulation should end.
+        :param period: (int) How many minutes one period should be.
+        :return: None
+        '''
         # define start and end time
         start = (start_dt + timedelta(hours=7)).timestamp()
         end = (end_dt + timedelta(hours=7)).timestamp()
@@ -56,7 +79,7 @@ class Garage:
         EVs = []
         uid = 0
         min_arrival = None
-        # loop until end time
+        # loop until end time. This loop is the base of the Poisson process.
         while last_arrival < end:
             weekday = datetime.fromtimestamp(last_arrival).weekday()
             hour = datetime.fromtimestamp(last_arrival).hour
@@ -85,8 +108,8 @@ class Garage:
                             max_rate,
                             free_charging_station_id,
                             uid)
-                    #if ev.departure - ev.arrival < ev.requested_energy / ev.max_rate:
-                    #    ev.departure = math.ceil(ev.requested_energy / ev.max_rate) + ev.arrival
+                    if ev.departure - ev.arrival < ev.requested_energy / ev.max_rate:
+                        ev.departure = math.ceil(ev.requested_energy / ev.max_rate) + ev.arrival
                     uid += 1
                     if not min_arrival:
                         min_arrival = ev.arrival
@@ -97,10 +120,19 @@ class Garage:
         for ev in EVs:
             ev.arrival -= min_arrival
             ev.departure -= min_arrival
+        EVs.sort(key=lambda x: x.station_id)
         self.test_case = TestCase(EVs, (min_arrival*60*period), voltage, max_rate, period)
 
 
     def find_free_EVSE(self, EVs, current_time):
+        '''
+        Function to determine which charging stations are empty.
+        Used in the function self.generate_test_case.
+
+        :param EVs: (list) List of the current EVs that has been added to the simulation
+        :param current_time: (int) The current time. Represented by the period number.
+        :return: (string) Station ID for an empty randomly selected EVSE
+        '''
         evse_collection = []
         for evse in self.EVSEs:
             evse_collection.append(evse.station_id)
@@ -118,8 +150,8 @@ class Garage:
     def update_state(self, pilot_signals, iteration):
         self.test_case.step(pilot_signals, iteration)
 
-    def event_occured(self, iteration):
-        return self.test_case.event_occured(iteration)
+    def event_occurred(self, iteration):
+        return self.test_case.event_occurred(iteration)
 
     def get_charging_data(self):
         return self.test_case.get_charging_data()
@@ -128,10 +160,20 @@ class Garage:
         return self.test_case.get_active_EVs(iteration)
 
     def get_allowable_rates(self, station_id):
-        EVSE = next((x for x in self.EVSEs if x.station_id == station_id), None)
-        if EVSE == None:
-            return [0]
-        return EVSE.allowable_pilot_signals
+        '''
+        Returns the allowable pilot level signals for the selected EVSE.
+        If no EVSE with the station_id presented is found, it will be created
+
+        :param station_id: (string) The station ID for the EVSE
+        :return: (list) List of allowable pilot signal levels for the EVSE
+        '''
+        evse = next((x for x in self.EVSEs if x.station_id == station_id), None)
+        if evse == None:
+            # If the EVSE was not found. Create it and add it to available stations
+            # default manufacturer is AeroVironment.
+            evse = EVSE(station_id, 'AeroVironment')
+            self.EVSEs.append(evse)
+        return evse.allowable_pilot_signals
 
     @property
     def last_departure(self):

@@ -11,13 +11,14 @@ from ACNsim import ACNsim
 
 if __name__ == '__main__':
     test_case = TestCase.generate_test_case_local('April_2018_Sessions.pkl',
-                                                  datetime.strptime("01/04/18", "%d/%m/%y"),
-                                                  datetime.strptime("30/04/18", "%d/%m/%y"),
+                                                  datetime.strptime("20/04/18", "%d/%m/%y"),
+                                                  datetime.strptime("25/04/18", "%d/%m/%y"),
                                                   period=5)
     scheduler = MLLF()
     acnsim = ACNsim()
 
-    test_case = acnsim.simulate(test_case, scheduler)
+    #test_case = acnsim.simulate_real(scheduler, test_case)
+    test_case = acnsim.simulate_model(scheduler, period=1)
 
     gd = GraphDrawer()
     gd.plot_station_activity(test_case)

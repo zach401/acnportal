@@ -9,10 +9,9 @@ class TestCase:
     TestCase represents a garage of charging stations over a certain simulation time.
     Stores the data of the test case when the simulation is run.
     '''
-    def __init__(self, EVs, start_timestamp,voltage=220, max_rate=32, period=1, allowable_rates=[0, 8, 16, 24, 32]):
+    def __init__(self, EVs, start_timestamp,voltage=220, max_rate=32, period=1):
         self.VOLTAGE = voltage
         self.DEFAULT_MAX_RATE = max_rate
-        self.ALLOWABLE_RATES = allowable_rates
         self.period = period
         self.start_timestamp = start_timestamp
         self.EVs = EVs
@@ -107,4 +106,5 @@ def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, pe
         ev.departure -= min_arrival
         if ev.departure - ev.arrival > max_duration:
             ev.departure = ev.arrival + max_duration
+    EVs.sort(key=lambda x: x.station_id)
     return TestCase(EVs, (min_arrival*60*period),voltage, max_rate, period)

@@ -32,7 +32,7 @@ class Simulator:
         '''
         schedule_horizon = 0
         while self.iteration < self.garage.last_departure:
-            if self.iteration >= self.last_schedule_update + schedule_horizon or self.garage.event_occured(self.iteration):
+            if self.iteration >= self.last_schedule_update + schedule_horizon or self.garage.event_occurred(self.iteration):
                 # call the scheduling algorithm
                 self.scheduler.run()
                 self.last_schedule_update = self.iteration
