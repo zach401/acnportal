@@ -76,7 +76,7 @@ class Garage:
                 stay_duration = self.stat_model.get_stay_duration(new_hour)
                 #while stay_duration <= 0:
                 #    stay_duration = np.abs(np.random.normal(stay_hourly_mean[hour], math.sqrt(stay_hourly_var[hour])))
-                energy = 20
+                energy = self.stat_model.get_energy_demand()
                 free_charging_station_id = self.find_free_EVSE(EVs, next_arrival // 60 // period)
                 if free_charging_station_id != None:
                     ev = EV(next_arrival // 60 // period,

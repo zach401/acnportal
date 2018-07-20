@@ -41,6 +41,22 @@ for s in sessions:
     stay_duration_list.append(stay_duration)
     energy_demand.append(s[2])
 
+stay_density_arrays = []
+stay_density_edges = []
+for key, data in stay_duration_hours.items():
+    hist, edges = np.histogram(data, bins=20, density=True)
+    density_array = []
+    i = 0
+    for h in np.nditer(hist):
+        new_value = h * (edges[i+1]-edges[i])
+        if i == 0:
+            density_array.append(new_value)
+        else:
+            density_array.append(density_array[i - 1] + new_value)
+        i = i + 1
+    stay_density_arrays.append(density_array)
+    stay_density_edges.append(edges)
+
 
 def normal_curve(x, mu, sigma):
     return 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(- (x - mu) ** 2 / (2 * sigma ** 2))
@@ -65,4 +81,15 @@ for key, data in stay_duration_hours.items():
     plt.plot(xx, yy)
 
 plt.figure(2)
+for i in range(24):
+    plt.subplot(4, 6, i + 1)
+    density_array = stay_density_arrays[i]
+    density_edges = stay_density_edges[i].tolist()
+    density_array.insert(0,0)
+    density_edges.insert(0,0)
+    density_edges.pop()
+    plt.step(density_edges, density_array)
+    plt.xlim((0,40))
+
+plt.figure(3)
 plt.scatter(stay_duration_list, energy_demand)
