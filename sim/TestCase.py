@@ -2,6 +2,7 @@ import pickle
 from datetime import datetime, timedelta
 import math
 from EV import EV
+from SimulationOutput import SimulationOutput, Event
 
 
 class TestCase:
@@ -16,6 +17,8 @@ class TestCase:
         self.start_timestamp = start_timestamp
         self.EVs = EVs
 
+        self.simulation_output = SimulationOutput(start_timestamp, period, max_rate, voltage)
+
         self.charging_data = {}
         self.clear_data()
 
@@ -29,13 +32,36 @@ class TestCase:
         '''
         active_EVs = self.get_active_EVs(iteration)
         for ev in active_EVs:
+            if ev.arrival == iteration:
+                self.simulation_output.submit_event(Event('ERROR',
+                                                          iteration,
+                                                          'EV arrived at station {}'.format(ev.station_id),
+                                                          ev.session_id))
             charge_rate = ev.charge(pilot_signals[ev.session_id], tail=True)
-            self.charging_data[ev.session_id].append({'time': iteration,
-                                                      'charge_rate': charge_rate,
-                                                      'pilot_signal': pilot_signals[ev.session_id],
-                                                      'remaining_demand': ev.remaining_demand})
+            if charge_rate > self.DEFAULT_MAX_RATE:
+                # If charging rate was exceeded output an error
+                self.simulation_output.submit_event(Event('ERROR',
+                                                          iteration,
+                                                          'Max charging rate exceeded: {}A'.format(charge_rate),
+                                                          ev.session_id))
+            if charge_rate == 0:
+                # If charging rate is set to 0A before EV finished charging output a warning
+                self.simulation_output.submit_event(Event('WARNING',
+                                                          iteration,
+                                                          'Charging rate is set to 0A before EV finished charging',
+                                                          ev.session_id))
+            sample = {'time': iteration,
+                      'charge_rate': charge_rate,
+                      'pilot_signal': pilot_signals[ev.session_id],
+                      'remaining_demand': ev.remaining_demand}
+            self.simulation_output.submit_charging_data(ev.session_id, sample)
+            self.charging_data[ev.session_id].append(sample)
             if ev.fully_charged:
                 ev.finishing_time = iteration
+                self.simulation_output.submit_event(Event('INFO',
+                                                          iteration,
+                                                          'EV finished charging at station {}'.format(ev.station_id),
+                                                          ev.session_id))
 
 
     def get_active_EVs(self, iteration):

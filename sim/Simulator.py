@@ -1,3 +1,4 @@
+from SimulationOutput import Event
 
 class Simulator:
     '''
@@ -30,6 +31,7 @@ class Simulator:
 
         :return: None
         '''
+        self.submit_event(Event('INFO', self.iteration, 'Simulation started'))
         schedule_horizon = 0
         while self.iteration < self.garage.last_departure:
             if self.iteration >= self.last_schedule_update + schedule_horizon or self.garage.event_occurred(self.iteration):
@@ -37,12 +39,17 @@ class Simulator:
                 self.scheduler.run()
                 self.last_schedule_update = self.iteration
                 schedule_horizon = self.get_schedule_horizon()
+                self.submit_event(Event('INFO', self.iteration, 'New charging schedule calculated'))
             pilot_signals = self.get_current_pilot_signals()
             self.garage.update_state(pilot_signals, self.iteration)
             self.last_applied_pilot_signals = pilot_signals
             self.iteration = self.iteration + 1
+        self.submit_event(Event('INFO', self.iteration, 'Simulation finished'))
         #charging_data = self.test_case.get_charging_data()
         #return charging_data
+
+    def submit_event(self, event):
+        self.garage.test_case.simulation_output.submit_event(event)
 
 
     def get_current_pilot_signals(self):

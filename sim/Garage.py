@@ -2,6 +2,7 @@ from EVSE import EVSE
 from EV import EV
 from TestCase import TestCase
 from StatModel import StatModel
+from SimulationOutput import Event
 import math
 import pickle
 from datetime import datetime, timedelta
@@ -9,12 +10,14 @@ import random
 from scipy.stats import norm
 import numpy as np
 
+
 class Garage:
 
     def __init__(self):
         self.EVSEs = []
         self.test_case = None
         self.stat_model = StatModel()
+        self.active_EVs = []
 
         self.define_garage()
         pass
@@ -148,7 +151,28 @@ class Garage:
             return None
 
     def update_state(self, pilot_signals, iteration):
+        evse_pilot_signals = {}
+        for ev in self.active_EVs:
+            new_pilot_signal = pilot_signals[ev.session_id]
+            evse_pilot_signals[ev.station_id] = (ev.session_id ,new_pilot_signal)
+        for evse in self.EVSEs:
+            if evse.station_id in evse_pilot_signals:
+                session_id = evse_pilot_signals[evse.station_id][0]
+                pilot_signal = evse_pilot_signals[evse.station_id][1]
+                change_ok = evse.change_pilot_signal(pilot_signal, session_id)
+                if not change_ok and session_id == evse.last_session_id:
+                    self.submit_event(Event('WARNING',
+                                            iteration,
+                                            'Wrong increase/decrease of pilot signal for station {}'.format(evse.station_id),
+                                            session_id))
+            else:
+                # if no EV is using this station
+                evse.last_applied_pilot_signal = 0
+
         self.test_case.step(pilot_signals, iteration)
+
+    def submit_event(self, event):
+        self.test_case.simulation_output.submit_event(event)
 
     def event_occurred(self, iteration):
         return self.test_case.event_occurred(iteration)
@@ -157,7 +181,8 @@ class Garage:
         return self.test_case.get_charging_data()
 
     def get_active_EVs(self, iteration):
-        return self.test_case.get_active_EVs(iteration)
+        self.active_EVs = self.test_case.get_active_EVs(iteration)
+        return self.active_EVs
 
     def get_allowable_rates(self, station_id):
         '''
