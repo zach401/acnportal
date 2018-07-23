@@ -1,6 +1,4 @@
-import TestCase
 from datetime import datetime, timedelta
-from BaseAlgorithm import *
 from Interface import Interface
 from Simulator import Simulator
 from Garage import Garage
