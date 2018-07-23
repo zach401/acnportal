@@ -16,8 +16,8 @@ class ACNsim:
         scheduler.interface_setup(interface)
         sim.define_scheduler(scheduler)
 
-        self.simulation_data = sim.run()
-        return garage.test_case
+        simulation_output = sim.run()
+        return simulation_output
 
     def simulate_real(self, scheduler, test_case):
         garage = Garage()

@@ -33,7 +33,7 @@ class TestCase:
         active_EVs = self.get_active_EVs(iteration)
         for ev in active_EVs:
             if ev.arrival == iteration:
-                self.simulation_output.submit_event(Event('ERROR',
+                self.simulation_output.submit_event(Event('INFO',
                                                           iteration,
                                                           'EV arrived at station {}'.format(ev.station_id),
                                                           ev.session_id))
@@ -81,6 +81,11 @@ class TestCase:
 
     def get_charging_data(self):
         return self.charging_data
+
+    def get_simulation_output(self):
+        self.simulation_output.submit_all_EVs(self.EVs)
+        self.simulation_output.last_departure = self.last_departure
+        return self.simulation_output
 
 
     def event_occured(self, iteration):

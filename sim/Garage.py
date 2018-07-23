@@ -72,8 +72,8 @@ class Garage:
         :return: None
         '''
         # define start and end time
-        start = (start_dt + timedelta(hours=7)).timestamp()
-        end = (end_dt + timedelta(hours=7)).timestamp()
+        start = (start_dt - timedelta(hours=7)).timestamp()
+        end = (end_dt - timedelta(hours=7)).timestamp()
         # get the arrival rates
         last_arrival = start
         # specifications
@@ -176,6 +176,11 @@ class Garage:
 
     def event_occurred(self, iteration):
         return self.test_case.event_occurred(iteration)
+
+    def get_simulation_output(self):
+        simulation_output = self.test_case.get_simulation_output()
+        simulation_output.submit_all_EVSEs(self.EVSEs)
+        return simulation_output
 
     def get_charging_data(self):
         return self.test_case.get_charging_data()

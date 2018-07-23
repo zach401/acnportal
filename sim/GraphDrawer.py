@@ -31,16 +31,16 @@ class GraphDrawer:
         plt.show()
         self.figures = self.figures + 1
 
-    def plot_station_activity(self, test_case):
+    def plot_station_activity(self, simulation_output):
         '''
         Plots an activity plot of the test case. It shows the session activities at every charging station
         in terms of present EVs and charge rates.
         :return: None
         '''
         plt.figure(self.figures)
-        EVs = test_case.EVs
-        charging_data = test_case.charging_data
-        max_rate = test_case.DEFAULT_MAX_RATE
+        EVs = simulation_output.EVs
+        charging_data = simulation_output.charging_data
+        max_rate = simulation_output.max_rate
         for ev in EVs:
             if ev.fully_charged:
                 x, y = [ev.arrival, ev.finishing_time], [ev.station_id, ev.station_id]
@@ -75,7 +75,7 @@ class GraphDrawer:
         plt.show()
         self.figures = self.figures + 1
 
-    def plot_EV_behavioral_stats(self, test_case):
+    def plot_EV_behavioral_stats(self, simulation_output):
         '''
         Plot the bahavior of the EVs during a test case.
             Figure 1:
@@ -89,20 +89,20 @@ class GraphDrawer:
         departure_hours = []
         requested_energy = []
         stay_durations = []
-        for ev in test_case.EVs:
+        for ev in simulation_output.EVs:
             # - Gather data for arrivals and departures
-            arrival_time = datetime.fromtimestamp(ev.arrival * 60 * test_case.period +
-                                                  test_case.start_timestamp)
-            departure_time = datetime.fromtimestamp(ev.departure * 60 * test_case.period +
-                                                  test_case.start_timestamp)
+            arrival_time = datetime.fromtimestamp(ev.arrival * 60 * simulation_output.period +
+                                                  simulation_output.start_timestamp)
+            departure_time = datetime.fromtimestamp(ev.departure * 60 * simulation_output.period +
+                                                    simulation_output.start_timestamp)
             arrival_time = arrival_time #- timedelta(hours=7)
             departure_time = departure_time #- timedelta(hours=7)
             arrival_hours.append(arrival_time.hour)
             departure_hours.append(departure_time.hour)
             # - Gather data for requested energy
-            requested_energy.append((ev.requested_energy / (60 / test_case.period))*test_case.VOLTAGE/1000)
+            requested_energy.append((ev.requested_energy / (60 / simulation_output.period))*simulation_output.voltage/1000)
             # - Gather data for stay times
-            stay_durations.append(((ev.departure - ev.arrival) * test_case.period) / 60)
+            stay_durations.append(((ev.departure - ev.arrival) * simulation_output.period) / 60)
 
         plt.subplot(1,3,1)
         plt.hist([arrival_hours, departure_hours], bins=24)
@@ -122,7 +122,7 @@ class GraphDrawer:
         plt.title('Parking duration of the EVs using the ACN')
         self.figures = self.figures + 1
 
-    def plot_algorithm_result_stats(self, test_case):
+    def plot_algorithm_result_stats(self, simulation_output):
         '''
         Plots the results after the simulation has been run.
             Figure 1:
@@ -135,8 +135,8 @@ class GraphDrawer:
         plt.figure(self.figures)
         energy_percentage = []
         stay_duration_not_finished_EVs = []
-        total_current = [0] * math.ceil(test_case.last_departure)
-        for ev in test_case.EVs:
+        total_current = [0] * math.ceil(simulation_output.last_departure)
+        for ev in simulation_output.EVs:
             # - Calculate the percentage of requested energy met
             percentage = (ev.energy_delivered / ev.requested_energy) * 100
             if percentage > 100:
@@ -144,10 +144,10 @@ class GraphDrawer:
             energy_percentage.append(percentage)
             # - Calculate the stay time of EVs not fully charged
             if not ev.fully_charged:
-                stay_duration_not_finished_EVs.append(((ev.departure - ev.arrival) * test_case.period) / 60)
+                stay_duration_not_finished_EVs.append(((ev.departure - ev.arrival) * simulation_output.period) / 60)
             # - Accumulate the total current used by all sessions
-            for sample in test_case.charging_data[ev.session_id]:
-                total_current[sample['time']] = total_current[sample['time']] + sample['charge_rate']*test_case.VOLTAGE/1000
+            for sample in simulation_output.charging_data[ev.session_id]:
+                total_current[sample['time']] = total_current[sample['time']] + sample['charge_rate']*simulation_output.voltage/1000
 
 
         plt.subplot(1, 2, 1)
@@ -167,8 +167,8 @@ class GraphDrawer:
         plt.ylabel('Power [kW]')
         plt.title('Power usage of the test case')
 
-    def plot_EV_stats(self, test_case, session_id):
-        data = test_case.charging_data[session_id]
+    def plot_EV_stats(self, simulation_output, session_id):
+        data = simulation_output.charging_data[session_id]
         time = []
         pilot_signal = []
         charge_rate = []
@@ -185,9 +185,9 @@ class GraphDrawer:
         plt.subplot(2, 1, 2)
         plt.plot(time, remaining_demand)
 
-    def print_station_sessions(self, test_case):
+    def print_station_sessions(self, simulation_output):
         stations = {}
-        for ev in test_case.EVs:
+        for ev in simulation_output.EVs:
             if ev.station_id in stations:
                 stations[ev.station_id].append(ev.session_id)
             else:
@@ -201,3 +201,9 @@ class GraphDrawer:
             line = line + '\n'
             print(line)
 
+    def create_time_axis(self, start_timestamp, nbr_of_periods, period):
+        time_array = []
+        for i in range(int(nbr_of_periods)):
+            time = datetime.fromtimestamp(start_timestamp + i * period)
+            time_array.append(time)
+        return time_array

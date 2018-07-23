@@ -45,8 +45,9 @@ class Simulator:
             self.last_applied_pilot_signals = pilot_signals
             self.iteration = self.iteration + 1
         self.submit_event(Event('INFO', self.iteration, 'Simulation finished'))
+        simulation_output = self.garage.get_simulation_output()
         #charging_data = self.test_case.get_charging_data()
-        #return charging_data
+        return simulation_output
 
     def submit_event(self, event):
         self.garage.test_case.simulation_output.submit_event(event)

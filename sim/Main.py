@@ -18,11 +18,11 @@ if __name__ == '__main__':
     acnsim = ACNsim()
 
     #test_case = acnsim.simulate_real(scheduler, test_case)
-    test_case = acnsim.simulate_model(scheduler, period=1)
+    simulation_output = acnsim.simulate_model(scheduler, period=1)
 
     gd = GraphDrawer()
-    gd.plot_station_activity(test_case)
-    gd.plot_EV_behavioral_stats(test_case)
-    gd.plot_algorithm_result_stats(test_case)
+    gd.plot_station_activity(simulation_output)
+    gd.plot_EV_behavioral_stats(simulation_output)
+    gd.plot_algorithm_result_stats(simulation_output)
     #gd.print_station_sessions(test_case)
     #gd.plot_EV_stats(test_case, 102)
