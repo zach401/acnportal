@@ -1,14 +1,11 @@
-from EVSE import EVSE
-from EV import EV
-from TestCase import TestCase
-from StatModel import StatModel
-from SimulationOutput import Event
+from acnlib.EVSE import EVSE
+from acnlib.EV import EV
+from acnlib.TestCase import TestCase
+from acnlib.StatModel import StatModel
+from acnlib.SimulationOutput import Event
 import math
-import pickle
 from datetime import datetime, timedelta
 import random
-from scipy.stats import norm
-import numpy as np
 
 
 class Garage:
@@ -55,7 +52,7 @@ class Garage:
         '''
         self.test_case = test_case
 
-    def generate_test_case(self, start_dt, end_dt, period=1):
+    def generate_test_case(self, start_dt, end_dt, period=1, voltage = 220, max_rate = 32):
         '''
         Function for auto-generating a test case. The test case is generated from a statistical model based
         on real data from Caltech ACN.
@@ -77,8 +74,6 @@ class Garage:
         # get the arrival rates
         last_arrival = start
         # specifications
-        max_rate = 32
-        voltage = 220
         EVs = []
         uid = 0
         min_arrival = None

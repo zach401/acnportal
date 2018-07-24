@@ -51,3 +51,6 @@ class Interface:
         """
         self.simulator.update_schedules(schedules)
         pass
+
+    def submit_log(self, text):
+        self.simulator.submit_log_event(text)

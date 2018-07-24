@@ -41,6 +41,17 @@
     </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Writing a scheduling algorithm</a><ul>
+<li><a class="reference internal" href="#the-basealgorithm-class">The <code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code> class</a></li>
+<li><a class="reference internal" href="#the-schedule-function">The <code class="docutils literal notranslate"><span class="pre">schedule</span></code> function</a></li>
+<li><a class="reference internal" href="#simulation-interface-api">Simulation interface (API)</a></li>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+</ul>
+
   <h4>Previous topic</h4>
   <p class="topless"><a href="getting_started.html"
                         title="previous chapter">Getting started</a></p>
@@ -76,6 +87,56 @@
             
   <div class="section" id="writing-a-scheduling-algorithm">
 <span id="id1"></span><h1>Writing a scheduling algorithm<a class="headerlink" href="#writing-a-scheduling-algorithm" title="Permalink to this headline">¶</a></h1>
+<p>Last updated: 07/23/2018, Daniel Johansson</p>
+<p>This section will describe how to write a scheduling algorithm for Electrical Vehicles charging
+at a charging network.</p>
+<p>When writing the scheduling algorithm nothing more than the API to the simulation will be know to the
+user. The API will provide resources for the user which will be used when implementing the scheduling algorithm.</p>
+<div class="section" id="the-basealgorithm-class">
+<h2>The <code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code> class<a class="headerlink" href="#the-basealgorithm-class" title="Permalink to this headline">¶</a></h2>
+<p>All scheduling algorithms for the ACN network must extend the class <code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code> to be able to run. The <code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code>
+class is known by the simulator, so for the user to be able to integrate code with the simulator he or she has to extend
+the <code class="docutils literal notranslate"><span class="pre">schedule</span></code> function of the base class.</p>
+<p>Along with the <code class="docutils literal notranslate"><span class="pre">schedule</span></code> function there exists some internal functions used by the simulator and also som utlity functions
+to make it easier to create the scheduling algorithm.</p>
+<p>The utility functions that can be used in the class extending the <code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code> class to define the scheduler are:</p>
+<dl class="docutils">
+<dt><code class="docutils literal notranslate"><span class="pre">self.get_increased_charging_rate(current_rate,</span> <span class="pre">allowable_rates)</span></code></dt>
+<dd>As many EVSEs has limited sets of pilot signal this function returns the next increased pilot signal
+depending of the current pilot signal applied at the charging station.</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">self.get_decreased_charging_rate(current_rate,</span> <span class="pre">allowable_rates)</span></code></dt>
+<dd>As many EVSEs has limited sets of pilot signal this function returns the next decreased pilot signal
+depending of the current pilot signal applied at the charging station.</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">self.get_decreased_charging_rate_nz(current_rate,</span> <span class="pre">allowable_rates)</span></code></dt>
+<dd>As many EVSEs has limited sets of pilot signal this function returns the next decreased pilot signal
+depending of the current pilot signal applied at the charging station. This function also prevents
+that the calculated pilot signal will be 0 as the pilot signal should never be set to 0 before the
+EV has finished charging.</dd>
+</dl>
+</div>
+<div class="section" id="the-schedule-function">
+<h2>The <code class="docutils literal notranslate"><span class="pre">schedule</span></code> function<a class="headerlink" href="#the-schedule-function" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt><code class="docutils literal notranslate"><span class="pre">schedule(active_EVs)</span></code></dt>
+<dd><p class="first">The schedule function provides the current <code class="docutils literal notranslate"><span class="pre">acitve_EVs</span></code> of the simulation which are available to apply a
+pilot signal to.</p>
+<p class="last">This function must return a dictionary with the <code class="docutils literal notranslate"><span class="pre">session_id</span></code> as keys and the calculated pilot signals as values</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="simulation-interface-api">
+<h2>Simulation interface (API)<a class="headerlink" href="#simulation-interface-api" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code> class provides the API to the simulator which provides information from the simulation that can
+be usefull when writing a scheduling algorithm. The interface object can be accessed by writing <code class="docutils literal notranslate"><span class="pre">self.interface</span></code>
+from the new scheduler class.</p>
+<p>For example, to access the maximum charging rate that is allowed in the simulation it is possible to write:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">max_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">get_max_charging_rate</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+</div>
 </div>
 
 

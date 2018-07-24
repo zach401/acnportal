@@ -1,4 +1,4 @@
-from SimulationOutput import Event
+from acnlib.SimulationOutput import Event
 
 class Simulator:
     '''
@@ -50,6 +50,10 @@ class Simulator:
         return simulation_output
 
     def submit_event(self, event):
+        self.garage.test_case.simulation_output.submit_event(event)
+
+    def submit_log_event(self, text):
+        event = Event('LOG', self.iteration, text, 'ALGORITHM')
         self.garage.test_case.simulation_output.submit_event(event)
 
 

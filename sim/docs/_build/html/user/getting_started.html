@@ -46,8 +46,8 @@
 <li><a class="reference internal" href="#">Getting started</a><ul>
 <li><a class="reference internal" href="#download">Download</a></li>
 <li><a class="reference internal" href="#importing-libraries">Importing libraries</a></li>
-<li><a class="reference internal" href="#creating-a-test-case">Creating a Test Case</a></li>
-<li><a class="reference internal" href="#define-scheduling-algorithm">Define scheduling algorithm</a></li>
+<li><a class="reference internal" href="#defining-the-scheduling-algorithm">Defining the scheduling algorithm</a></li>
+<li><a class="reference internal" href="#creating-a-test-scenario">Creating a Test Scenario</a></li>
 <li><a class="reference internal" href="#run-simulation">Run simulation</a></li>
 <li><a class="reference internal" href="#analyze-simulation-result">Analyze simulation result</a></li>
 <li><a class="reference internal" href="#sample-code">Sample code</a></li>
@@ -90,10 +90,10 @@
             
   <div class="section" id="getting-started">
 <h1>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
-<p>Last updated: 07/13/2018, Daniel Johansson</p>
+<p>Last updated: 07/23/2018, Daniel Johansson</p>
 <div class="section" id="download">
 <h2>Download<a class="headerlink" href="#download" title="Permalink to this headline">¶</a></h2>
-<p>Download the ACN simulator from Github either by cloning the repository or downloading the source code directly.</p>
+<p>Download the ACN simulator from Github either by cloning the repository or download the source code directly.</p>
 </div>
 <div class="section" id="importing-libraries">
 <h2>Importing libraries<a class="headerlink" href="#importing-libraries" title="Permalink to this headline">¶</a></h2>
@@ -101,18 +101,18 @@
 in this directory and import the necessary libraries and classes by including the following code section at the top of
 the script:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
-<span class="kn">import</span> <span class="nn">TestCase</span>
+<span class="kn">from</span> <span class="nn">acnlib</span> <span class="kn">import</span> <span class="n">TestCase</span>
 <span class="kn">from</span> <span class="nn">BaseAlgorithm</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">GraphDrawer</span> <span class="kn">import</span> <span class="n">GraphDrawer</span>
-<span class="kn">from</span> <span class="nn">ACNsim</span> <span class="kn">import</span> <span class="n">ACNsim</span>
+<span class="kn">from</span> <span class="nn">acnlib.GraphDrawer</span> <span class="kn">import</span> <span class="n">GraphDrawer</span>
+<span class="kn">from</span> <span class="nn">acnlib.ACNsim</span> <span class="kn">import</span> <span class="n">ACNsim</span>
 </pre></div>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">TestCase:</th><td class="field-body">A TestCase defines which data the simulation will operate on. It also holds the current status of the
-simulation and saves the data of the simulation.</td>
+<tr class="field-odd field"><th class="field-name">TestCase:</th><td class="field-body">A TestCase defines which data the simulator will operate on. It also holds the current status of the
+simulation and saves the data of the simulation before it is passed to the simulation output.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">BaseAlgorithm:</th><td class="field-body">All scheduling algorithms must extend the <code class="docutils literal notranslate"><span class="pre">BaseAlgotithm</span></code> class in order to be used in the simulation.
 The <code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code> class also includes resources usefull for the scheduling algorithms, e.g. the API used to
@@ -126,19 +126,52 @@ runs the simulation.</td>
 </tbody>
 </table>
 </div>
-<div class="section" id="creating-a-test-case">
-<h2>Creating a Test Case<a class="headerlink" href="#creating-a-test-case" title="Permalink to this headline">¶</a></h2>
-<p>A Test Case can be generated on either real data from Caltech’s ACN network, or from syntetic data from a statistical
+<div class="section" id="defining-the-scheduling-algorithm">
+<h2>Defining the scheduling algorithm<a class="headerlink" href="#defining-the-scheduling-algorithm" title="Permalink to this headline">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code> module has already som predefined charging algorithms that can be used if no other algorithm has yet been
+defined. The section <a class="reference internal" href="algorithm_guide.html#writing-a-scheduling-algorithm"><span class="std std-ref">Writing a scheduling algorithm</span></a> covers how to implement a custom scheduling algorithm which can be used in the same way as the ones
+covered in this section.</p>
+<p>The predefined scheduling algorithms are:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">EarliestDeadlineFirst:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">An algorithm that prioritize the EV that has to depart first. All other EVs are charged with minimum rate.</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">LeastLaxityFirst:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body">An algorithm that prioritize the EV with least laxity first. All other EVs are charged with minimum rate.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">MLLF:</th><td class="field-body">Multi Least Laxity First. An algorithm that ranks the EVs according to their laxity and then prioritizes the EVs with
+least laxities. As the laxity ranking changes as the EVs charge there is an option to allow preemption of the sessions, i.e.
+an EV can interrupt another EV that is charging at full rate when it get a smaller laxity value.</td>
+</tr>
+</tbody>
+</table>
+<p>To define which algorithm to use, simply create an object of the corresponding scheduling class to be used:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">scheduler</span> <span class="o">=</span> <span class="n">EarliestDeadlineFirst</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Some scheduling algorithms can also take arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">scheduler</span> <span class="o">=</span> <span class="n">MLLF</span><span class="p">(</span><span class="n">preemtion</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">queue_length</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="creating-a-test-scenario">
+<h2>Creating a Test Scenario<a class="headerlink" href="#creating-a-test-scenario" title="Permalink to this headline">¶</a></h2>
+<p>A test scenario can be generated on either real data from Caltech’s ACN network, or from synthetic data from a statistical
 model based on the data generated from the same network.</p>
 <p><strong>From real data:</strong></p>
-<p>When the <code class="docutils literal notranslate"><span class="pre">TestCase</span></code> module is imported the test case is generated by running the following piece of code:</p>
+<p>When the <code class="docutils literal notranslate"><span class="pre">TestCase</span></code> module is imported and the session data is available,
+the test case is generated by running the following piece of code:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">test_case</span> <span class="o">=</span> <span class="n">TestCase</span><span class="o">.</span><span class="n">generate_test_case_local</span><span class="p">(</span><span class="s1">&#39;sessions_data.pkl&#39;</span><span class="p">,</span>
                                               <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;18/04/18&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">/%m/%y&quot;</span><span class="p">),</span>
                                               <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;25/04/18&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">/%m/%y&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
-<p>The charging session data used for this test case is taken from the file <code class="docutils literal notranslate"><span class="pre">session_data.pkl</span></code>. The argument entered into
-the function <code class="docutils literal notranslate"><span class="pre">generate_test_case_local</span></code> is the name of the <a class="reference external" href="https://docs.python.org/3/library/pickle.html">pickle</a> file which is a serialized pyhton object.
+<p>The charging session data used for this test case is taken from the file <code class="docutils literal notranslate"><span class="pre">session_data.pkl</span></code>. The first argument entered into
+the function <code class="docutils literal notranslate"><span class="pre">generate_test_case_local</span></code> is the name of the <a class="reference external" href="https://docs.python.org/3/library/pickle.html">pickle</a> file which is a serialized pyhton object, located in the
+same folder as the simulation script.
 The data in the file is stored as a two dimensional array where every row holds information about an EV charging sesssion.
 Every row has four elements with index 0 to 3.</p>
 <table border="1" class="docutils">
@@ -179,68 +212,71 @@ file has data for the whole year the, only one week in April will be extracted i
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">voltage:</th><td class="field-body">Specifies the Grid voltage level. Standard value: 220 [V]</td>
+<tr class="field-odd field"><th class="field-name">voltage:</th><td class="field-body">Specifies the Grid voltage level. <code class="docutils literal notranslate"><span class="pre">Standard</span> <span class="pre">value:</span> <span class="pre">220</span> <span class="pre">[V]</span></code></td>
 </tr>
-<tr class="field-even field"><th class="field-name">max_rate:</th><td class="field-body">Specifies the maximum charging rate for one EV. Standard value: 32 [A]</td>
+<tr class="field-even field"><th class="field-name">max_rate:</th><td class="field-body">Specifies the maximum charging rate for one EV. <code class="docutils literal notranslate"><span class="pre">Standard</span> <span class="pre">value:</span> <span class="pre">32</span> <span class="pre">[A]</span></code></td>
 </tr>
-<tr class="field-odd field"><th class="field-name">period:</th><td class="field-body">Specifies the length of one iteration of the simulation. Standard value: 1 [minute]</td>
+<tr class="field-odd field"><th class="field-name">period:</th><td class="field-body">Specifies the length of one iteration of the simulation. <code class="docutils literal notranslate"><span class="pre">Standard</span> <span class="pre">value:</span> <span class="pre">1</span> <span class="pre">[minute]</span></code></td>
 </tr>
 </tbody>
 </table>
 <p><strong>From statistical model:</strong></p>
-<p>##### NOT YET IMPLEMENTED #####</p>
+<p>When using the statistical model to generate the test scenario there is no need for
+manually creating a test scenario as this is handled by the simulator.</p>
+<p>As the statistical model is data-driven there must be some session data present.
+Therefore a file named <code class="docutils literal notranslate"><span class="pre">session_data.pkl</span></code> with the pickled sessions must be present in the
+same folder as the simulation script for the model to be generated correctly.</p>
 </div>
-<div class="section" id="define-scheduling-algorithm">
-<h2>Define scheduling algorithm<a class="headerlink" href="#define-scheduling-algorithm" title="Permalink to this headline">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code> module has already som predefined charging algorithms that can be used if no other algorithm has yet been
-defined. The section <a class="reference internal" href="algorithm_guide.html#writing-a-scheduling-algorithm"><span class="std std-ref">Writing a scheduling algorithm</span></a> covers how to implement a custom scheduling algorithm which can be used in the same way as the ones
-covered in this section.</p>
-<p>The predefined scheduling algorithms are:</p>
+<div class="section" id="run-simulation">
+<h2>Run simulation<a class="headerlink" href="#run-simulation" title="Permalink to this headline">¶</a></h2>
+<p><strong>Real data:</strong></p>
+<p>When both the test case and the scheduler has been defined it is possible to run the simulation. To do this, simply define
+the simulator and then pass the test case and the scheduler objects to its simulation function:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acnsim</span> <span class="o">=</span> <span class="n">ACNsim</span><span class="p">()</span>
+<span class="n">simulation_output</span> <span class="o">=</span> <span class="n">acnsim</span><span class="o">.</span><span class="n">simulate_real</span><span class="p">(</span><span class="n">scheduler</span><span class="p">,</span> <span class="n">test_case</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will run the full simulation and the data will be stored in the TestCase object.</p>
+<p><strong>Statistical model:</strong></p>
+<p>To run the simulation on the statistical model the only thing that has to be
+defined is the scheduling algorithm. The code will look something like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acnsim</span> <span class="o">=</span> <span class="n">ACNsim</span><span class="p">()</span>
+<span class="n">simulation_output</span> <span class="o">=</span> <span class="n">acnsim</span><span class="o">.</span><span class="n">simulate_model</span><span class="p">(</span><span class="n">scheduler</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It is also possible to pass more arguments to the <code class="docutils literal notranslate"><span class="pre">simulate_model</span></code> function:</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name" colspan="2">EarliestDeadlineFirst:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body">An algorithm that prioritize the EV that has to depart first. All other EVs are charged with minimum rate.</td>
+<tr class="field-odd field"><th class="field-name">start:</th><td class="field-body">(datetime) Specifies what date the simulation will start. <code class="docutils literal notranslate"><span class="pre">Standard</span> <span class="pre">value:</span> <span class="pre">today</span></code></td>
 </tr>
-<tr class="field-even field"><th class="field-name" colspan="2">LeastLaxityFirst:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body">An algorithm that prioritize the EV with least laxity first. All other EVs are charged with minimum rate.</td>
+<tr class="field-even field"><th class="field-name">end:</th><td class="field-body">(datetime) Specifies what date the simulation will end. <code class="docutils literal notranslate"><span class="pre">Standard</span> <span class="pre">value:</span> <span class="pre">Two</span> <span class="pre">days</span> <span class="pre">from</span> <span class="pre">today</span></code></td>
 </tr>
-<tr class="field-odd field"><th class="field-name">MLLF:</th><td class="field-body">Multi Least Laxity First. An algorithm that ranks the EVs according to their laxity and then prioritizes the EVs with
-least laxities. As the laxity ranking changes as the EVs charge there is an option to allow preemption of the sessions, i.e.
-an EV can interrupt another EV that is charging at full rate when it get a smaller laxity value.</td>
+<tr class="field-odd field"><th class="field-name">voltage:</th><td class="field-body">Specifies the Grid voltage level. <code class="docutils literal notranslate"><span class="pre">Standard</span> <span class="pre">value:</span> <span class="pre">220</span> <span class="pre">[V]</span></code></td>
+</tr>
+<tr class="field-even field"><th class="field-name">max_rate:</th><td class="field-body">Specifies the maximum charging rate for one EV. <code class="docutils literal notranslate"><span class="pre">Standard</span> <span class="pre">value:</span> <span class="pre">32</span> <span class="pre">[A]</span></code></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">period:</th><td class="field-body">Specifies the length of one iteration of the simulation. <code class="docutils literal notranslate"><span class="pre">Standard</span> <span class="pre">value:</span> <span class="pre">1</span> <span class="pre">[minute]</span></code></td>
 </tr>
 </tbody>
 </table>
-<p>To define which algorithm to use, simply create an object of the corresponding scheduling class to be used:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">scheduler</span> <span class="o">=</span> <span class="n">EarliestDeadlineFirst</span><span class="p">()</span>
-</pre></div>
-</div>
-<p>Some scheduling algorithms can also take arguments:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">scheduler</span> <span class="o">=</span> <span class="n">MLLF</span><span class="p">(</span><span class="n">preemtion</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">queue_length</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="run-simulation">
-<h2>Run simulation<a class="headerlink" href="#run-simulation" title="Permalink to this headline">¶</a></h2>
-<p>When both the test case and the scheduler has been defined it is possible to run the simulation. To do this, simply define
-the simulator and then pass the test case and the scheduler objects to its simulation function:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">acnsim</span> <span class="o">=</span> <span class="n">ACNsim</span><span class="p">()</span>
-<span class="n">acnsim</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">test_case</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>This will run the full simulation and the data will be stored in the TestCase object.</p>
+<p><strong>Result:</strong></p>
+<p>When running the simulation functions the result of the simulation is returned
+as a SimulationOutput object. This object holds all relevant data of the simulation
+and is used when analyzing and visualizing the simulation results.</p>
 </div>
 <div class="section" id="analyze-simulation-result">
 <h2>Analyze simulation result<a class="headerlink" href="#analyze-simulation-result" title="Permalink to this headline">¶</a></h2>
-<p>When the simulation has finished the simulation data are stored in the TestCase object.</p>
+<p>When the simulation has finished the simulation data is stored in the SimulationOutput object.</p>
 <p>To see the result from the simulation it is possible to pass this object to the <code class="docutils literal notranslate"><span class="pre">GraphDrawer</span></code> library. There are several
 functions that can be used to view different aspects of the simulation. The available functions are described here.</p>
-<p>An code example is presented below which will plot the charging activity for each station during 3 days along the algorithm performance.
+<p>An code example is presented below which will plot the charging activity for each station, the EV behavior and the algorithm performance.
 The corresponding output graphs are also included.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">gd</span> <span class="o">=</span> <span class="n">GraphDrawer</span><span class="p">()</span>
-<span class="n">gd</span><span class="o">.</span><span class="n">plot_station_activity</span><span class="p">(</span><span class="n">test_case</span><span class="p">)</span>
-<span class="n">gd</span><span class="o">.</span><span class="n">plot_EV_behavioral_stats</span><span class="p">(</span><span class="n">test_case</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">gd</span> <span class="o">=</span> <span class="n">GraphDrawer</span><span class="p">(</span><span class="n">simulation_output</span><span class="p">)</span>
+<span class="n">gd</span><span class="o">.</span><span class="n">plot_station_activity</span><span class="p">()</span>
+<span class="n">gd</span><span class="o">.</span><span class="n">plot_EV_behavioral_stats</span><span class="p">()</span>
+<span class="n">gd</span><span class="o">.</span><span class="n">plot_algorithm_result_stats</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -248,22 +284,19 @@ The corresponding output graphs are also included.</p>
 <h2>Sample code<a class="headerlink" href="#sample-code" title="Permalink to this headline">¶</a></h2>
 <p>Below follows a script with all the commands used above which can be used as a reference for using the simulator.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
-<span class="kn">import</span> <span class="nn">TestCase</span>
+<span class="kn">from</span> <span class="nn">acnlib</span> <span class="kn">import</span> <span class="n">TestCase</span>
 <span class="kn">from</span> <span class="nn">BaseAlgorithm</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">GraphDrawer</span> <span class="kn">import</span> <span class="n">GraphDrawer</span>
-<span class="kn">from</span> <span class="nn">ACNsim</span> <span class="kn">import</span> <span class="n">ACNsim</span>
+<span class="kn">from</span> <span class="nn">acnlib.GraphDrawer</span> <span class="kn">import</span> <span class="n">GraphDrawer</span>
+<span class="kn">from</span> <span class="nn">acnlib.ACNsim</span> <span class="kn">import</span> <span class="n">ACNsim</span>
 
-<span class="n">test_case</span> <span class="o">=</span> <span class="n">TestCase</span><span class="o">.</span><span class="n">generate_test_case_local</span><span class="p">(</span><span class="s1">&#39;sessions_data.pkl&#39;</span><span class="p">,</span>
-                                              <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;18/04/18&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">/%m/%y&quot;</span><span class="p">),</span>
-                                              <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="s2">&quot;25/04/18&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">/%m/%y&quot;</span><span class="p">))</span>
-<span class="n">scheduler</span> <span class="o">=</span> <span class="n">MLLF</span><span class="p">(</span><span class="n">preemtion</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">queue_length</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-
+<span class="n">scheduler</span> <span class="o">=</span> <span class="n">MLLF</span><span class="p">()</span>
 <span class="n">acnsim</span> <span class="o">=</span> <span class="n">ACNsim</span><span class="p">()</span>
-<span class="n">acnsim</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">test_case</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span>
+<span class="n">simulation_output</span> <span class="o">=</span> <span class="n">acnsim</span><span class="o">.</span><span class="n">simulate_model</span><span class="p">(</span><span class="n">scheduler</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-<span class="n">gd</span> <span class="o">=</span> <span class="n">GraphDrawer</span><span class="p">()</span>
-<span class="n">gd</span><span class="o">.</span><span class="n">plot_station_activity</span><span class="p">(</span><span class="n">test_case</span><span class="p">)</span>
-<span class="n">gd</span><span class="o">.</span><span class="n">plot_EV_behavioral_stats</span><span class="p">(</span><span class="n">test_case</span><span class="p">)</span>
+<span class="n">gd</span> <span class="o">=</span> <span class="n">GraphDrawer</span><span class="p">(</span><span class="n">simulation_output</span><span class="p">)</span>
+<span class="n">gd</span><span class="o">.</span><span class="n">plot_station_activity</span><span class="p">()</span>
+<span class="n">gd</span><span class="o">.</span><span class="n">plot_EV_behavioral_stats</span><span class="p">()</span>
+<span class="n">gd</span><span class="o">.</span><span class="n">plot_algorithm_result_stats</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
