@@ -53,4 +53,11 @@ class Interface:
         pass
 
     def submit_log(self, text):
+        '''
+        Submits a text log to the simulator. This can be useful when debugging the custom
+        scheduling algorithm
+
+        :param text: (string) String that should be logged
+        :return: None
+        '''
         self.simulator.submit_log_event(text)

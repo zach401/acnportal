@@ -59,5 +59,8 @@ For example, to access the maximum charging rate that is allowed in the simulati
 
     max_rate = self.interface.get_max_charging_rate()
 
+More information about the API and what resources are available are described here.
+
 Examples
 --------
+

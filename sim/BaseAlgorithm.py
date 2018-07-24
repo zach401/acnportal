@@ -7,11 +7,12 @@ class BaseAlgorithm:
         pass
 
     def schedule(self, active_EVs):
-        """ Creates a schedule of charging rates for each EV in the active_EV list.
-            NOT IMPLEMENTED IN BaseAlgorithm!!!
+        """
+        Creates a schedule of charging rates for each EV in the active_EV list.
+        NOT IMPLEMENTED IN BaseAlgorithm.
 
         :param active_EVs: List of EVs who should be scheduled
-        :return: A dictionary with key: EV id and value: schedule of charging rates as a list.
+        :return: A dictionary with key: session_id and value: schedule of charging rates as a list.
         """
 
         schedules = {}
@@ -27,23 +28,54 @@ class BaseAlgorithm:
         self.interface.submit_schedules(schedules)
 
     def interface_setup(self, interface):
-        self.interface = interface
-        self.max_charging_rate = interface.get_max_charging_rate()
+        '''
+        Used internaly by the simulator to set up the required dependencies to provide the resources needed
+        to write a scheduling algorithm.
 
-    def get_increased_charging_rate(self, current_rate, allowable_rates):
-        new_index = allowable_rates.index(current_rate) + 1
+        :param interface: The simulation API
+        :return: None
+        '''
+        self.interface = interface
+
+    def get_increased_charging_rate(self, current_pilot_signal, allowable_rates):
+        '''
+        As many EVSEs has limited sets of pilot signal this function returns the next increased pilot
+        signal depending of the current pilot signal applied at the charging station.
+
+        :param current_pilot_signal: (float) The current pilot signal for the session
+        :param allowable_rates: (list) List of numbers describing the allowable pilot signal levels.
+        :return: (float) The next pilot signal
+        '''
+        new_index = allowable_rates.index(current_pilot_signal) + 1
         if new_index >= len(allowable_rates):
             new_index = len(allowable_rates) - 1
         return allowable_rates[new_index]
 
-    def get_decreased_charging_rate(self, current_rate, allowable_rates):
-        new_index = allowable_rates.index(current_rate) - 1
+    def get_decreased_charging_rate(self, current_pilot_signal, allowable_rates):
+        '''
+        As many EVSEs has limited sets of pilot signal this function returns the next decreased pilot signal
+        depending of the current pilot signal applied at the charging station.
+
+        :param current_pilot_signal: (float) The current pilot signal for the session
+        :param allowable_rates: (list) List of numbers describing the allowable pilot signal levels.
+        :return: (float) The next pilot signal
+        '''
+        new_index = allowable_rates.index(current_pilot_signal) - 1
         if new_index < 0:
             new_index = 0
         return allowable_rates[new_index]
 
-    def get_decreased_charging_rate_nz(self, current_rate, allowable_rates):
-        new_index = allowable_rates.index(current_rate) - 1
+    def get_decreased_charging_rate_nz(self, current_pilot_signal, allowable_rates):
+        '''
+        As many EVSEs has limited sets of pilot signal this function returns the next decreased pilot signal
+        depending of the current pilot signal applied at the charging station. This function also prevents that
+        the calculated pilot signal will be 0 as the pilot signal should never be set to 0 before the EV has finished charging.
+
+        :param current_pilot_signal: (float) The current pilot signal for the session
+        :param allowable_rates: (list) List of numbers describing the allowable pilot signal levels.
+        :return: (float) The next pilot signal
+        '''
+        new_index = allowable_rates.index(current_pilot_signal) - 1
         if new_index < 1:
             new_index = 1
         return allowable_rates[new_index]
@@ -82,11 +114,12 @@ class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
 class LeastLaxityFirstAlgorithm(BaseAlgorithm):
 
     def __init__(self):
-        pass
+        self.max_charging_rate = self.max_charging_rate = self.interface.get_max_charging_rate()
 
     def schedule(self, active_EVs):
         schedule = {}
-        least_slack_EV = self.get_least_slack_EV(active_EVs)
+        current_time = self.interface.get_current_time()
+        least_slack_EV = self.get_least_laxity_EV(active_EVs, current_time)
         last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
         for ev in active_EVs:
             charge_rates = []
@@ -105,23 +138,23 @@ class LeastLaxityFirstAlgorithm(BaseAlgorithm):
 
         return schedule
 
-    def get_least_slack_EV(self, EVs):
+    def get_least_laxity_EV(self, EVs, current_time):
         least_slack_EV = None
         least_slack = 0
         for ev in EVs:
-            current_slack = self.get_slack_time(ev)
+            current_slack = self.get_slack_time(ev, current_time)
             if least_slack_EV == None or least_slack > current_slack:
                 least_slack = current_slack
                 least_slack_EV = ev
         return least_slack_EV
 
-    def get_slack_time(self, EV):
-        slack = (EV.requested_energy - EV.energy_delivered) / self.max_charging_rate
-        return slack
+    def get_laxity(self, EV, current_time):
+        laxity = (EV.departure - current_time) - (EV.requested_energy - EV.energy_delivered) / self.max_charging_rate
+        return laxity
 
 class MLLF(BaseAlgorithm):
     '''
-    Multicore Least Laxity First
+    Multi Least Laxity First
 
     This algorithm builds upon the Least Laxity scheduling algorithm but also includes
     the possiblity to have many processes (sessions) running at the same time.
@@ -140,6 +173,7 @@ class MLLF(BaseAlgorithm):
         self.queue = []
         self.preemption = preemption
         self.queue_length = queue_length
+        self.max_charging_rate = self.max_charging_rate = self.interface.get_max_charging_rate()
 
     def schedule(self, active_EVs):
         schedule = {}

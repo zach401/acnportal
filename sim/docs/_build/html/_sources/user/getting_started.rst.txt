@@ -11,9 +11,9 @@ Download the ACN simulator from Github either by cloning the repository or downl
 Importing libraries
 -------------------
 
-Open the terminal window and change directory to the ``ACN-portal/sim`` folder. To use the simulator, create a new script
-in this directory and import the necessary libraries and classes by including the following code section at the top of
-the script:
+Open the terminal window and change directory to the ``ACN-portal/sim`` folder. To use the simulator, create a new simulation script
+(create a new python file) in this directory and import the necessary libraries and classes by including the following code
+section at the top of the script:
 
 .. code-block:: python
 

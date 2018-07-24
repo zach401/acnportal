@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
-from acnlib.Interface import Interface
-from acnlib.Simulator import Simulator
-from acnlib.Garage import Garage
+from .Interface import Interface
+from .Simulator import Simulator
+from .Garage import Garage
 
 class ACNsim:
 

@@ -1,4 +1,5 @@
 from acnlib.SimulationOutput import Event
+import copy
 
 class Simulator:
     '''
@@ -8,7 +9,6 @@ class Simulator:
     def __init__(self, garage, max_iterations=3000):
         self.iteration = 0
         self.last_schedule_update = -1
-        #self.test_case = tc
         self.garage = garage
         self.scheduler = None
         self.schedules = {}
@@ -99,7 +99,8 @@ class Simulator:
 
         :return:  (list) List of EVs currently plugged in and not finished charging
         '''
-        return self.garage.get_active_EVs(self.iteration)
+        EVs = copy.deepcopy(self.garage.get_active_EVs(self.iteration))
+        return EVs
 
     def get_simulation_data(self):
         '''

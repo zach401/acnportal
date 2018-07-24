@@ -1,11 +1,12 @@
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import math
+import numpy as np
 
 class GraphDrawer:
 
     def __init__(self, simulation_output):
-        self.simulation_output
+        self.simulation_output = simulation_output
         self.figures = 0
         plt.close('all')
 
@@ -108,22 +109,27 @@ class GraphDrawer:
             # - Gather data for stay times
             stay_durations.append(((ev.departure - ev.arrival) * self.simulation_output.period) / 60)
 
+        mean_stay_duration = np.mean(stay_durations)
+        mean_energy_requested = np.mean(requested_energy)
+
         plt.subplot(1,3,1)
         plt.hist([arrival_hours, departure_hours], bins=24)
         plt.xlabel('Hour of day')
         plt.ylabel('Number of EVs')
-        plt.title('Arrival and Departure hours of the EVs using the ACN')
+        plt.title('Distribution of Arrival and Departure hours of the EVs using\n the ACN during the period April 9 - April 22 2018')
         plt.legend(['Arrivals', 'Departures'])
         plt.subplot(1, 3, 2)
-        plt.hist(requested_energy, bins=15, edgecolor='black')
-        plt.xlabel('Requested energy [kWh]')
-        plt.ylabel('Number of EVs')
-        plt.title('Requested energy by the EVs using the ACN')
-        plt.subplot(1, 3, 3)
-        plt.hist(stay_durations, bins=15, edgecolor='black', range=(0, 40))
+        plt.hist(stay_durations, bins=15,edgecolor='black', range=(0, 40))
+        plt.axvline(mean_stay_duration, color='r', linestyle='dashed', linewidth=1)
         plt.xlabel('Parking duration [hours]')
         plt.ylabel('Number of EVs')
-        plt.title('Parking duration of the EVs using the ACN')
+        plt.title('Distribution of parking duration of the EVs using\n the ACN during the period April 9 - April 22 2018')
+        plt.subplot(1, 3, 3)
+        plt.hist(requested_energy, bins=15, edgecolor='black')
+        plt.axvline(mean_energy_requested, color='r', linestyle='dashed', linewidth=1)
+        plt.xlabel('Requested energy [kWh]')
+        plt.ylabel('Number of EVs')
+        plt.title('Distribution of requested energy by the EVs using\n the ACN during the period April 9 - April 22 2018')
         self.figures = self.figures + 1
 
     def plot_algorithm_result_stats(self):
