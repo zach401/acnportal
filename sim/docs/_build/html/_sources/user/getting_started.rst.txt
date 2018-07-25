@@ -20,7 +20,7 @@ section at the top of the script:
     from datetime import datetime
     from acnlib import TestCase
     from BaseAlgorithm import *
-    from acnlib.GraphDrawer import GraphDrawer
+    from acnlib.OutputAnalyzer import OutputAnalyzer
     from acnlib.ACNsim import ACNsim
 
 :TestCase:
@@ -32,8 +32,8 @@ section at the top of the script:
     The ``BaseAlgorithm`` class also includes resources usefull for the scheduling algorithms, e.g. the API used to
     extract the relevant data to make an efficient algorithm.
 
-:GraphDrawer:
-    The ``GraphDrawer`` is a library for extracting and visualizing the status and result of a simulation.
+:OutputAnalyzer:
+    The ``OutputAnalyzer`` is a library for extracting and visualizing the status and result of a simulation.
 
 :ACNsim:
     The ``ACNsim`` is the main class for the simulation. It handles all the interconnections of the other classes and
@@ -178,7 +178,7 @@ Analyze simulation result
 
 When the simulation has finished the simulation data is stored in the SimulationOutput object.
 
-To see the result from the simulation it is possible to pass this object to the ``GraphDrawer`` library. There are several
+To see the result from the simulation it is possible to pass this object to the ``OutputAnalyzer`` library. There are several
 functions that can be used to view different aspects of the simulation. The available functions are described here.
 
 An code example is presented below which will plot the charging activity for each station, the EV behavior and the algorithm performance.
@@ -186,7 +186,7 @@ The corresponding output graphs are also included.
 
 .. code-block:: python
 
-    gd = GraphDrawer(simulation_output)
+    gd = OutputAnalyzer(simulation_output)
     gd.plot_station_activity()
     gd.plot_EV_behavioral_stats()
     gd.plot_algorithm_result_stats()
@@ -202,14 +202,14 @@ Below follows a script with all the commands used above which can be used as a r
     from datetime import datetime
     from acnlib import TestCase
     from BaseAlgorithm import *
-    from acnlib.GraphDrawer import GraphDrawer
+    from acnlib.OutputAnalyzer import OutputAnalyzer
     from acnlib.ACNsim import ACNsim
 
     scheduler = MLLF()
     acnsim = ACNsim()
     simulation_output = acnsim.simulate_model(scheduler, period=1)
 
-    gd = GraphDrawer(simulation_output)
+    gd = OutputAnalyzer(simulation_output)
     gd.plot_station_activity()
     gd.plot_EV_behavioral_stats()
     gd.plot_algorithm_result_stats()

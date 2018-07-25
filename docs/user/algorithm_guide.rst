@@ -18,7 +18,7 @@ All scheduling algorithms for the ACN network must extend the class ``BaseAlgori
 class is known by the simulator, so for the user to be able to integrate code with the simulator he or she has to extend
 the ``schedule`` function of the base class.
 
-Along with the ``schedule`` function there exists some internal functions used by the simulator and also som utlity functions
+Along with the ``schedule`` function there exists some internal functions used by the simulator and also some utlity functions
 to make it easier to create the scheduling algorithm.
 
 The utility functions that can be used in the class extending the ``BaseAlgorithm`` class to define the scheduler are:
@@ -33,6 +33,10 @@ To write a custom scheduling algorithm the user must implement the ``schedule`` 
 ``BaseAlgorithm``.
 
 .. automethod:: sim.BaseAlgorithm.BaseAlgorithm.schedule
+
+The list that is passed to the ``schedule`` function holds the information about the current status of the active EVs.
+
+The API reference has more information about the :class:`EV<sim.acnlib.EV.EV>` object.
 
 Simulation interface (API)
 --------------------------
@@ -54,7 +58,7 @@ Examples
 
 Here follows some examples of already implemented algorithms located in the ``BaseAlgorithm`` module.
 
-To use them in the simulation script, write the following code (the simulation code should be located in ``sim/``):
+To use them in the simulation script, write the following code (the simulation script should be located in ``sim/``):
 
 .. code-block:: python
 
@@ -107,9 +111,10 @@ Least Laxity First
     class LeastLaxityFirstAlgorithm(BaseAlgorithm):
 
         def __init__(self):
-            self.max_charging_rate = self.max_charging_rate = self.interface.get_max_charging_rate()
+            pass
 
         def schedule(self, active_EVs):
+            self.max_charging_rate = self.interface.get_max_charging_rate()
             schedule = {}
             current_time = self.interface.get_current_time()
             least_slack_EV = self.get_least_laxity_EV(active_EVs, current_time)
@@ -129,8 +134,6 @@ Least Laxity First
                 schedule[ev.session_id] = charge_rates
             return schedule
 
-            return schedule
-
         def get_least_laxity_EV(self, EVs, current_time):
             least_slack_EV = None
             least_slack = 0
@@ -144,3 +147,91 @@ Least Laxity First
         def get_laxity(self, EV, current_time):
             laxity = (EV.departure - current_time) - (EV.requested_energy - EV.energy_delivered) / self.max_charging_rate
             return laxity
+
+Multi Least Laxity First
+++++++++++++++++++++++++
+
+.. code-block:: python
+
+    class MLLF(BaseAlgorithm):
+        '''
+        Multi Least Laxity First
+
+        This algorithm builds upon the Least Laxity scheduling algorithm but also includes
+        the possiblity to have many processes (sessions) running at the same time.
+        The algorithm calculates a laxity value of every session and then rank them according
+        to this value. The sessions with least laxity get moved to a queue which will get prioritized in
+        the charging schedule. A session in this queue will receive the maximum pilot signal. The other
+        sessions will get the minumum pilot signal
+
+        There is an option to select if the charging schedule will allow preemtion of the active queue.
+        If there is no preemtion allowed a session once entered the active queue will not leave until it
+        has finished charging. If preemtion is allowed the ready queue will get recalculated every iteration
+        to allow new sessions with smaller laxity to interrupt the current sessions in the queue.
+        '''
+
+        def __init__(self, preemption=False, queue_length=4):
+            self.queue = []
+            self.preemption = preemption
+            self.queue_length = queue_length
+
+        def schedule(self, active_EVs):
+            self.max_charging_rate = self.interface.get_max_charging_rate()
+            schedule = {}
+            current_time = self.interface.get_current_time()
+            last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
+
+            # No preemtion: check queue and remove non-active EVs
+            # Preemtion: Always empty the queue
+            for session_id in self.queue:
+                if self.preemption:
+                    self.queue = []
+                else:
+                    found = False
+                    for ev in active_EVs:
+                        if ev.session_id == session_id:
+                            found = True
+                            break
+                    if found == False:
+                        self.queue.remove(session_id)
+
+            # choose the EVs that should be evaluated for laxity and then sort them
+            # If no preemtion the EVs already in the queue should be omitted.
+            ev_laxity = []
+            for ev in active_EVs:
+                if self.preemption or (not self.preemption and ev.session_id not in self.queue):
+                    ev_info = {'session_id': ev.session_id, 'laxity': self.get_laxity(ev, current_time)}
+                    ev_laxity.append(ev_info)
+
+            sorted_ev_laxity = self.sort_by_laxity(ev_laxity)
+
+            # add the EVs to the queue
+            ql = len(self.queue)
+            for i in range(min(self.queue_length - ql, len(sorted_ev_laxity))):
+                ev = sorted_ev_laxity[i]
+                self.queue.append(ev['session_id'])
+
+            # calculate the new pilot signals
+            for ev in active_EVs:
+                charge_rates = []
+                last_pilot_signal = 0
+                allowable_pilot_signals = self.interface.get_allowable_pilot_signals(ev.station_id)
+                if ev.session_id in last_applied_pilot_signals:
+                    last_pilot_signal = last_applied_pilot_signals[ev.session_id]
+                # determine pilot signal
+                if ev.session_id in self.queue:
+                    new_rate = self.get_increased_charging_rate(last_pilot_signal, allowable_pilot_signals)
+                    charge_rates.append(new_rate)
+                else:
+                    new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal, allowable_pilot_signals)
+                    charge_rates.append(new_rate)
+                schedule[ev.session_id] = charge_rates
+            return schedule
+
+
+        def get_laxity(self, EV, current_time):
+            laxity = (EV.departure - current_time) - (EV.requested_energy - EV.energy_delivered) / self.max_charging_rate
+            return laxity
+
+        def sort_by_laxity(self, list):
+            return sorted(list, key=lambda ev: ev['laxity'])

@@ -103,7 +103,7 @@ section at the top of the script:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">acnlib</span> <span class="kn">import</span> <span class="n">TestCase</span>
 <span class="kn">from</span> <span class="nn">BaseAlgorithm</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">acnlib.GraphDrawer</span> <span class="kn">import</span> <span class="n">GraphDrawer</span>
+<span class="kn">from</span> <span class="nn">acnlib.OutputAnalyzer</span> <span class="kn">import</span> <span class="n">OutputAnalyzer</span>
 <span class="kn">from</span> <span class="nn">acnlib.ACNsim</span> <span class="kn">import</span> <span class="n">ACNsim</span>
 </pre></div>
 </div>
@@ -118,7 +118,7 @@ simulation and saves the data of the simulation before it is passed to the simul
 The <code class="docutils literal notranslate"><span class="pre">BaseAlgorithm</span></code> class also includes resources usefull for the scheduling algorithms, e.g. the API used to
 extract the relevant data to make an efficient algorithm.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">GraphDrawer:</th><td class="field-body">The <code class="docutils literal notranslate"><span class="pre">GraphDrawer</span></code> is a library for extracting and visualizing the status and result of a simulation.</td>
+<tr class="field-odd field"><th class="field-name">OutputAnalyzer:</th><td class="field-body">The <code class="docutils literal notranslate"><span class="pre">OutputAnalyzer</span></code> is a library for extracting and visualizing the status and result of a simulation.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">ACNsim:</th><td class="field-body">The <code class="docutils literal notranslate"><span class="pre">ACNsim</span></code> is the main class for the simulation. It handles all the interconnections of the other classes and
 runs the simulation.</td>
@@ -269,11 +269,11 @@ and is used when analyzing and visualizing the simulation results.</p>
 <div class="section" id="analyze-simulation-result">
 <h2>Analyze simulation result<a class="headerlink" href="#analyze-simulation-result" title="Permalink to this headline">¶</a></h2>
 <p>When the simulation has finished the simulation data is stored in the SimulationOutput object.</p>
-<p>To see the result from the simulation it is possible to pass this object to the <code class="docutils literal notranslate"><span class="pre">GraphDrawer</span></code> library. There are several
+<p>To see the result from the simulation it is possible to pass this object to the <code class="docutils literal notranslate"><span class="pre">OutputAnalyzer</span></code> library. There are several
 functions that can be used to view different aspects of the simulation. The available functions are described here.</p>
 <p>An code example is presented below which will plot the charging activity for each station, the EV behavior and the algorithm performance.
 The corresponding output graphs are also included.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">gd</span> <span class="o">=</span> <span class="n">GraphDrawer</span><span class="p">(</span><span class="n">simulation_output</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">gd</span> <span class="o">=</span> <span class="n">OutputAnalyzer</span><span class="p">(</span><span class="n">simulation_output</span><span class="p">)</span>
 <span class="n">gd</span><span class="o">.</span><span class="n">plot_station_activity</span><span class="p">()</span>
 <span class="n">gd</span><span class="o">.</span><span class="n">plot_EV_behavioral_stats</span><span class="p">()</span>
 <span class="n">gd</span><span class="o">.</span><span class="n">plot_algorithm_result_stats</span><span class="p">()</span>
@@ -286,14 +286,14 @@ The corresponding output graphs are also included.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">acnlib</span> <span class="kn">import</span> <span class="n">TestCase</span>
 <span class="kn">from</span> <span class="nn">BaseAlgorithm</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">acnlib.GraphDrawer</span> <span class="kn">import</span> <span class="n">GraphDrawer</span>
+<span class="kn">from</span> <span class="nn">acnlib.OutputAnalyzer</span> <span class="kn">import</span> <span class="n">OutputAnalyzer</span>
 <span class="kn">from</span> <span class="nn">acnlib.ACNsim</span> <span class="kn">import</span> <span class="n">ACNsim</span>
 
 <span class="n">scheduler</span> <span class="o">=</span> <span class="n">MLLF</span><span class="p">()</span>
 <span class="n">acnsim</span> <span class="o">=</span> <span class="n">ACNsim</span><span class="p">()</span>
 <span class="n">simulation_output</span> <span class="o">=</span> <span class="n">acnsim</span><span class="o">.</span><span class="n">simulate_model</span><span class="p">(</span><span class="n">scheduler</span><span class="p">,</span> <span class="n">period</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-<span class="n">gd</span> <span class="o">=</span> <span class="n">GraphDrawer</span><span class="p">(</span><span class="n">simulation_output</span><span class="p">)</span>
+<span class="n">gd</span> <span class="o">=</span> <span class="n">OutputAnalyzer</span><span class="p">(</span><span class="n">simulation_output</span><span class="p">)</span>
 <span class="n">gd</span><span class="o">.</span><span class="n">plot_station_activity</span><span class="p">()</span>
 <span class="n">gd</span><span class="o">.</span><span class="n">plot_EV_behavioral_stats</span><span class="p">()</span>
 <span class="n">gd</span><span class="o">.</span><span class="n">plot_algorithm_result_stats</span><span class="p">()</span>

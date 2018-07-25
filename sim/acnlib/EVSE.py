@@ -1,6 +1,13 @@
 import math
 
 class EVSE:
+    '''
+    :ivar string station_id: The station ID for the EVSE.
+    :ivar string manufacturer: The manufacturer name of the EVSE. Determines which pilot signal levels that are allowed.
+    :ivar float last_applied_pilot_signal: The pilot signal that was applied last iteration.
+    :ivar string last_session_id: The ID of the charging session that was using this EVSE last.
+    :ivar list(int) allowable_pilot_signals: The pilot signals that are allowed for this EVSE.
+    '''
 
     def __init__(self, station_id, manufacturer):
         self.station_id = station_id

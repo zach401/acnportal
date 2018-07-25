@@ -7,7 +7,7 @@ from acnlib.SimulationOutput import SimulationOutput, Event
 
 class TestCase:
     '''
-    TestCase represents a garage of charging stations over a certain simulation time.
+    TestCase represents charging sessions over a certain simulation time.
     Stores the data of the test case when the simulation is run.
     '''
     def __init__(self, EVs, start_timestamp,voltage=220, max_rate=32, period=1):
@@ -18,6 +18,7 @@ class TestCase:
         self.EVs = EVs
 
         self.simulation_output = SimulationOutput(start_timestamp, period, max_rate, voltage)
+        self.acutal_charging_rates = {}
 
         self.charging_data = {}
         self.clear_data()
@@ -26,10 +27,13 @@ class TestCase:
         '''
         Updates the states of the EVs connected the system and stores the relevant data.
 
-        :param pilot_signals: (dict) A dictionary where key is the EV id and the value is a number with the charging rate
-        :param iteration: (int) The current time stamp of the simulation
+        :param pilot_signals: A dictionary where key is the EV id and the value is a number with the charging rate
+        :type pilot_signals: dict
+        :param iteration: The current time stamp of the simulation
+        :type iteration: int
         :return: None
         '''
+        self.acutal_charging_rates = {} # reset the last actual charging rates
         active_EVs = self.get_active_EVs(iteration)
         for ev in active_EVs:
             if ev.arrival == iteration:
@@ -50,6 +54,7 @@ class TestCase:
                                                           iteration,
                                                           'Charging rate is set to 0A before EV finished charging',
                                                           ev.session_id))
+            self.acutal_charging_rates[ev.session_id] = charge_rate
             sample = {'time': iteration,
                       'charge_rate': charge_rate,
                       'pilot_signal': pilot_signals[ev.session_id],
@@ -69,8 +74,10 @@ class TestCase:
         Returns the EVs that is currently attached to the charging stations and
         has not had their energy demand met.
 
-        :param iteration: (int) The current time stamp of the simulation
-        :return: (list) List of EVs currently plugged in and not finished charging
+        :param iteration: The current time stamp of the simulation
+        :type iteration: int
+        :return: List of EVs currently plugged in and not finished charging
+        :rtype: list
         '''
         active_EVs = []
         for ev in self.EVs:
@@ -81,6 +88,9 @@ class TestCase:
 
     def get_charging_data(self):
         return self.charging_data
+
+    def get_acutal_charging_rates(self):
+        return self.acutal_charging_rates
 
     def get_simulation_output(self):
         self.simulation_output.submit_all_EVs(self.EVs)
@@ -108,7 +118,26 @@ class TestCase:
         return last_departure
 
 
-def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, period=1, max_duration=3600):
+def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, period=1):
+    '''
+    Generates a TestCase from real data. This test case will then be passed to the ``ACNsim`` to be simulated.
+
+    :param file_name: The file that holds the session data. This file should be a ``pickle`` file
+        and located in the same folder as the simulation script.
+    :type file_name: string
+    :param start: When to start read the data from the file.
+    :type start: datetime
+    :param end: When to stop read the data from the file.
+    :type end: datetime
+    :param voltage: The voltage level of the power grid [V].
+    :type voltage: float
+    :param max_rate: The maximum rate the EVs can be charged with [A].
+    :type max_rate: float
+    :param period: The length of one iteration in the simulation [minutes].
+    :type period: int
+    :return: The test case generated from the file containing the session data.
+    :rtype: TestCase
+    '''
     sessions = pickle.load(open(file_name, 'rb'))
     EVs = []
     uid = 0
@@ -135,7 +164,5 @@ def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, pe
     for ev in EVs:
         ev.arrival -= min_arrival
         ev.departure -= min_arrival
-        if ev.departure - ev.arrival > max_duration:
-            ev.departure = ev.arrival + max_duration
     EVs.sort(key=lambda x: x.station_id)
     return TestCase(EVs, (min_arrival*60*period),voltage, max_rate, period)

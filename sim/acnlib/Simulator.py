@@ -19,7 +19,7 @@ class Simulator:
         '''
         Sets the scheduler class of the simulator.
 
-        :param scheduler: The scheduling algorithm that should be used by the simulator. This object must extend BaseAlgorithm.
+        :param BaseAlgorithm scheduler: The scheduling algorithm that should be used by the simulator. This object must extend BaseAlgorithm.
         :return: None
         '''
         self.scheduler = scheduler
@@ -61,7 +61,8 @@ class Simulator:
         '''
         Function for extracting the pilot signals at the current time for the active EVs
 
-        :return: (dict) A dictionary where key is the EV id and the value is a number with the charging rate
+        :return: A dictionary where key is the EV id and the value is a number with the charging rate.
+        :rtype: dict
         '''
         pilot_signals = {}
         for ev_id, sch_list in self.schedules.items():
@@ -76,6 +77,9 @@ class Simulator:
     def get_last_applied_pilot_signals(self):
         return self.last_applied_pilot_signals
 
+    def get_last_acctual_charging_rate(self):
+        self.garage.get_actual_charging_rates()
+
     def get_schedule_horizon(self):
         min_horizon = 0
         for ev_id, sch_list in self.schedules.items():
@@ -88,8 +92,8 @@ class Simulator:
         Update the schedules used in the simulation.
         This function is called by the interface to the scheduling algorithm.
 
-        :param new_schedule: (dict) Dictionary where key is the id of the EV and value is a list of scheduled charging rates.
-        :return:
+        :param dict new_schedule: Dictionary where key is the id of the EV and value is a list of scheduled charging rates.
+        :return: None
         '''
         self.schedules = new_schedule
 
@@ -97,7 +101,8 @@ class Simulator:
         '''
         Returns the current active EVs connected to the system.
 
-        :return:  (list) List of EVs currently plugged in and not finished charging
+        :return:  List of EVs currently plugged in and not finished charging
+        :rtype: list
         '''
         EVs = copy.deepcopy(self.garage.get_active_EVs(self.iteration))
         return EVs
@@ -105,7 +110,8 @@ class Simulator:
     def get_simulation_data(self):
         '''
         Returns the data from the simulation.
-        :return: (dict) Dictionary where key is the id of the EV and value is a list of dicts representing every sample.
+        :return: Dictionary where key is the id of the EV and value is a list of dicts representing every sample.
+        :rtype: dict
         '''
         return self.garage.get_charging_data()
 

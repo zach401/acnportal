@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import math
 import numpy as np
 
-class GraphDrawer:
+class OutputAnalyzer:
 
     def __init__(self, simulation_output):
         self.simulation_output = simulation_output
@@ -17,29 +17,11 @@ class GraphDrawer:
         plt.figure(self.figures)
         self.figures = self.figures + 1
 
-    def draw_charge_rates(self):
-        '''
-        Simple graph to draw the charging rates for every EV against time
-        :return: None
-        '''
-        plt.figure(self.figures)
-        test_case_data = self.simulation_output.charging_data
-        for ev_id, data in test_case_data.items():
-            t = []
-            value = []
-            for sample in data:
-                t.append(sample['time'])
-                value.append(sample['charge_rate'])
-            plt.plot(t, value)
-            plt.xlabel('Period')
-            plt.ylabel('Charging rate [A]')
-        plt.show()
-        self.figures = self.figures + 1
-
     def plot_station_activity(self):
         '''
         Plots an activity plot of the test case. It shows the session activities at every charging station
         in terms of present EVs and charge rates.
+
         :return: None
         '''
         plt.figure(self.figures)
@@ -83,10 +65,12 @@ class GraphDrawer:
     def plot_EV_behavioral_stats(self):
         '''
         Plot the bahavior of the EVs during a test case.
-            Figure 1:
-                - A histogram showing the total number of EVs arriving and departing every hour of the day
-                - A histogram showing the distribution of energy demand for all the EVs in the test case.
-                - A histogram showing the distribution of stay duration of all the EVs in the test case.
+
+        Figure 1:
+            - A histogram showing the total number of EVs arriving and departing every hour of the day
+            - A histogram showing the distribution of energy demand for all the EVs in the test case.
+            - A histogram showing the distribution of stay duration of all the EVs in the test case.
+
         :return: None
         '''
         plt.figure(self.figures)
@@ -134,13 +118,15 @@ class GraphDrawer:
 
     def plot_algorithm_result_stats(self):
         '''
-        Plots the results after the simulation has been run.
-            Figure 1:
-                - A histogram showing the distribution of how many percent the EV requested energy has been met.
-                - A histogram showing the the stay time for the EVs that did not finsh charging.
-            Figure 2:
-                - A line graph of the total current draw of the test case.
-        :return:
+        Plots the results of the simulation.
+
+        Figure 1:
+            - A histogram showing the distribution of how many percent the EV requested energy has been met.
+            - A histogram showing the stay time for the EVs that did not finish charging.
+        Figure 2:
+            - A line graph of the total power usage of the test case.
+
+        :return: None
         '''
         plt.figure(self.figures)
         energy_percentage = []
@@ -178,6 +164,12 @@ class GraphDrawer:
         plt.title('Power usage of the test case')
 
     def plot_EV_stats(self, session_id):
+        '''
+        Plot the charging rate and applied pilot signal of an EV charging session.
+
+        :param int session_id: The ID of the session evaluated
+        :return: None
+        '''
         data = self.simulation_output.charging_data[session_id]
         time = []
         pilot_signal = []
@@ -195,7 +187,12 @@ class GraphDrawer:
         plt.subplot(2, 1, 2)
         plt.plot(time, remaining_demand)
 
-    def print_station_sessions(self, simulation_output):
+    def print_station_sessions(self):
+        '''
+        Print all the EVSEs used in the simulation and the charging sessions belonging to each EVSE.
+
+        :return: None
+        '''
         stations = {}
         for ev in self.simulation_output.EVs:
             if ev.station_id in stations:
@@ -210,6 +207,54 @@ class GraphDrawer:
                 line = line + str(element) + ', '
             line = line + '\n'
             print(line)
+
+    def print_events(self, type='all'):
+        '''
+        Print the simulation events in the terminal window.
+
+        :param string type: What type of events that should be printed.
+            Available values: ('all', 'warning', 'error', 'log')
+        :return: None
+        '''
+        events = []
+        if type == 'all':
+            events = self.simulation_output.get_events_all()
+            print('Printing all simulation events. Total number of events: {}'.format(len(events)))
+        elif type == 'info':
+            events = self.simulation_output.get_events_info()
+            print('Printing INFO events. Number of INFO events: {}'.format(len(events)))
+        elif type == 'warning':
+            events = self.simulation_output.get_events_warnings()
+            print('Printing WARNING events. Number of WARNING events: {}'.format(len(events)))
+        elif type == 'error':
+            events = self.simulation_output.get_events_errors()
+            print('Printing ERROR events. Number of ERROR events: {}'.format(len(events)))
+        elif type == 'log':
+            events = self.simulation_output.get_events_errors()
+            print('Printing LOG events. Number of LOG events: {}'.format(len(events)))
+
+        print('-'*60)
+        for e in events:
+            print('{0:5d} | {1:6s} | {2:8s} | {3}'.format(e.iteration, e.type, str(e.session), e.description))
+
+        if len(events) == 0:
+            print('No events')
+
+        print('-' * 60)
+
+        if type == 'all':
+            print('Total number of events: {}'.format(len(events)))
+        elif type == 'info':
+            print('Number of INFO events: {}'.format(len(events)))
+        elif type == 'warning':
+            print('Number of WARNING events: {}'.format(len(events)))
+        elif type == 'error':
+            print('Number of ERROR events: {}'.format(len(events)))
+        elif type == 'log':
+            print('Number of LOG events: {}'.format(len(events)))
+
+        print('\n')
+
 
     def create_time_axis(self, start_timestamp, nbr_of_periods, period):
         time_array = []

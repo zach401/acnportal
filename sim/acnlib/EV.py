@@ -5,6 +5,17 @@ import numpy as np
 # Piecewise linear: https://www.sciencedirect.com/science/article/pii/S0378775316317396
 
 class EV:
+    '''
+    :ivar int arrival: Arrival time of the EV [period]
+    :ivar int departure: Departure time of the EV [period]
+    :ivar float requested_energy: The energy the EV has requested upon arrival [kWh]
+    :ivar float energy_delivered: The energy that has been delivered to the EV [kWh]
+    :ivar float max_rate: Max charging rate for the EV [A]
+    :ivar string station_id: The ID for the charging station
+    :ivar string session_id: The ID for the charging session
+    :ivar int finishing_time: The time the EV finished charging [period]
+    '''
+
     def __init__(self, arrive, depart, requested_energy, max_rate, station, session):
         self.arrival = arrive
         self.departure = depart
@@ -14,7 +25,6 @@ class EV:
         self.station_id = station
         self.session_id = session
         self.finishing_time = -1
-
 
     def charge(self, pilot, tail=False, noise_level=0):
         """ Method to "charge" the EV

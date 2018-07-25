@@ -6,7 +6,7 @@ ACN research portal.
 from datetime import datetime
 from acnlib import TestCase
 from BaseAlgorithm import *
-from acnlib.GraphDrawer import GraphDrawer
+from acnlib.OutputAnalyzer import OutputAnalyzer
 from acnlib.ACNsim import ACNsim
 
 if __name__ == '__main__':
@@ -17,12 +17,15 @@ if __name__ == '__main__':
     scheduler = MLLF()
     acnsim = ACNsim()
 
-    simulation_output = acnsim.simulate_real(scheduler, test_case)
-    #simulation_output = acnsim.simulate_model(scheduler, period=1)
+    #simulation_output = acnsim.simulate_real(scheduler, test_case)
+    simulation_output = acnsim.simulate_model(scheduler, period=5)
 
-    gd = GraphDrawer(simulation_output)
-    gd.plot_station_activity()
-    gd.plot_EV_behavioral_stats()
-    gd.plot_algorithm_result_stats()
+    oa = OutputAnalyzer(simulation_output)
+    #oa.plot_station_activity()
+    oa.plot_EV_behavioral_stats()
+    oa.plot_algorithm_result_stats()
+    oa.print_events('info')
+    oa.print_events('error')
+    oa.print_events('warning')
     #gd.print_station_sessions(test_case)
     #gd.plot_EV_stats(test_case, 102)

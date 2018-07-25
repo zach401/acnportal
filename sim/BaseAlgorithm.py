@@ -32,7 +32,7 @@ class BaseAlgorithm:
         Used internaly by the simulator to set up the required dependencies to provide the resources needed
         to write a scheduling algorithm.
 
-        :param interface: The simulation API
+        :param Interface interface: The simulation API
         :return: None
         '''
         self.interface = interface
@@ -42,9 +42,10 @@ class BaseAlgorithm:
         As many EVSEs has limited sets of pilot signal this function returns the next increased pilot
         signal depending of the current pilot signal applied at the charging station.
 
-        :param current_pilot_signal: (float) The current pilot signal for the session
-        :param allowable_rates: (list) List of numbers describing the allowable pilot signal levels.
-        :return: (float) The next pilot signal
+        :param float current_pilot_signal: The current pilot signal for the session
+        :param list allowable_rates: List of numbers describing the allowable pilot signal levels.
+        :return: The next pilot signal
+        :rtype: float
         '''
         new_index = allowable_rates.index(current_pilot_signal) + 1
         if new_index >= len(allowable_rates):
@@ -56,9 +57,10 @@ class BaseAlgorithm:
         As many EVSEs has limited sets of pilot signal this function returns the next decreased pilot signal
         depending of the current pilot signal applied at the charging station.
 
-        :param current_pilot_signal: (float) The current pilot signal for the session
-        :param allowable_rates: (list) List of numbers describing the allowable pilot signal levels.
-        :return: (float) The next pilot signal
+        :param float current_pilot_signal: The current pilot signal for the session
+        :param list allowable_rates: List of numbers describing the allowable pilot signal levels.
+        :return: The next pilot signal
+        :rtype: float
         '''
         new_index = allowable_rates.index(current_pilot_signal) - 1
         if new_index < 0:
@@ -71,9 +73,10 @@ class BaseAlgorithm:
         depending of the current pilot signal applied at the charging station. This function also prevents that
         the calculated pilot signal will be 0 as the pilot signal should never be set to 0 before the EV has finished charging.
 
-        :param current_pilot_signal: (float) The current pilot signal for the session
-        :param allowable_rates: (list) List of numbers describing the allowable pilot signal levels.
-        :return: (float) The next pilot signal
+        :param float current_pilot_signal: The current pilot signal for the session
+        :param list allowable_rates: List of numbers describing the allowable pilot signal levels.
+        :return: The next pilot signal
+        :rtype: float
         '''
         new_index = allowable_rates.index(current_pilot_signal) - 1
         if new_index < 1:
@@ -114,9 +117,10 @@ class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
 class LeastLaxityFirstAlgorithm(BaseAlgorithm):
 
     def __init__(self):
-        self.max_charging_rate = self.max_charging_rate = self.interface.get_max_charging_rate()
+        pass
 
     def schedule(self, active_EVs):
+        self.max_charging_rate = self.interface.get_max_charging_rate()
         schedule = {}
         current_time = self.interface.get_current_time()
         least_slack_EV = self.get_least_laxity_EV(active_EVs, current_time)
@@ -173,9 +177,9 @@ class MLLF(BaseAlgorithm):
         self.queue = []
         self.preemption = preemption
         self.queue_length = queue_length
-        self.max_charging_rate = self.max_charging_rate = self.interface.get_max_charging_rate()
 
     def schedule(self, active_EVs):
+        self.max_charging_rate = self.interface.get_max_charging_rate()
         schedule = {}
         current_time = self.interface.get_current_time()
         last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()

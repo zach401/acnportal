@@ -180,6 +180,9 @@ class Garage:
     def get_charging_data(self):
         return self.test_case.get_charging_data()
 
+    def get_actual_charging_rates(self):
+        return self.test_case.get_actual_charging_rates()
+
     def get_active_EVs(self, iteration):
         self.active_EVs = self.test_case.get_active_EVs(iteration)
         return self.active_EVs
