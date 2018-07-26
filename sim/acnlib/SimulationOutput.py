@@ -10,6 +10,7 @@ class SimulationOutput:
         self.max_rate = max_rate
         self.voltage = voltage
         self.last_departure = 0
+        self.last_arrival = 0
         self.EVs = []
         self.EVSEs = []
 
@@ -189,6 +190,15 @@ class SimulationOutput:
         Get the last departure time (in periods) of an EV charging at the ACN.
 
         :return: The last departure time
+        :rtype: int
+        '''
+        return self.last_departure
+
+    def get_last_arrival(self):
+        '''
+        Get the last arrival time (in periods) of an EV charging at the ACN.
+
+        :return: The last arrival time
         :rtype: int
         '''
         return self.last_departure

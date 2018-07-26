@@ -95,6 +95,7 @@ class TestCase:
     def get_simulation_output(self):
         self.simulation_output.submit_all_EVs(self.EVs)
         self.simulation_output.last_departure = self.last_departure
+        self.simulation_output.last_arrival = self.last_arrival
         return self.simulation_output
 
 
@@ -116,6 +117,14 @@ class TestCase:
             if ev.departure > last_departure:
                 last_departure = ev.departure
         return last_departure
+
+    @property
+    def last_arrival(self):
+        last_arrival = 0
+        for ev in self.EVs:
+            if ev.arrival > last_arrival:
+                last_arrival = ev.arrival
+        return last_arrival
 
 
 def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, period=1):
