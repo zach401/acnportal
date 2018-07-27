@@ -3,6 +3,7 @@ from datetime import timedelta
 import math
 from acnlib.EV import EV
 from acnlib.SimulationOutput import SimulationOutput, Event
+import config
 
 
 class TestCase:
@@ -152,9 +153,9 @@ def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, pe
     uid = 0
     min_arrival = None
     for s in sessions:
-        if start <= s[0]-timedelta(hours=7) and s[1]-timedelta(hours=7) <= end and s[2] >= 0.5:
-            arrival = s[0]-timedelta(hours=7)
-            departure = s[1]-timedelta(hours=7)
+        if start <= s[0]-timedelta(hours=config.time_zone_diff_hour) and s[1]-timedelta(hours=config.time_zone_diff_hour) <= end and s[2] >= 0.5:
+            arrival = s[0]-timedelta(hours=config.time_zone_diff_hour)
+            departure = s[1]-timedelta(hours=config.time_zone_diff_hour)
             ev = EV(arrival.timestamp() // 60 // period,
                     (math.ceil(departure.timestamp() / 60 / period)),
                     ((s[2] * (60/period) * 1e3) / voltage),

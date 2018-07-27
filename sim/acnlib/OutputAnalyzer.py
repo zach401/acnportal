@@ -190,15 +190,15 @@ class OutputAnalyzer:
         for key, value in weekends.items():
             weekends_arrivals.append(value)
 
-        weekdays_mean = round(np.mean(weekdays_arrivals), 2)
+        weekdays_mean = round(np.mean(weekdays_arrivals), 0)
         weekdays_std = round(np.sqrt(np.var(weekdays_arrivals)), 2)
-        weekends_mean = round(np.mean(weekends_arrivals), 2)
+        weekends_mean = round(np.mean(weekends_arrivals), 0)
         weekends_std = round(np.sqrt(np.var(weekends_arrivals)), 2)
 
         self.new_figure()
         ax1 = plt.subplot(1,2,1)
         #ax1.hist(weekdays_arrivals, range=(0,70), bins=15, edgecolor='black')
-        self.__plot_histogram(ax1, weekdays_arrivals, percentage=percentage, bins=15, range=(0,70))
+        self.__plot_histogram(ax1, weekdays_arrivals, percentage=percentage, bins=20, range=(0,100), align='center')
         ax1.axvline(weekdays_mean,
                     color='r',
                     linestyle='dashed',
@@ -206,11 +206,12 @@ class OutputAnalyzer:
                     label='Average value: {}\nSTD: {}'.format(weekdays_mean, weekdays_std))
         ax1.set_xlabel('Numbers of EVs arriving per day')
         ax1.set_ylabel('Percentage of days [%]' if percentage else 'Number of days')
-        ax1.set_title('Distribution of the daily number of EVs arriving during a weekday.')
+        ax1.set_title('Distribution of the daily number of EVs arriving during a weekday,\n(' +
+                     self.__get_simulation_duration_date_string()+')')
         ax1.legend()
         ax2 = plt.subplot(1,2,2)
         #ax2.hist(weekends_arrivals, range=(0,70), bins=15, edgecolor='black')
-        self.__plot_histogram(ax2, weekends_arrivals, percentage=percentage, bins=15, range=(0, 70))
+        self.__plot_histogram(ax2, weekends_arrivals, percentage=percentage, bins=20, range=(0, 100), align='center')
         ax2.axvline(weekends_mean,
                     color='r',
                     linestyle='dashed',
@@ -218,7 +219,8 @@ class OutputAnalyzer:
                     label='Average value: {}\nSTD: {}'.format(weekends_mean, weekends_std))
         ax2.set_xlabel('Number of EVs arriving per day')
         ax2.set_ylabel('Percentage of days [%]' if percentage else 'Number of days')
-        ax2.set_title('Distribution of the daily number of EVs arriving during a day of the weekend.')
+        ax2.set_title('Distribution of the daily number of EVs arriving during a day of the weekend,\n(' +
+                     self.__get_simulation_duration_date_string()+')')
         ax2.legend()
 
         fig, ax = plt.subplots()
@@ -229,8 +231,8 @@ class OutputAnalyzer:
         ax.legend((bar1, bar2), ('Average value: {}, STD: {}'.format(weekdays_mean, weekdays_std),
                                  'Average value: {}, STD: {}'.format(weekends_mean, weekends_std)))
         ax.set_ylabel('Average number of EVs arriving per day')
-        ax.set_title('Average number of EVs arriving per day of a\n weekday or a day during the weekend,\n during ' +
-                     self.__get_simulation_duration_date_string())
+        ax.set_title('Average number of EVs arriving per day of a\n weekday or a day during the weekend,\n(' +
+                     self.__get_simulation_duration_date_string()+')')
         #ax.set_xticks(2)
         #ax.set_xticklabels(('Weekdays', 'Weekends'))
 
@@ -263,8 +265,9 @@ class OutputAnalyzer:
             if not ev.fully_charged:
                 stay_duration_not_finished_EVs.append(((ev.departure - ev.arrival) * self.simulation_output.period) / 60)
             # - Accumulate the total current used by all sessions
-            for sample in self.simulation_output.charging_data[ev.session_id]:
-                total_current[sample['time']] = total_current[sample['time']] + sample['charge_rate']*self.simulation_output.voltage/1000
+            if ev.session_id in self.simulation_output.charging_data:
+                for sample in self.simulation_output.charging_data[ev.session_id]:
+                    total_current[sample['time']] = total_current[sample['time']] + sample['charge_rate']*self.simulation_output.voltage/1000
 
         plt.subplot(1, 2, 1)
         #plt.hist(energy_percentage, bins=50, edgecolor='black', range=(0,100))
@@ -377,6 +380,9 @@ class OutputAnalyzer:
 
         print('\n')
 
+    def print_total_number_of_sessions(self):
+        n = len(self.simulation_output.get_all_EVs())
+        print('Total numbers of EV charging sessions: {}'.format(n))
 
     def create_time_axis(self, start_timestamp, nbr_of_periods, period):
         time_array = []
@@ -402,11 +408,11 @@ class OutputAnalyzer:
         text = start.strftime('%m/%d/%y') + ' to ' + end.strftime('%m/%d/%y')
         return text
 
-    def __plot_histogram(self, ax, data, percentage=True, bins=20, range=None):
+    def __plot_histogram(self, ax, data, percentage=True, bins=20, range=None, align='edge'):
         hist, bins = np.histogram(data, bins=bins, range=range)
         bar = ax.bar(bins[:-1],
                 hist.astype(np.float32) / ((hist.sum() / 100) if percentage else 1),
                 width=(bins[1] - bins[0]),
                 edgecolor=['black'] * len(hist),
-                align='edge')
+                align=align)
         return bar

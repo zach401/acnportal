@@ -54,7 +54,9 @@ class ACNsim:
         if start == None:
             start = datetime.now()
         if end == None:
-            end = (datetime.now() + timedelta(days=2))
+            end = (datetime.now()+ timedelta(days=2))
+        start = start.replace(hour=0, minute=0, second=0)
+        end = end.replace(hour=0, minute=0, second=0)
         garage = Garage()
         garage.generate_test_case(start, end, period, voltage, max_rate)
         return self.simulate(scheduler, garage)

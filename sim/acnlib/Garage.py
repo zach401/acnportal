@@ -6,6 +6,7 @@ from acnlib.SimulationOutput import Event
 import math
 from datetime import datetime, timedelta
 import random
+import config
 
 
 class Garage:
@@ -69,8 +70,8 @@ class Garage:
         :return: None
         '''
         # define start and end time
-        start = (start_dt - timedelta(hours=7)).timestamp()
-        end = (end_dt - timedelta(hours=7)).timestamp()
+        start = (start_dt).timestamp()
+        end = (end_dt + timedelta(hours=config.time_zone_diff_hour)).timestamp()
         # get the arrival rates
         last_arrival = start
         # specifications
@@ -85,6 +86,7 @@ class Garage:
             rate = self.stat_model.get_arrival_rate(weekday, hour)
             rand = 1 - random.random() # a number in range (0, 1]
             next_full_hour = (datetime.fromtimestamp(last_arrival).replace(microsecond=0,second=0,minute=0) + timedelta(hours=1)).timestamp()
+
             next_arrival = last_arrival + 3601
             if rate != 0:
                 next_arrival = last_arrival + (-math.log(rand)/rate)
@@ -97,9 +99,11 @@ class Garage:
                 stay_duration = self.stat_model.get_stay_duration(new_hour)
                 #while stay_duration <= 0:
                 #    stay_duration = np.abs(np.random.normal(stay_hourly_mean[hour], math.sqrt(stay_hourly_var[hour])))
-                energy = self.stat_model.get_energy_demand()
+                energy = self.stat_model.get_energy_demand(weekday)
                 free_charging_station_id = self.find_free_EVSE(EVs, next_arrival // 60 // period)
-                if free_charging_station_id != None:
+                arrival_dt = datetime.fromtimestamp(next_arrival)
+                departure_dt = datetime.fromtimestamp(next_arrival + stay_duration * 3600)
+                if free_charging_station_id != None and departure_dt < end_dt - timedelta(hours=7):
                     ev = EV(next_arrival // 60 // period,
                             math.ceil((next_arrival + stay_duration * 3600) / 60 / period),
                             ((energy * (60 / period) * 1e3) / voltage),
