@@ -2,24 +2,39 @@ import pickle
 from datetime import datetime, timedelta
 import numpy as np
 import random
+import config
 
 class StatModel:
+    '''
+    This class describes the statistical model of EVs **arriving times**, **stay durations** and **energy demand**.
+
+    - The arriving times of the EVs are described with a poisson process with variable rate depending on the hour of
+        the day and if it is a weekday or a weekend.
+    - The stay durations are modeled by analyzing the hourly distributions of the real charging sessions and creating
+        empirical density functions. After that a CDF is calculated for every hour of the day from which the stay duration
+        can be caluclated when using random variables.
+    - The energy demand for the EVs are calculated by analyzing the real charging sessions and the distribution of how much
+        energy the EVs need. After that a CDF is calculated from which the energy demand can be calculated using random variables.
+
+    Upon creation, this class reads the file with the real charging sessions with the file name defined in ``sim/config.py``.
+    '''
 
     def __init__(self):
-        self.sessions = pickle.load(open('April_2018_Sessions.pkl', 'rb'))
-        self.arrival_rates_week, self.arrival_rates_weekend = self.determine_arrival_rates()
-        self.stay_density_arrays, self.stay_density_edges = self.determine_stay_density_arrays()
-        self.energy_demand_density, self.energy_demand_density_edges = self.determine_energy_demand_array()
+        self.sessions = pickle.load(open(config.stat_model_data_source, 'rb'))
+        self.arrival_rates_week, self.arrival_rates_weekend = self.__determine_arrival_rates()
+        self.stay_density_arrays, self.stay_density_edges = self.__determine_stay_density_arrays()
+        self.energy_demand_density, self.energy_demand_density_edges = self.__determine_energy_demand_array()
 
         pass
 
-    def determine_arrival_rates(self):
+    def __determine_arrival_rates(self):
         '''
         Determines the rates of the poisson process that models the arrival rates
         of the EVs to the parking garage. As the arrival rates are very different during the
         week and the weekend, two different arrival rates arrays are calculated.
 
-        :return: (list, list) Returns two lists containing the hourly rates in weeks and the weekends.
+        :return: Returns a tuple of two lists containing the hourly rates in weeks and the weekends.
+        :rtype: tuple(list(float), list(float))
         '''
         days_weekend = set()
         days_week = set()
@@ -40,13 +55,14 @@ class StatModel:
         arrival_rates_weekend[:] = [x / nbr_weekenddays for x in arrival_rates_weekend]
         return arrival_rates_week, arrival_rates_weekend
 
-    def determine_stay_density_arrays(self):
+    def __determine_stay_density_arrays(self):
         '''
         Calculates the cumulative distribution functions (CDF) modeling the stay durations of the EVs per hour.
         Along with the cumulative distribution functions the edges of the distribution are calculated as well.
 
-        :return: (list, list) The first list contains 24 arrays containing the CDFs for the stay durations for every hour
+        :return: The first list contains 24 arrays containing the CDFs for the stay durations for every hour
                 The second list also contains 24 arrays but these describes the values each step in the CDF corresponds to.
+        :rtype: tuple(list(float), list(float))
         '''
         stay_duration_hours = {}
         for i in range(24):
@@ -75,13 +91,14 @@ class StatModel:
             stay_density_edges.append(edges)
         return stay_density_arrays, stay_density_edges
 
-    def determine_energy_demand_array(self):
+    def __determine_energy_demand_array(self):
         '''
         Calculates the Cumulative Distribution function (CDF) modeling how much energy each EV needs.
         Also calculates the edge value each value in the CDF corresponds to.
 
-        :return: (list, list) The first list contains the CDFs for the stay durations for every hour.
+        :return: The first list contains the CDFs for the stay durations for every hour.
                 The second list also contains the edge values each step in the CDF corresponds to.
+        :rtype: tuple(list(float), list(float))
         '''
         energy_demands = []
         energy_demand_density = []
@@ -102,9 +119,10 @@ class StatModel:
     def get_arrival_rate(self, weekday, hour):
         '''
         Returns the poisson process rate describing the EV arrival rate.
-        :param weekday: (int) The weekday. Monday=0, Sunday=6
-        :param hour: (int) The hour of the day
-        :return: (float) The arrival rate [arrivals/hour]
+        :param int weekday: The weekday. Monday=0, Sunday=6
+        :param int hour: The hour of the day
+        :return: The arrival rate [arrivals/hour]
+        :rtype: float
         '''
         if weekday < 5:
             return self.arrival_rates_week[hour] / 3600
@@ -116,8 +134,9 @@ class StatModel:
         Returns the stay duration according to the stay duration distributions
         extracted from the real ACN data.
 
-        :param hour: (int) The hour of the day
-        :return: (float) The stay duration [hours]
+        :param int hour: The hour of the day
+        :return: The stay duration [hours]
+        :rtype: float
         '''
         density_array = self.stay_density_arrays[hour]
         edges = self.stay_density_edges[hour]
@@ -135,7 +154,8 @@ class StatModel:
         Returns the energy demand for an EV according to the energy demand distributions
         extracted from the real ACN data.
 
-        :return: (float) The energy demand for an EV [kWh]
+        :return: The energy demand for an EV [kWh]
+        :rtype: float
         '''
         density_array = self.energy_demand_density
         edges = self.energy_demand_density_edges

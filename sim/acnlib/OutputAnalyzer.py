@@ -105,8 +105,8 @@ class OutputAnalyzer:
 
         ax1 = plt.subplot(1,3,1)
         #plt.hist([arrival_hours, departure_hours], bins=24)
-        hist_arrival, bins_arrival = np.histogram(arrival_hours, bins=24)
-        hist_departure, bins_departure = np.histogram(departure_hours, bins=24)
+        hist_arrival, bins_arrival = np.histogram(arrival_hours, bins=24, range=(0,24))
+        hist_departure, bins_departure = np.histogram(departure_hours, bins=24, range=(0,24))
         b1 = ax1.bar(bins_arrival[:-1],
                 hist_arrival.astype(np.float32) / ((hist_arrival.sum() / 100) if percentage else 1),
                 width=-(bins_arrival[1] - bins_arrival[0])/2,
@@ -190,9 +190,9 @@ class OutputAnalyzer:
         for key, value in weekends.items():
             weekends_arrivals.append(value)
 
-        weekdays_mean = np.mean(weekdays_arrivals)
+        weekdays_mean = round(np.mean(weekdays_arrivals), 2)
         weekdays_std = round(np.sqrt(np.var(weekdays_arrivals)), 2)
-        weekends_mean = np.mean(weekends_arrivals)
+        weekends_mean = round(np.mean(weekends_arrivals), 2)
         weekends_std = round(np.sqrt(np.var(weekends_arrivals)), 2)
 
         self.new_figure()
