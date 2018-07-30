@@ -124,6 +124,7 @@ class Garage:
             ev.departure -= min_arrival
         EVs.sort(key=lambda x: x.station_id)
         self.test_case = TestCase(EVs, (min_arrival*60*period), voltage, max_rate, period)
+        return self.test_case
 
 
     def find_free_EVSE(self, EVs, current_time):
@@ -213,7 +214,7 @@ class Garage:
 
     @property
     def max_rate(self):
-        return self.test_case.DEFAULT_MAX_RATE
+        return self.test_case.max_rate
 
     @property
     def allowable_rates(self):

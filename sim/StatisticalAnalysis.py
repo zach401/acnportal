@@ -1,10 +1,17 @@
+from acnlib import TestCase
 import pickle
 from datetime import datetime, timedelta
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+from acnlib.StatModel import *
 
-sessions = pickle.load(open('April_2018_Sessions.pkl', 'rb'))
+from acnlib.Garage import *
+import config
+
+
+
+sessions = pickle.load(open('July_25_Sessions.pkl', 'rb'))
 
 
 stay_duration_hours = {}
@@ -33,8 +40,8 @@ arrival_rates_weekend[:] = [x / nbr_weekenddays for x in arrival_rates_weekend]
 
 # stay duration
 for s in sessions:
-    arrival = s[0]-timedelta(hours=7)
-    departure = s[1]-timedelta(hours=7)
+    arrival = s[0]-timedelta(hours=config.time_zone_diff_hour)
+    departure = s[1]-timedelta(hours=config.time_zone_diff_hour)
     stay_duration = (departure - arrival).total_seconds() / 3600
     #if stay_duration >= 0 and stay_duration <= 1000:
     stay_duration_hours[arrival.hour].append(stay_duration)
@@ -62,9 +69,18 @@ def normal_curve(x, mu, sigma):
     return 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(- (x - mu) ** 2 / (2 * sigma ** 2))
 
 
-plt.figure(1)
 hourly_mean = []
 hourly_var = []
+fig1 = plt.figure(1)
+plt.suptitle('Distribution of EVs stay durations every hour of the day')
+ax = fig1.add_subplot(111)
+ax.spines['top'].set_color('none')
+ax.spines['bottom'].set_color('none')
+ax.spines['left'].set_color('none')
+ax.spines['right'].set_color('none')
+ax.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
+ax.set_xlabel('Stay durations [h]')
+ax.set_ylabel('Probability denisty')
 for key, data in stay_duration_hours.items():
     mu = np.mean(data)
     sigma = np.var(data)
@@ -74,22 +90,37 @@ for key, data in stay_duration_hours.items():
         sigma = 1
     x = key//6
     y = key%6
-    plt.subplot(4, 6, key + 1)
-    plt.hist(data, bins=20, range=(0, 40), normed=True)
+    ax = fig1.add_subplot(4, 6, key + 1)
+    ax.hist(data, bins=20, range=(0, 40), normed=True)
     xx = np.linspace(0,40)
     yy = normal_curve(xx, mu, np.sqrt(sigma))
-    plt.plot(xx, yy)
+    #plt.plot(xx, yy)
 
-plt.figure(2)
+fig = plt.figure(2)
+plt.suptitle('Cumulative distribution functions of EVs stay durations every hour of the day')
+ax = fig.add_subplot(111)
+ax.spines['top'].set_color('none')
+ax.spines['bottom'].set_color('none')
+ax.spines['left'].set_color('none')
+ax.spines['right'].set_color('none')
+ax.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
+ax.set_xlabel('Stay durations [h]')
+ax.set_ylabel('Probability')
 for i in range(24):
-    plt.subplot(4, 6, i + 1)
+    ax = fig.add_subplot(4, 6, i + 1)
     density_array = stay_density_arrays[i]
     density_edges = stay_density_edges[i].tolist()
     density_array.insert(0,0)
     density_edges.insert(0,0)
     density_edges.pop()
-    plt.step(density_edges, density_array)
-    plt.xlim((0,40))
+    ax.step(density_edges, density_array)
+    ax.set_xlim(-1,40)
+
+
 
 plt.figure(3)
 plt.scatter(stay_duration_list, energy_demand)
+
+#stat_model = StatModel()
+
+

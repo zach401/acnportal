@@ -12,8 +12,8 @@ class TestCase:
     Stores the data of the test case when the simulation is run.
     '''
     def __init__(self, EVs, start_timestamp,voltage=220, max_rate=32, period=1):
-        self.VOLTAGE = voltage
-        self.DEFAULT_MAX_RATE = max_rate
+        self.voltage = voltage
+        self.max_rate = max_rate
         self.period = period
         self.start_timestamp = start_timestamp
         self.EVs = EVs
@@ -43,7 +43,7 @@ class TestCase:
                                                           'EV arrived at station {}'.format(ev.station_id),
                                                           ev.session_id))
             charge_rate = ev.charge(pilot_signals[ev.session_id], tail=True)
-            if charge_rate > self.DEFAULT_MAX_RATE:
+            if charge_rate > self.max_rate:
                 # If charging rate was exceeded output an error
                 self.simulation_output.submit_event(Event('ERROR',
                                                           iteration,

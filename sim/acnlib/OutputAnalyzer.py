@@ -118,6 +118,7 @@ class OutputAnalyzer:
                 edgecolor=['black'] * len(bins_departure),
                 align='edge')
         handles, labels = ax1.get_legend_handles_labels()
+        ax1.set_ylim(0, 25)
         ax1.legend([b1, b2], ['Arrivals', 'Departures'])
         plt.xlabel('Hour of day')
         plt.ylabel('Percentage of arriving and departing EVs [%]' if percentage else 'Number of EVs')

@@ -190,3 +190,90 @@ class StatModel:
         if energy_demand > 30:
             a = 0
         return energy_demand
+
+def __get_beahavioral_stats(test_case):
+    arrival_hours = []
+    departure_hours = []
+    requested_energy = []
+    stay_durations = []
+    number_of_EVs = len(test_case.EVs)
+    for ev in test_case.EVs:
+        # - Gather data for arrivals and departures
+        arrival_time = datetime.fromtimestamp(ev.arrival * 60 * test_case.period +
+                                              test_case.start_timestamp)
+        departure_time = datetime.fromtimestamp(ev.departure * 60 * test_case.period +
+                                                test_case.start_timestamp)
+        arrival_time = arrival_time  # - timedelta(hours=7)
+        departure_time = departure_time  # - timedelta(hours=7)
+        arrival_hours.append(arrival_time.hour)
+        departure_hours.append(departure_time.hour)
+        # - Gather data for requested energy
+        requested_energy.append(
+            (ev.requested_energy / (60 / test_case.period)) * test_case.voltage / 1000)
+        # - Gather data for stay times
+        stay_durations.append(((ev.departure - ev.arrival) * test_case.period) / 60)
+    return (arrival_hours, departure_hours, requested_energy, stay_durations)
+
+def __get_distribution_probabilities(data, percentage=True, bins=20, range=None, align='center'):
+    hist, bins = np.histogram(data, bins=bins, range=range)
+    distribution = hist.astype(np.float32) / ((hist.sum()) if percentage else 1)
+    return distribution.tolist()
+
+def __calc_statistical_distance(P, Q):
+    '''
+    Impelents the Hellinger distance. Returns the upper bound.
+
+    :param list(float) P: real distribution
+    :param list(float) Q: model distribution
+    :return: The Hellinger statistical distance
+    :rtype: float
+    '''
+    pow_sqrt_sum = 0
+    lenght = len(P)
+    for i in range(0,lenght):
+        pow_sqrt_sum = pow_sqrt_sum + np.power((np.sqrt(P[i]) - np.sqrt(Q[i])), 2)
+    hellinger_dist = np.sqrt(pow_sqrt_sum) / np.sqrt(2)
+    return hellinger_dist * np.sqrt(2)
+
+def compare_model_to_real(real_test_case, model_test_case):
+    arrival_hours_real, departure_hours_real, requested_energy_real, stay_durations_real = __get_beahavioral_stats(
+        real_test_case)
+    arrival_hours_model, departure_hours_model, requested_energy_model, stay_durations_model = __get_beahavioral_stats(
+        model_test_case)
+
+    arrival_dist_real, arrival_dist_model = __get_distribution_probabilities(arrival_hours_real,
+                                                                             range=(0,24),
+                                                                             bins=24),\
+                                            __get_distribution_probabilities(arrival_hours_model,
+                                                                             range=(0,24),
+                                                                             bins=24)
+    departure_dist_real, departure_dist_model = __get_distribution_probabilities(departure_hours_real,
+                                                                                 range=(0,24),
+                                                                                 bins=24), \
+                                                __get_distribution_probabilities(departure_hours_model,
+                                                                                 range=(0,24),
+                                                                                 bins=24)
+    requested_energy_dist_real, requested_energy_dist_model = __get_distribution_probabilities(requested_energy_real,
+                                                                                               range=(0,50),
+                                                                                               bins=15), \
+                                                              __get_distribution_probabilities(requested_energy_model,
+                                                                                               range=(0,50),
+                                                                                               bins=15)
+    stay_duration_dist_real, stay_duration_dist_model = __get_distribution_probabilities(stay_durations_real,
+                                                                                         range=(0,50),
+                                                                                         bins=15), \
+                                                        __get_distribution_probabilities(stay_durations_model,
+                                                                                         range=(0,50),
+                                                                                         bins=15)
+
+    arrival_distance = __calc_statistical_distance(arrival_dist_real, arrival_dist_model)
+    departure_distance = __calc_statistical_distance(departure_dist_real, departure_dist_model)
+    energy_distance = __calc_statistical_distance(requested_energy_dist_real, requested_energy_dist_model)
+    stay_distance = __calc_statistical_distance(stay_duration_dist_real, stay_duration_dist_model)
+
+    print('Arrival stat dist: {}'.format(arrival_distance))
+    print('Departure stat dist: {}'.format(departure_distance))
+    print('Energy stat dist: {}'.format(energy_distance))
+    print('Stay stat dist: {}'.format(stay_distance))
+
+
