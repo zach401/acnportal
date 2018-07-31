@@ -43,7 +43,7 @@ Simulation interface (API)
 
 The ``BaseAlgorithm`` class provides the API to the simulator which provides information from the simulation that can
 be useful when writing a scheduling algorithm. The interface object can be accessed by writing ``self.interface``
-from the new scheduler class.
+in a function of the new scheduler class.
 
 For example, to access the maximum charging rate that is allowed in the simulation it is possible to write:
 
@@ -51,7 +51,7 @@ For example, to access the maximum charging rate that is allowed in the simulati
 
     max_rate = self.interface.get_max_charging_rate()
 
-More information about the API and what resources are available are described here.
+More information about the API and what resources are available are described :class:`here<Interfacesim.acnlib.Interface.Interface>`.
 
 Examples
 --------

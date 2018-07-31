@@ -56,7 +56,7 @@ The predefined scheduling algorithms are:
 
 :MLLF:
     Multi Least Laxity First. An algorithm that ranks the EVs according to their laxity and then prioritizes the EVs with
-    least laxities. As the laxity ranking changes as the EVs charge there is an option to allow preemption of the sessions, i.e.
+    least laxity. As the laxity ranking changes as the EVs charge there is an option to allow preemption of the sessions, i.e.
     an EV can interrupt another EV that is charging at full rate when it get a smaller laxity value.
 
 To define which algorithm to use, simply create an object of the corresponding scheduling class to be used:
@@ -159,7 +159,8 @@ defined is the scheduling algorithm. The code will look something like this:
     acnsim = ACNsim()
     simulation_output = acnsim.simulate_model(scheduler)
 
-It is also possible to pass more arguments to the ``simulate_model`` function:
+It is also possible to pass more arguments to the ``simulate_model``
+:class:`simulate_model<sim.acnlib.ACNlib.ACNlib.simulate_model>` function:
 
 :start: (datetime) Specifies what date the simulation will start. ``Standard value: today``
 
@@ -175,7 +176,7 @@ Result
 ++++++
 
 When running the simulation functions the result of the simulation is returned
-as a SimulationOutput object. This object holds all relevant data of the simulation
+as a :class:`SimulationOutput<sim.acnlib.SimulationOutput.SimulationOutput>` object. This object holds all relevant data of the simulation
 and is used when analyzing and visualizing the simulation results.
 
 Analyze simulation result
@@ -183,10 +184,10 @@ Analyze simulation result
 
 When the simulation has finished the simulation data is stored in the SimulationOutput object.
 
-To see the result from the simulation it is possible to pass this object to the ``OutputAnalyzer`` library. There are several
-functions that can be used to view different aspects of the simulation. The available functions are described here.
+To see the result from the simulation it is possible to pass this object to the :class:`OutputAnalyzer<sim.acnlib.OutputAnalyzer.OutputAnalyzer>`
+library. There are several functions that can be used to view different aspects of the simulation. The available functions are described here.
 
-An code example is presented below which will plot the charging activity for each station, the EV behavior and the algorithm performance.
+A code example is presented below which will plot the charging activity for each station, the EV behavior and the algorithm performance.
 The corresponding output graphs are also included.
 
 .. code-block:: python
@@ -200,7 +201,29 @@ The corresponding output graphs are also included.
 Sample code
 -----------
 
-Below follows a script with all the commands used above which can be used as a reference for using the simulator.
+Below follows scripts with the commands used above which can be used as a reference for using the simulator.
+
+From model
+++++++++++
+
+.. code-block:: python
+
+    from datetime import datetime
+    from BaseAlgorithm import *
+    from acnlib.OutputAnalyzer import OutputAnalyzer
+    from acnlib.ACNsim import ACNsim
+
+    scheduler = MLLF()
+    acnsim = ACNsim()
+    simulation_output = acnsim.simulate_model(scheduler, period=1)
+
+    oa = OutputAnalyzer(simulation_output)
+    oa.plot_station_activity()
+    oa.plot_EV_behavioral_stats()
+    oa.plot_algorithm_result_stats()
+
+From real data
+++++++++++++++
 
 .. code-block:: python
 
@@ -210,9 +233,13 @@ Below follows a script with all the commands used above which can be used as a r
     from acnlib.OutputAnalyzer import OutputAnalyzer
     from acnlib.ACNsim import ACNsim
 
+    test_case = TestCase.generate_test_case_local('session_data.pkl',
+                                                  datetime.strptime("01/06/18", "%d/%m/%y"),
+                                                  datetime.strptime("30/06/18", "%d/%m/%y"),
+                                                  period=5)
     scheduler = MLLF()
     acnsim = ACNsim()
-    simulation_output = acnsim.simulate_model(scheduler, period=1)
+    simulation_output = acnsim.simulate_real(scheduler, test_case)
 
     oa = OutputAnalyzer(simulation_output)
     oa.plot_station_activity()

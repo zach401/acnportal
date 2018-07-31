@@ -77,7 +77,7 @@ class StatModel:
         stay_density_arrays = []
         stay_density_edges = []
         for key, data in stay_duration_hours.items():
-            hist, edges = np.histogram(data, bins=20, density=True)
+            hist, edges = np.histogram(data, bins=60, density=True)
             density_array = []
             i = 0
             for h in np.nditer(hist):

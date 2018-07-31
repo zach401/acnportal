@@ -89,7 +89,7 @@ class Garage:
 
             next_arrival = last_arrival + 3601
             if rate != 0:
-                next_arrival = last_arrival + (-math.log(rand)/rate)
+                next_arrival = last_arrival + (-math.log(rand) / rate)
             if next_arrival > next_full_hour:
                 # no EV arrived by time within this hour
                 last_arrival = next_full_hour
@@ -103,7 +103,7 @@ class Garage:
                 free_charging_station_id = self.find_free_EVSE(EVs, next_arrival // 60 // period)
                 arrival_dt = datetime.fromtimestamp(next_arrival)
                 departure_dt = datetime.fromtimestamp(next_arrival + stay_duration * 3600)
-                if free_charging_station_id != None and departure_dt < end_dt - timedelta(hours=7):
+                if free_charging_station_id != None and departure_dt < end_dt - timedelta(hours=config.time_zone_diff_hour):
                     ev = EV(next_arrival // 60 // period,
                             math.ceil((next_arrival + stay_duration * 3600) / 60 / period),
                             ((energy * (60 / period) * 1e3) / voltage),
@@ -118,7 +118,7 @@ class Garage:
                     elif min_arrival > ev.arrival:
                         min_arrival = ev.arrival
                     EVs.append(ev)
-                    last_arrival = next_arrival
+                last_arrival = next_arrival
         for ev in EVs:
             ev.arrival -= min_arrival
             ev.departure -= min_arrival
@@ -219,3 +219,15 @@ class Garage:
     @property
     def allowable_rates(self):
         return self.test_case.ALLOWABLE_RATES
+
+    def __get_intermediate_hours(self, current_time, next_time):
+        hours_timestamps = []
+        t = (datetime.fromtimestamp(current_time).replace(microsecond=0, second=0, minute=0) + timedelta(
+                    hours=1)).timestamp()
+        while t < next_time:
+            hours_timestamps.append(t)
+            t = (datetime.fromtimestamp(t).replace(microsecond=0, second=0, minute=0) + timedelta(
+                    hours=1)).timestamp()
+        return hours_timestamps
+
+

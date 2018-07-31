@@ -12,19 +12,19 @@ from acnlib.ACNsim import ACNsim
 if __name__ == '__main__':
     test_case = TestCase.generate_test_case_local('July_25_Sessions.pkl',
                                                   datetime.strptime("01/06/18", "%d/%m/%y"),
-                                                  datetime.strptime("14/06/18", "%d/%m/%y"),
+                                                  datetime.strptime("30/06/18", "%d/%m/%y"),
                                                   period=5)
     scheduler = MLLF()
     acnsim = ACNsim()
 
-    simulation_output = acnsim.simulate_real(scheduler, test_case)
-    #simulation_output = acnsim.simulate_model(scheduler, period=5, start=datetime.now(), end=(datetime.now() + timedelta(days=14)))
+    #simulation_output = acnsim.simulate_real(scheduler, test_case)
+    simulation_output = acnsim.simulate_model(scheduler, period=5, start=datetime.now(), end=(datetime.now() + timedelta(days=14)))
 
     oa = OutputAnalyzer(simulation_output)
     #oa.plot_station_activity()
     oa.plot_EV_behavioral_stats()
     #oa.plot_EV_behavioral_stats(percentage=False)
-    oa.plot_algorithm_result_stats()
+    #oa.plot_algorithm_result_stats()
     #oa.print_events('info')
     #oa.print_events('error')
     #oa.print_events('warning')

@@ -51,7 +51,7 @@ for s in sessions:
 stay_density_arrays = []
 stay_density_edges = []
 for key, data in stay_duration_hours.items():
-    hist, edges = np.histogram(data, bins=20, density=True)
+    hist, edges = np.histogram(data, bins=20, density=True,  range=(0, 40))
     density_array = []
     i = 0
     for h in np.nditer(hist):
@@ -92,6 +92,8 @@ for key, data in stay_duration_hours.items():
     y = key%6
     ax = fig1.add_subplot(4, 6, key + 1)
     ax.hist(data, bins=20, range=(0, 40), normed=True)
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    ax.text(28, ax.get_ylim()[1] - 0.15 * (ax.get_ylim()[1] - ax.get_ylim()[0]), 'Hour {}'.format(key), bbox=props)
     xx = np.linspace(0,40)
     yy = normal_curve(xx, mu, np.sqrt(sigma))
     #plt.plot(xx, yy)
@@ -111,10 +113,10 @@ for i in range(24):
     density_array = stay_density_arrays[i]
     density_edges = stay_density_edges[i].tolist()
     density_array.insert(0,0)
-    density_edges.insert(0,0)
-    density_edges.pop()
     ax.step(density_edges, density_array)
     ax.set_xlim(-1,40)
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    ax.text(27, ax.get_ylim()[1] - 0.9 * (ax.get_ylim()[1] - ax.get_ylim()[0]), 'Hour {}'.format(i), bbox=props)
 
 
 
