@@ -38,6 +38,8 @@ nbr_weekenddays = len(days_weekend)
 arrival_rates_week[:] = [x / nbr_weekdays for x in arrival_rates_week]
 arrival_rates_weekend[:] = [x / nbr_weekenddays for x in arrival_rates_weekend]
 
+
+
 # stay duration
 for s in sessions:
     arrival = s[0]-timedelta(hours=config.time_zone_diff_hour)
@@ -118,11 +120,78 @@ for i in range(24):
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
     ax.text(27, ax.get_ylim()[1] - 0.9 * (ax.get_ylim()[1] - ax.get_ylim()[0]), 'Hour {}'.format(i), bbox=props)
 
+# --------------------------------------------------
+energy_demands = []
+energy_demands_weekend = []
+energy_demand_density = []
+energy_demand_density_weekend =[]
+for s in sessions:
+    arrival = s[0] + timedelta(hours=config.time_zone_diff_hour)
+    if arrival.weekday() < 5:
+        energy_demands.append(s[2])
+    else:
+        energy_demands_weekend.append(s[2])
+hist_week, density_edges_week = np.histogram(energy_demands, bins=20, density=True, range=(0,40))
+hist_weekend, density_edges_weekend = np.histogram(energy_demands_weekend, bins=20, density=True, range=(0,40))
+i = 0
+# Build the CDFs
+for h in np.nditer(hist_week):
+    new_value = h * (density_edges_week[i + 1] - density_edges_week[i])
+    if i == 0:
+        energy_demand_density.append(new_value)
+    else:
+        energy_demand_density.append(energy_demand_density[i - 1] + new_value)
+    i = i + 1
+i=0
+for h in np.nditer(hist_weekend):
+    new_value = h * (density_edges_weekend[i + 1] - density_edges_weekend[i])
+    if i == 0:
+        energy_demand_density_weekend.append(new_value)
+    else:
+        energy_demand_density_weekend.append(energy_demand_density_weekend[i - 1] + new_value)
+    i = i + 1
 
+fig = plt.figure(3)
+ax1 = fig.add_subplot(221)
+ax1.hist(energy_demands, range=(0,40), bins=20, density=True)
+ax1.set_ylabel('Probability density')
+ax1.set_title('PDF of EV energy demand during weekdays.')
 
-plt.figure(3)
-plt.scatter(stay_duration_list, energy_demand)
+ax2 = fig.add_subplot(222)
+ax2.hist(energy_demands_weekend, range=(0,40), bins=20, density=True)
+ax2.set_title('PDF of EV energy demand during weekends.')
 
-#stat_model = StatModel()
+ax3 = fig.add_subplot(223)
+energy_demand_density.insert(0,0)
+ax3.step(density_edges_week, energy_demand_density)
+ax3.set_xlim(-1,40)
+ax3.set_xlabel('Energy demand [kWh]')
+ax3.set_ylabel('Probability')
+ax3.set_title('CDF of EV energy demand during weekdays.')
+
+ax4 = fig.add_subplot(224)
+energy_demand_density_weekend.insert(0,0)
+ax4.step(density_edges_weekend, energy_demand_density_weekend)
+ax4.set_xlim(-1,40)
+ax4.set_xlabel('Energy demand [kWh]')
+ax4.set_title('CDF of EV energy demand during weekends.')
+
+stat_model = StatModel()
+
+# ----------
+
+fig = plt.figure(4)
+ax1 = fig.add_subplot(121)
+ax1.bar(range(0,24), stat_model.arrival_rates_week)
+ax1.set_ylim(0,18)
+ax1.set_ylabel('Arrivals / hour')
+ax1.set_xlabel('Hour of day')
+ax1.set_title('Arrival rates for every hour of a weekday')
+ax2 = fig.add_subplot(122)
+ax2.bar(range(0,24), stat_model.arrival_rates_weekend)
+ax2.set_ylim(0,18)
+ax2.set_xlabel('Hour of day')
+ax2.set_title('Arrival rates for every hour of a \nday during the weekend')
+
 
 

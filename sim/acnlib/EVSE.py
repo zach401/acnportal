@@ -26,7 +26,7 @@ class EVSE:
         change_ok = True
         new_index = self.allowable_pilot_signals.index(new_pilot_signal)
         old_index = self.allowable_pilot_signals.index(self.last_applied_pilot_signal)
-        if math.fabs(new_index - old_index) > 1:
+        if math.fabs(new_index - old_index) > 1 and session_id == self.last_session_id:
             change_ok = False
         self.last_applied_pilot_signal = new_pilot_signal
         self.last_session_id = session_id

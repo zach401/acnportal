@@ -67,7 +67,8 @@ class Garage:
         :param start_dt: (datetime) When the simulation should start.
         :param end_dt: (datetime) When the simulation should end.
         :param period: (int) How many minutes one period should be.
-        :return: None
+        :return: The test case generated. It is stored in the garage but is also returned if it should be analyed
+        :rtype: TestCase
         '''
         # define start and end time
         start = (start_dt).timestamp()
@@ -103,7 +104,8 @@ class Garage:
                 free_charging_station_id = self.find_free_EVSE(EVs, next_arrival // 60 // period)
                 arrival_dt = datetime.fromtimestamp(next_arrival)
                 departure_dt = datetime.fromtimestamp(next_arrival + stay_duration * 3600)
-                if free_charging_station_id != None and departure_dt < end_dt - timedelta(hours=config.time_zone_diff_hour):
+                if free_charging_station_id != None \
+                        and departure_dt < end_dt - timedelta(hours=config.time_zone_diff_hour):
                     ev = EV(next_arrival // 60 // period,
                             math.ceil((next_arrival + stay_duration * 3600) / 60 / period),
                             ((energy * (60 / period) * 1e3) / voltage),
@@ -111,7 +113,9 @@ class Garage:
                             free_charging_station_id,
                             uid)
                     if ev.departure - ev.arrival < ev.requested_energy / ev.max_rate:
-                        ev.departure = math.ceil(ev.requested_energy / ev.max_rate) + ev.arrival
+                        new_departure = math.ceil(ev.requested_energy / ev.max_rate) + ev.arrival
+                        if new_departure < math.ceil(end / 60 / period):
+                            ev.departure = math.ceil(ev.requested_energy / ev.max_rate) + ev.arrival
                     uid += 1
                     if not min_arrival:
                         min_arrival = ev.arrival

@@ -164,6 +164,17 @@ class OutputAnalyzer:
         self.figures = self.figures + 1
 
     def plot_EV_daily_arrivals(self, percentage=True):
+        '''
+        Plots the average daily arrivals of a day during the week and the weekend.
+        Figure 1:
+            - The distribution of the number of arrivals per day
+        Figure 2:
+            - The average number of arrivals during the week and the weekend
+            and the standard deviation
+
+        :param boolean percentage: If the histograms should be presented in percentage or absolute values.
+        :return: None
+        '''
         weekdays = {}
         weekends = {}
 
@@ -255,7 +266,7 @@ class OutputAnalyzer:
         plt.figure(self.figures)
         energy_percentage = []
         stay_duration_not_finished_EVs = []
-        total_current = [0] * math.ceil(self.simulation_output.last_departure)
+        total_power = [0] * math.ceil(self.simulation_output.last_departure)
         for ev in self.simulation_output.EVs:
             # - Calculate the percentage of requested energy met
             p = (ev.energy_delivered / ev.requested_energy) * 100
@@ -268,7 +279,7 @@ class OutputAnalyzer:
             # - Accumulate the total current used by all sessions
             if ev.session_id in self.simulation_output.charging_data:
                 for sample in self.simulation_output.charging_data[ev.session_id]:
-                    total_current[sample['time']] = total_current[sample['time']] + sample['charge_rate']*self.simulation_output.voltage/1000
+                    total_power[sample['time']] = total_power[sample['time']] + sample['charge_rate']*self.simulation_output.voltage/1000
 
         plt.subplot(1, 2, 1)
         #plt.hist(energy_percentage, bins=50, edgecolor='black', range=(0,100))
@@ -284,7 +295,7 @@ class OutputAnalyzer:
         plt.title('Stay duration of EVs that did not get their requested energy fulfilled')
         self.figures = self.figures + 1
         self.new_figure()
-        plt.plot(total_current)
+        plt.plot(total_power)
         plt.xlabel('time')
         plt.ylabel('Power [kW]')
         plt.title('Power usage of the test case')
@@ -384,8 +395,83 @@ class OutputAnalyzer:
     def print_total_number_of_sessions(self):
         n = len(self.simulation_output.get_all_EVs())
         print('Total numbers of EV charging sessions: {}'.format(n))
+        print('\n')
 
-    def create_time_axis(self, start_timestamp, nbr_of_periods, period):
+    def print_energy_delivery(self):
+        '''
+        Prints the energy delivered per day and in total
+
+        :return: None
+        '''
+        daily_energy = {}
+        start_timestamp = self.simulation_output.start_timestamp
+        period = self.simulation_output.period
+        total_power_series = self.__get_total_power_series()
+        total_energy = 0
+        for iteration, power in enumerate(total_power_series):
+            d = datetime.fromtimestamp(start_timestamp + iteration * period * 60).date()
+            energy = power * (period / 60)
+            if d in daily_energy:
+                daily_energy[d] = daily_energy[d] + energy
+            else:
+                daily_energy[d] = energy
+            total_energy = total_energy + energy
+
+        print('ENERGY DELIVERED')
+        print('-' * 22)
+        for key, value in daily_energy.items():
+            print('{0:9s}: {1:7.1f} kWh'.format(key.strftime('%m/%d/%y'), value))
+        print('-' * 22)
+        print('{0:9s}: {1:7.1f} kWh'.format('TOTAL', total_energy))
+        print('\n')
+
+    def print_energy_fulfillment(self):
+        nbr_EVs_fully_charged = 0
+        not_fully_charged = []
+        for ev in self.simulation_output.EVs:
+            if ev.fully_charged:
+                nbr_EVs_fully_charged = nbr_EVs_fully_charged + 1
+            else:
+                not_fully_charged.append(ev.energy_delivered / ev.requested_energy)
+        hist, bins = np.histogram(not_fully_charged, bins=10, range=(0,1))
+        total_nbr_EVs = hist.sum() + nbr_EVs_fully_charged
+        hist_norm = hist.astype(np.float32) / (total_nbr_EVs / 100)
+        i = 0
+        print('ENERGY FULFILLMENT')
+        print('-'*40)
+        print('{0:15s} | {1:10s}'.format('Percentage of demand', 'Percentage of EVs'))
+        for v in hist_norm.tolist():
+            print('{0:12.1f} -{1:5.1f}% | {2:5.2f}%'.format(bins[i]*100, bins[i+1]*100-0.1, v))
+            i = i+1
+        print('{0:19.1f}% | {1:5.2f}%'.format(100, (nbr_EVs_fully_charged / total_nbr_EVs)*100))
+        print('-' * 40)
+        print('\n')
+
+    def print_algorithm_result_report(self):
+        '''
+        Prints a compilation of simulation results. The information included in the report are:
+        - Total number of sessions
+        - Energy delivery
+        - Error events
+        - Warning events
+        :return:
+        '''
+        print('\n')
+        self.print_total_number_of_sessions()
+        self.print_energy_delivery()
+        self.print_energy_fulfillment()
+        self.print_events(type='error')
+        self.print_events(type='warning')
+
+    def __get_total_power_series(self):
+        total_power = [0] * math.ceil(self.simulation_output.last_departure)
+        for ev in self.simulation_output.EVs:
+            if ev.session_id in self.simulation_output.charging_data:
+                for sample in self.simulation_output.charging_data[ev.session_id]:
+                    total_power[sample['time']] = total_power[sample['time']] + sample['charge_rate']*self.simulation_output.voltage/1000
+        return total_power
+
+    def __create_time_axis(self, start_timestamp, nbr_of_periods, period):
         time_array = []
         for i in range(int(nbr_of_periods)):
             time = datetime.fromtimestamp(start_timestamp + i * period)
