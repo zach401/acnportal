@@ -194,4 +194,26 @@ ax2.set_xlabel('Hour of day')
 ax2.set_title('Arrival rates for every hour of a \nday during the weekend')
 
 
-
+fig = plt.figure(5)
+plt.suptitle('Cumulative distribution functions of EVs stay durations every hour of the day')
+ax = fig.add_subplot(111)
+ax.spines['top'].set_color('none')
+ax.spines['bottom'].set_color('none')
+ax.spines['left'].set_color('none')
+ax.spines['right'].set_color('none')
+ax.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
+ax.set_xlabel('Stay durations [h]')
+ax.set_ylabel('Probability')
+for i in range(24):
+    ax = fig.add_subplot(4, 6, i + 1)
+    density_array_weekday = stat_model.stay_density_arrays[i]
+    density_edges_weekday = stat_model.stay_density_edges[i].tolist()
+    density_array_weekday.insert(0,0)
+    ax.step(density_edges_weekday, density_array_weekday)
+    density_array_weekend = stat_model.stay_density_arrays_weekend[i]
+    density_edges_weekend = stat_model.stay_density_edges_weekend[i].tolist()
+    density_array_weekend.insert(0, 0)
+    ax.step(density_edges_weekend, density_array_weekend)
+    ax.set_xlim(-1,40)
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    ax.text(27, ax.get_ylim()[1] - 0.9 * (ax.get_ylim()[1] - ax.get_ylim()[0]), 'Hour {}'.format(i), bbox=props)

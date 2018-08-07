@@ -22,7 +22,8 @@ class StatModel:
     def __init__(self):
         self.sessions = pickle.load(open(config.stat_model_data_source, 'rb'))
         self.arrival_rates_week, self.arrival_rates_weekend = self.__determine_arrival_rates()
-        self.stay_density_arrays, self.stay_density_edges = self.__determine_stay_density_arrays()
+        self.stay_density_arrays, self.stay_density_edges, \
+            self.stay_density_arrays_weekend, self.stay_density_edges_weekend = self.__determine_stay_density_arrays()
         self.energy_demand_density_arrays, self.energy_demand_density_edges_arrays = self.__determine_energy_demand_array()
 
         pass
@@ -65,15 +66,20 @@ class StatModel:
         :rtype: tuple(list(float), list(float))
         '''
         stay_duration_hours = {}
+        stay_duration_hours_weekend = {}
         for i in range(24):
             stay_duration_hours[i] = []
+            stay_duration_hours_weekend[i] = []
         # stay duration
         for s in self.sessions:
             arrival = s[0] - timedelta(hours=config.time_zone_diff_hour)
             departure = s[1] - timedelta(hours=config.time_zone_diff_hour)
             stay_duration = (departure - arrival).total_seconds() / 3600
             # if stay_duration >= 0 and stay_duration <= 1000:
-            stay_duration_hours[arrival.hour].append(stay_duration)
+            if arrival.weekday() < 5:
+                stay_duration_hours[arrival.hour].append(stay_duration)
+            else:
+                stay_duration_hours_weekend[arrival.hour].append(stay_duration)
         stay_density_arrays = []
         stay_density_edges = []
         for key, data in stay_duration_hours.items():
@@ -89,7 +95,22 @@ class StatModel:
                 i = i + 1
             stay_density_arrays.append(density_array)
             stay_density_edges.append(edges)
-        return stay_density_arrays, stay_density_edges
+        stay_density_arrays_weekend = []
+        stay_density_edges_weekend = []
+        for key, data in stay_duration_hours_weekend.items():
+            hist, edges = np.histogram(data, bins=60, density=True)
+            density_array = []
+            i = 0
+            for h in np.nditer(hist):
+                new_value = h * (edges[i+1]-edges[i])
+                if i == 0:
+                    density_array.append(new_value)
+                else:
+                    density_array.append(density_array[i - 1] + new_value)
+                i = i + 1
+            stay_density_arrays_weekend.append(density_array)
+            stay_density_edges_weekend.append(edges)
+        return stay_density_arrays, stay_density_edges, stay_density_arrays_weekend, stay_density_edges_weekend
 
     def __determine_energy_demand_array(self):
         '''
@@ -145,17 +166,24 @@ class StatModel:
         else:
             return self.arrival_rates_weekend[hour] / 3600
 
-    def get_stay_duration(self, hour):
+    def get_stay_duration(self, weekday, hour):
         '''
         Returns the stay duration according to the stay duration distributions
         extracted from the real ACN data.
 
         :param int hour: The hour of the day
+        :param int weekday: The weekday
         :return: The stay duration [hours]
         :rtype: float
         '''
-        density_array = self.stay_density_arrays[hour]
-        edges = self.stay_density_edges[hour]
+        density_array = []
+        edges = []
+        if weekday < 5:
+            density_array = self.stay_density_arrays[hour]
+            edges = self.stay_density_edges[hour]
+        else:
+            density_array = self.stay_density_arrays_weekend[hour]
+            edges = self.stay_density_edges_weekend[hour]
         rand = random.uniform(0, 1)
         i = 0
         while density_array[i] < rand:

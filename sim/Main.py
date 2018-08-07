@@ -18,7 +18,7 @@ if __name__ == '__main__':
     acnsim = ACNsim()
 
     #simulation_output = acnsim.simulate_real(scheduler, test_case)
-    simulation_output = acnsim.simulate_model(scheduler, period=5, start=datetime.now(), end=(datetime.now() + timedelta(days=7)))
+    simulation_output = acnsim.simulate_model(scheduler, period=5, start=datetime.now(), end=(datetime.now() + timedelta(days=14)))
 
     oa = OutputAnalyzer(simulation_output)
     #oa.plot_station_activity()
