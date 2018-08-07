@@ -19,9 +19,10 @@ class TestCase:
         self.EVs = EVs
 
         self.simulation_output = SimulationOutput(start_timestamp, period, max_rate, voltage)
-        self.acutal_charging_rates = {}
+        self.actual_charging_rates = {}
 
         self.charging_data = {}
+        self.network_data = []
         self.clear_data()
 
     def step(self, pilot_signals, iteration):
@@ -34,8 +35,9 @@ class TestCase:
         :type iteration: int
         :return: None
         '''
-        self.acutal_charging_rates = {} # reset the last actual charging rates
+        self.actual_charging_rates = {} # reset the last actual charging rates
         active_EVs = self.get_active_EVs(iteration)
+        total_current = 0
         for ev in active_EVs:
             if ev.arrival == iteration:
                 self.simulation_output.submit_event(Event('INFO',
@@ -55,7 +57,8 @@ class TestCase:
                                                           iteration,
                                                           'Charging rate is set to 0A before EV finished charging',
                                                           ev.session_id))
-            self.acutal_charging_rates[ev.session_id] = charge_rate
+            self.actual_charging_rates[ev.session_id] = charge_rate
+            total_current = total_current + charge_rate
             sample = {'time': iteration,
                       'charge_rate': charge_rate,
                       'pilot_signal': pilot_signals[ev.session_id],
@@ -68,6 +71,10 @@ class TestCase:
                                                           iteration,
                                                           'EV finished charging at station {}'.format(ev.station_id),
                                                           ev.session_id))
+
+        self.simulation_output.submit_network_data({'time': iteration,
+                                                    'total_current' : total_current,
+                                                    'nbr_active_EVs': len(active_EVs)})
 
 
     def get_active_EVs(self, iteration):
@@ -90,8 +97,11 @@ class TestCase:
     def get_charging_data(self):
         return self.charging_data
 
+    def get_network_data(self):
+        return self.network_data
+
     def get_acutal_charging_rates(self):
-        return self.acutal_charging_rates
+        return self.actual_charging_rates
 
     def get_simulation_output(self):
         self.simulation_output.submit_all_EVs(self.EVs)

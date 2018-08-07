@@ -397,32 +397,58 @@ class OutputAnalyzer:
         print('Total numbers of EV charging sessions: {}'.format(n))
         print('\n')
 
-    def print_energy_delivery(self):
+    def print_daily_results(self):
         '''
         Prints the energy delivered per day and in total
 
         :return: None
         '''
         daily_energy = {}
+        daily_peak_power = {}
+        daily_max_concurrent_EVs = {}
         start_timestamp = self.simulation_output.start_timestamp
         period = self.simulation_output.period
         total_power_series = self.__get_total_power_series()
         total_energy = 0
-        for iteration, power in enumerate(total_power_series):
+        for sample in self.simulation_output.network_data:
+            iteration = sample['time']
+            power = sample['total_current'] * self.simulation_output.voltage/1000
+            concurrent_EVs = sample['nbr_active_EVs']
             d = datetime.fromtimestamp(start_timestamp + iteration * period * 60).date()
             energy = power * (period / 60)
             if d in daily_energy:
                 daily_energy[d] = daily_energy[d] + energy
+                if power > daily_peak_power[d]:
+                    daily_peak_power[d] = power
+                if concurrent_EVs > daily_max_concurrent_EVs[d]:
+                    daily_max_concurrent_EVs[d] = concurrent_EVs
             else:
                 daily_energy[d] = energy
+                daily_peak_power[d] = power
+                daily_max_concurrent_EVs[d] = concurrent_EVs
             total_energy = total_energy + energy
 
+        average_peak = 0
+        for key, v in daily_peak_power.items():
+            average_peak = average_peak + v / len(daily_peak_power)
+        average_concurrent_EVs = 0
+        for key, v in daily_max_concurrent_EVs.items():
+            average_concurrent_EVs = average_concurrent_EVs + v / len(daily_max_concurrent_EVs)
+
         print('ENERGY DELIVERED')
-        print('-' * 22)
+        print('-' * 57)
+        print('{0:9s} | {1:>11s} | {2:>13s} | {3:>15s}'.format('', 'Energy', '', 'Max concurrent'))
+        print('{0:>9s} | {1:>11s} | {2:>13s} | {3:>15s}'.format('Day', 'delivered', 'Peak power', 'sessions'))
         for key, value in daily_energy.items():
-            print('{0:9s}: {1:7.1f} kWh'.format(key.strftime('%m/%d/%y'), value))
-        print('-' * 22)
-        print('{0:9s}: {1:7.1f} kWh'.format('TOTAL', total_energy))
+            print('{0:9s} | {1:7.1f} kWh | {2:10.1f} kW | {3:15.0f}'.format(key.strftime('%m/%d/%y'),
+                                                                           value,
+                                                                           daily_peak_power[key],
+                                                                           daily_max_concurrent_EVs[key]))
+        print('{0:9s} | {1:7.1f} kWh | {2:10.1f} kW | {3:15.0f}'.format('TOTAL',
+                                                                       total_energy,
+                                                                       average_peak,
+                                                                       average_concurrent_EVs))
+        print('-' * 57)
         print('\n')
 
     def print_energy_fulfillment(self):
@@ -458,7 +484,7 @@ class OutputAnalyzer:
         '''
         print('\n')
         self.print_total_number_of_sessions()
-        self.print_energy_delivery()
+        self.print_daily_results()
         self.print_energy_fulfillment()
         self.print_events(type='error')
         self.print_events(type='warning')

@@ -14,11 +14,11 @@ if __name__ == '__main__':
                                                   datetime.strptime("01/06/18", "%d/%m/%y"),
                                                   datetime.strptime("07/06/18", "%d/%m/%y"),
                                                   period=5)
-    scheduler = MLLF()
+    scheduler = MLLF(queue_length=10)
     acnsim = ACNsim()
 
-    simulation_output = acnsim.simulate_real(scheduler, test_case)
-    #simulation_output = acnsim.simulate_model(scheduler, period=5, start=datetime.now(), end=(datetime.now() + timedelta(days=7)))
+    #simulation_output = acnsim.simulate_real(scheduler, test_case)
+    simulation_output = acnsim.simulate_model(scheduler, period=5, start=datetime.now(), end=(datetime.now() + timedelta(days=7)))
 
     oa = OutputAnalyzer(simulation_output)
     #oa.plot_station_activity()

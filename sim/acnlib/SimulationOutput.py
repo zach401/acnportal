@@ -4,6 +4,7 @@ class SimulationOutput:
 
     def __init__(self, start_timestamp, period, max_rate, voltage):
         self.charging_data = {}
+        self.network_data = []
         self.events = []
         self.start_timestamp = start_timestamp
         self.period = period
@@ -32,6 +33,21 @@ class SimulationOutput:
         if not session_id in self.charging_data:
             self.charging_data[session_id] = []
         self.charging_data[session_id].append(sample)
+
+    def submit_network_data(self, sample):
+        '''
+        Submit a sample of charging data. The data will be stored in the simulation output as
+        a list.
+
+        The sample is a dict with the following keys
+        - time
+        - total_current
+        - nbr_active_EVs
+
+        :param dict sample: A dict containing the sample
+        :return: None
+        '''
+        self.network_data.append(sample)
 
     def submit_event(self, event):
         '''

@@ -189,6 +189,9 @@ class Garage:
     def get_charging_data(self):
         return self.test_case.get_charging_data()
 
+    def get_network_data(self):
+        return self.test_case.get_network_data()
+
     def get_actual_charging_rates(self):
         return self.test_case.get_actual_charging_rates()
 
