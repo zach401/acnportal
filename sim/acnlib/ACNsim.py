@@ -32,7 +32,7 @@ class ACNsim:
         garage.set_test_case(test_case)
         return self.simulate(scheduler, garage)
 
-    def simulate_model(self, scheduler, start=None, end=None, voltage=220, max_rate=32, period=1):
+    def simulate_model(self, scheduler, start=None, end=None, voltage=220, max_rate=32, period=1, model='empirical'):
         '''
         Simulate the system with data generated from the statistical model.
 
@@ -58,6 +58,6 @@ class ACNsim:
         start = start.replace(hour=0, minute=0, second=0)
         end = end.replace(hour=0, minute=0, second=0)
         garage = Garage()
-        garage.generate_test_case(start, end, period, voltage, max_rate)
+        garage.generate_test_case(start_dt=start, end_dt=end, period=period, voltage=voltage, max_rate=max_rate, model=model)
         return self.simulate(scheduler, garage)
 

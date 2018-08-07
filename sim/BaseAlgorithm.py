@@ -238,3 +238,41 @@ class MLLF(BaseAlgorithm):
 
     def sort_by_laxity(self, list):
         return sorted(list, key=lambda ev: ev['laxity'])
+
+class MaxRateAlgorithm(BaseAlgorithm):
+
+    def __init__(self):
+        pass
+
+    def schedule(self, active_EVs):
+        schedule = {}
+        last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
+        max_rate = self.interface.get_max_charging_rate()
+        for ev in active_EVs:
+            allowable_rates = self.interface.get_allowable_pilot_signals(ev.station_id)
+            last_pilot_signal = 0
+            if ev.session_id in last_applied_pilot_signals:
+                last_pilot_signal = last_applied_pilot_signals[ev.session_id]
+            new_pilot_signal = self.get_increased_charging_rate(last_pilot_signal, allowable_rates)
+            schedule[ev.session_id] = [new_pilot_signal]
+
+        return schedule
+
+class MinRateAlgorithm(BaseAlgorithm):
+
+    def __init__(self):
+        pass
+
+    def schedule(self, active_EVs):
+        schedule = {}
+        last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
+        max_rate = self.interface.get_max_charging_rate()
+        for ev in active_EVs:
+            allowable_rates = self.interface.get_allowable_pilot_signals(ev.station_id)
+            last_pilot_signal = 0
+            if ev.session_id in last_applied_pilot_signals:
+                last_pilot_signal = last_applied_pilot_signals[ev.session_id]
+            new_pilot_signal = self.get_decreased_charging_rate_nz(last_pilot_signal, allowable_rates)
+            schedule[ev.session_id] = [new_pilot_signal]
+
+        return schedule

@@ -53,10 +53,36 @@ class Garage:
         '''
         self.test_case = test_case
 
-    def generate_test_case(self, start_dt, end_dt, period=1, voltage = 220, max_rate = 32):
+    def generate_test_case(self, start_dt, end_dt, model='empirical', period=1, voltage = 220, max_rate = 32):
         '''
         Function for auto-generating a test case. The test case is generated from a statistical model based
         on real data from Caltech ACN.
+
+        :param datetime start_dt: When the simulation should start.
+        :param datetime end_dt: When the simulation should end.
+        :param int period: How many minutes one period should be.
+        :param float voltage: Grid voltage level.
+        :param float max_rate: Maximum charging rate.
+        :param string model: Defining which model will be used to generate the test case. Available: {'empirical'}
+        :return: The test case generated. It is stored in the garage but is also returned if it should be analyzed
+        :rtype: TestCase
+        '''
+
+        # NOTE:
+        # To add another model to generate a test case, create a new function and
+        # add it to the if-else statements below.
+
+        if model == 'empirical':
+            return self.emprical_model(start_dt,end_dt,period,voltage,max_rate)
+        else:
+            return None
+
+
+
+    def emprical_model(self, start_dt, end_dt, period, voltage, max_rate):
+        '''
+        This model is based on the real data and the arrivals, stay durations and energy demand
+        are modelled as:
 
         - A Poisson process with variable rates depending of the time of day
         is used to model the arrivals of the EVs to the garage.
@@ -64,10 +90,12 @@ class Garage:
         the distributions for every hour of the day.
         - To model the energy demand, cumulative distribution functions are also derived from the real data
 
-        :param start_dt: (datetime) When the simulation should start.
-        :param end_dt: (datetime) When the simulation should end.
-        :param period: (int) How many minutes one period should be.
-        :return: The test case generated. It is stored in the garage but is also returned if it should be analyed
+        :param datetime start_dt: When the simulation should start.
+        :param datetime end_dt: When the simulation should end.
+        :param int period: How many minutes one period should be.
+        :param float voltage: Grid voltage level.
+        :param float max_rate: Maximum charging rate.
+        :return: The test case generated. It is stored in the garage but is also returned if it should be analyzed
         :rtype: TestCase
         '''
         # define start and end time
@@ -85,8 +113,10 @@ class Garage:
             hour = datetime.fromtimestamp(last_arrival).hour
             # get the rate used in the poisson process
             rate = self.stat_model.get_arrival_rate(weekday, hour)
-            rand = 1 - random.random() # a number in range (0, 1]
-            next_full_hour = (datetime.fromtimestamp(last_arrival).replace(microsecond=0,second=0,minute=0) + timedelta(hours=1)).timestamp()
+            rand = 1 - random.random()  # a number in range (0, 1]
+            next_full_hour = (
+                        datetime.fromtimestamp(last_arrival).replace(microsecond=0, second=0, minute=0) + timedelta(
+                    hours=1)).timestamp()
 
             next_arrival = last_arrival + 3601
             if rate != 0:
@@ -99,9 +129,9 @@ class Garage:
                 new_hour = datetime.fromtimestamp(next_arrival).hour
                 new_weekday = datetime.fromtimestamp(next_arrival).weekday()
                 stay_duration = self.stat_model.get_stay_duration(new_weekday, new_hour)
-                #while stay_duration <= 0:
+                # while stay_duration <= 0:
                 #    stay_duration = np.abs(np.random.normal(stay_hourly_mean[hour], math.sqrt(stay_hourly_var[hour])))
-                energy = self.stat_model.get_energy_demand(weekday)
+                energy = self.stat_model.get_energy_demand(new_weekday)
                 free_charging_station_id = self.find_free_EVSE(EVs, next_arrival // 60 // period)
                 arrival_dt = datetime.fromtimestamp(next_arrival)
                 departure_dt = datetime.fromtimestamp(next_arrival + stay_duration * 3600)
@@ -128,9 +158,8 @@ class Garage:
             ev.arrival -= min_arrival
             ev.departure -= min_arrival
         EVs.sort(key=lambda x: x.station_id)
-        self.test_case = TestCase(EVs, (min_arrival*60*period), voltage, max_rate, period)
+        self.test_case = TestCase(EVs, (min_arrival * 60 * period), voltage, max_rate, period)
         return self.test_case
-
 
     def find_free_EVSE(self, EVs, current_time):
         '''

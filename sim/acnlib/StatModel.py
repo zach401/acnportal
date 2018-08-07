@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import random
 import config
+import math
+from acnlib.TestCase import TestCase
 
 class StatModel:
     '''
@@ -83,7 +85,7 @@ class StatModel:
         stay_density_arrays = []
         stay_density_edges = []
         for key, data in stay_duration_hours.items():
-            hist, edges = np.histogram(data, bins=60, density=True)
+            hist, edges = np.histogram(data, bins=120, density=True, range=(0,60))
             density_array = []
             i = 0
             for h in np.nditer(hist):
@@ -98,7 +100,7 @@ class StatModel:
         stay_density_arrays_weekend = []
         stay_density_edges_weekend = []
         for key, data in stay_duration_hours_weekend.items():
-            hist, edges = np.histogram(data, bins=60, density=True)
+            hist, edges = np.histogram(data, bins=120, density=True, range=(0,60))
             density_array = []
             i = 0
             for h in np.nditer(hist):
@@ -172,7 +174,7 @@ class StatModel:
         extracted from the real ACN data.
 
         :param int hour: The hour of the day
-        :param int weekday: The weekday
+        :param int weekday: The weekday Monday=0, Sunday=6
         :return: The stay duration [hours]
         :rtype: float
         '''
@@ -198,7 +200,7 @@ class StatModel:
         Returns the energy demand for an EV according to the energy demand distributions
         extracted from the real ACN data.
 
-        :param int weekday: Weekday of arriving EV
+        :param int weekday: Weekday of arriving EV. Monday=0, Sunday=6
         :return: The energy demand for an EV [kWh]
         :rtype: float
         '''
@@ -219,7 +221,15 @@ class StatModel:
             a = 0
         return energy_demand
 
+
 def __get_beahavioral_stats(test_case):
+    '''
+    Get the behavioral of a test case with respect to arrival and departure patterns,
+    stay durations and energy demand distributions.
+
+    :param test_case: The test case that should be evaluated
+    :return: tuple(list(float), list(float), list(float), list(float))
+    '''
     arrival_hours = []
     departure_hours = []
     requested_energy = []
@@ -274,10 +284,10 @@ def compare_model_to_real(real_test_case, model_test_case):
     :param model_test_case: A test case generated from a statistical model
     :return: None
     '''
-    arrival_hours_real, departure_hours_real, requested_energy_real, stay_durations_real = __get_beahavioral_stats(
-        real_test_case)
-    arrival_hours_model, departure_hours_model, requested_energy_model, stay_durations_model = __get_beahavioral_stats(
-        model_test_case)
+    arrival_hours_real, departure_hours_real, \
+        requested_energy_real, stay_durations_real = __get_beahavioral_stats(real_test_case)
+    arrival_hours_model, departure_hours_model, \
+        requested_energy_model, stay_durations_model = __get_beahavioral_stats(model_test_case)
 
     arrival_dist_real, arrival_dist_model = __get_distribution_probabilities(arrival_hours_real,
                                                                              range=(0,24),
