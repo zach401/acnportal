@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import math
 import numpy as np
+from matplotlib.lines import Line2D
 
 class OutputAnalyzer:
 
@@ -66,17 +67,21 @@ class OutputAnalyzer:
                         end = sample['time']
                         xc, yc = [start, end], [ev.station_id, ev.station_id]
                         if sample['charge_rate'] != 0:
-                            color = (charge_rate/max_rate)
-                            ax.plot(xc, yc, color=([1.0, 0.0, 0.0, color]), linewidth=7.0)
+                            color = (1 - (charge_rate/max_rate)) * 0.9
+                            ax.plot(xc, yc, color=([1.0, color, 0.0]), linewidth=7.0)
                             ax.xaxis.set_major_formatter(plt.FuncFormatter(self.__datetime_format_func))
                         start = end + 0.01
                         charge_rate = sample['charge_rate']
                     counter = counter + 1
             #if ev.finishing_time > 0:
                 #plt.plot(ev.finishing_time, ev.station_id,'ko')
+        custom_lines = [Line2D([0], [0], color=([1.0, 0.0, 0.0]), lw=4),
+                        Line2D([0], [0], color=([1.0, 0.9, 0.0]), lw=4),
+                        Line2D([0], [0], color='g', lw=4)]
         plt.xlabel('Time')
         plt.ylabel('Station')
         plt.title('Charging station activity')
+        plt.legend(custom_lines, ['Max rate ({} A)'.format(self.simulation_output.max_rate), 'Min rate (0 A)', 'Finished charging'])
         plt.show()
         self.figures = self.figures + 1
 
@@ -299,6 +304,7 @@ class OutputAnalyzer:
                 for sample in self.simulation_output.charging_data[ev.session_id]:
                     total_power[sample['time']] = total_power[sample['time']] + sample['charge_rate']*self.simulation_output.voltage/1000
 
+        # -- FIRST FIGURE --
         plt.subplot(1, 2, 1)
         #plt.hist(energy_percentage, bins=50, edgecolor='black', range=(0,100))
         self.__plot_histogram(plt, energy_percentage, percentage=True, bins=50, range=(0,100))
@@ -312,13 +318,24 @@ class OutputAnalyzer:
         plt.ylabel('Percentage of EVs not fully charged [%]' if percentage else 'Number of EVs not fully charged')
         plt.title('Stay duration of EVs that did not get their requested energy fulfilled')
         self.figures = self.figures + 1
+
+        # -- SECOND FIGURE --
         fig = self.new_figure()
-        ax = fig.add_subplot('111')
+        ax = fig.add_subplot('211')
         ax.plot(total_power)
-        ax.set_xlabel('time')
         ax.set_ylabel('Power [kW]')
-        ax.set_title('Power usage of the test case')
+        ax.set_title('Power usage of all charging sessions')
         ax.xaxis.set_major_formatter(plt.FuncFormatter(self.__datetime_format_func))
+
+        x, y1, y2, y3, y4 = self.__get_result_stack_plot_data()
+        ax2 = fig.add_subplot('212')
+        ax2.stackplot(x,y1,y2,y3,y4, colors=('#1f77b4', '#ff7f0e', '#d62728', '#2ca02c'))
+        ax2.xaxis.set_major_formatter(plt.FuncFormatter(self.__datetime_format_func))
+        ax2.legend(('Not charging', 'Adapting', 'Full speed', 'Unplugged'))
+        ax2.set_title('Charging station usage tracking')
+        ax2.set_ylabel('Number of charging stations')
+        ax2.set_xlabel('Time')
+
 
     def plot_EV_stats(self, session_id):
         '''
@@ -542,3 +559,37 @@ class OutputAnalyzer:
                 edgecolor=['black'] * len(hist),
                 align=align)
         return bar
+
+    def __get_result_stack_plot_data(self):
+        x = range(0, int(self.simulation_output.get_last_arrival()))
+        max_pilot_array = []
+        adapting_array = []
+        not_charging_array = []
+        unplugged_array = []
+
+        nbr_stations = len(self.simulation_output.get_all_EVSEs())
+
+        for iteration in x:
+            nbr_plugged_in_EVs = self.simulation_output.get_occupancy(iteration)
+            nbr_unplugged = nbr_stations - nbr_plugged_in_EVs
+            nbr_max_pilot_signal = 0
+            nbr_adapting = 0
+            for ev in self.simulation_output.get_active_EVs(iteration):
+                if ev.session_id in self.simulation_output.charging_data:
+                    data = self.simulation_output.charging_data[ev.session_id]
+                    for sample in data:
+                        if sample['time'] == iteration:
+                            if sample['pilot_signal'] == self.simulation_output.max_rate:
+                                nbr_max_pilot_signal = nbr_max_pilot_signal + 1
+                            else:
+                                nbr_adapting = nbr_adapting + 1
+            nbr_not_charging = nbr_plugged_in_EVs - nbr_max_pilot_signal - nbr_adapting
+            max_pilot_array.append(nbr_max_pilot_signal)
+            adapting_array.append(nbr_adapting)
+            not_charging_array.append(nbr_not_charging)
+            unplugged_array.append(nbr_unplugged)
+
+        return x, not_charging_array, adapting_array, max_pilot_array, unplugged_array
+
+
+

@@ -1,6 +1,7 @@
 from builtins import property
 
 import numpy as np
+import sys
 
 # Piecewise linear: https://www.sciencedirect.com/science/article/pii/S0378775316317396
 
@@ -24,7 +25,7 @@ class EV:
         self.max_rate = max_rate
         self.station_id = station
         self.session_id = session
-        self.finishing_time = -1
+        self.finishing_time = sys.maxsize
 
     def charge(self, pilot, tail=False, noise_level=0):
         """ Method to "charge" the EV

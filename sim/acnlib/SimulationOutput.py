@@ -248,6 +248,20 @@ class SimulationOutput:
     def get_EVSE(self, station_id):
         return
 
+    def get_occupancy(self, iteration):
+        nbr_plugged_in_EVs = 0
+        for ev in self.get_all_EVs():
+            if ev.arrival <= iteration and iteration < ev.departure:
+                nbr_plugged_in_EVs = nbr_plugged_in_EVs + 1
+        return nbr_plugged_in_EVs
+
+    def get_active_EVs(self, iteration):
+        active_EVs = []
+        for ev in self.get_all_EVs():
+            if ev.arrival <= iteration and iteration < ev.departure and iteration <= ev.finishing_time:
+                active_EVs.append(ev)
+        return active_EVs
+
 
 class Event:
     '''
