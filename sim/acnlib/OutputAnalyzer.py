@@ -14,8 +14,21 @@ class OutputAnalyzer:
         self.simulation_output = simulation_output
 
     def new_figure(self):
-        plt.figure(self.figures)
+        fig = plt.figure(self.figures)
         self.figures = self.figures + 1
+        return fig
+
+    def __datetime_format_func(self, value, tick_number):
+        return self.__datetime_string_from_iteration(value)
+
+    def __datetime_string_from_iteration(self, timestamp):
+        st = self.simulation_output.start_timestamp
+        period = self.simulation_output.period
+        dt = datetime.fromtimestamp(st + timestamp * period * 60)
+        return self.__get_datetime_string(dt)
+
+    def __get_datetime_string(self, dt):
+        return dt.strftime('%H:%M %m/%d/%y')
 
     def plot_station_activity(self):
         '''
@@ -24,7 +37,11 @@ class OutputAnalyzer:
 
         :return: None
         '''
-        plt.figure(self.figures)
+        def format_func(value, tick_number):
+            return '0'
+
+        fig = plt.figure(self.figures)
+        ax = fig.add_subplot('111')
         EVs = self.simulation_output.EVs
         charging_data = self.simulation_output.charging_data
         max_rate = self.simulation_output.max_rate
@@ -50,7 +67,8 @@ class OutputAnalyzer:
                         xc, yc = [start, end], [ev.station_id, ev.station_id]
                         if sample['charge_rate'] != 0:
                             color = (charge_rate/max_rate)
-                            plt.plot(xc, yc, color=([1.0, 0.0, 0.0, color]), linewidth=7.0)
+                            ax.plot(xc, yc, color=([1.0, 0.0, 0.0, color]), linewidth=7.0)
+                            ax.xaxis.set_major_formatter(plt.FuncFormatter(self.__datetime_format_func))
                         start = end + 0.01
                         charge_rate = sample['charge_rate']
                     counter = counter + 1
@@ -294,11 +312,13 @@ class OutputAnalyzer:
         plt.ylabel('Percentage of EVs not fully charged [%]' if percentage else 'Number of EVs not fully charged')
         plt.title('Stay duration of EVs that did not get their requested energy fulfilled')
         self.figures = self.figures + 1
-        self.new_figure()
-        plt.plot(total_power)
-        plt.xlabel('time')
-        plt.ylabel('Power [kW]')
-        plt.title('Power usage of the test case')
+        fig = self.new_figure()
+        ax = fig.add_subplot('111')
+        ax.plot(total_power)
+        ax.set_xlabel('time')
+        ax.set_ylabel('Power [kW]')
+        ax.set_title('Power usage of the test case')
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(self.__datetime_format_func))
 
     def plot_EV_stats(self, session_id):
         '''
@@ -372,7 +392,7 @@ class OutputAnalyzer:
 
         print('-'*60)
         for e in events:
-            print('{0:5d} | {1:6s} | {2:8s} | {3}'.format(e.iteration, e.type, str(e.session), e.description))
+            print('{0:14s} | {1:6s} | {2:8s} | {3}'.format(self.__datetime_string_from_iteration(e.iteration), e.type, str(e.session), e.description))
 
         if len(events) == 0:
             print('No events')
@@ -496,13 +516,6 @@ class OutputAnalyzer:
                 for sample in self.simulation_output.charging_data[ev.session_id]:
                     total_power[sample['time']] = total_power[sample['time']] + sample['charge_rate']*self.simulation_output.voltage/1000
         return total_power
-
-    def __create_time_axis(self, start_timestamp, nbr_of_periods, period):
-        time_array = []
-        for i in range(int(nbr_of_periods)):
-            time = datetime.fromtimestamp(start_timestamp + i * period)
-            time_array.append(time)
-        return time_array
 
     def __get_simulation_duration_date_string(self):
         '''

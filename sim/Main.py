@@ -28,5 +28,6 @@ if __name__ == '__main__':
     oa.plot_algorithm_result_stats()
     oa.print_algorithm_result_report()
     oa.plot_EV_daily_arrivals()
+    oa.print_events(type='info')
     #gd.print_station_sessions(test_case)
     #gd.plot_EV_stats(test_case, 102)
