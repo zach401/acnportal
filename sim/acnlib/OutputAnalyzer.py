@@ -282,6 +282,7 @@ class OutputAnalyzer:
             - A histogram showing the stay time for the EVs that did not finish charging.
         Figure 2:
             - A line graph of the total power usage of the test case.
+            - A stackplot showing the usage of the charging stations
 
         :param boolean percentage: Specifies if the histograms should be in percentage or in absolute value.
         :return: None
@@ -339,27 +340,43 @@ class OutputAnalyzer:
 
     def plot_EV_stats(self, session_id):
         '''
-        Plot the charging rate and applied pilot signal of an EV charging session.
+        Plots the charging rate and applied pilot signal of an EV charging session.
+        Also plots the remaining energy demand.
 
         :param int session_id: The ID of the session evaluated
         :return: None
         '''
         data = self.simulation_output.charging_data[session_id]
-        time = []
-        pilot_signal = []
-        charge_rate = []
-        remaining_demand = []
+        ev = None
+        for e in self.simulation_output.get_all_EVs():
+            if e.session_id == session_id:
+                ev = e
+                break
+        time = range(int(ev.arrival), int(ev.departure))
+        stay_duration = int(ev.departure - ev.arrival)
+        pilot_signal = [0] * stay_duration
+        charge_rate = [0] * stay_duration
+        remaining_demand = [0] * stay_duration
         for sample in data:
-            time.append(sample['time'])
-            pilot_signal.append(sample['pilot_signal'])
-            charge_rate.append(sample['charge_rate'])
-            remaining_demand.append(sample['remaining_demand'])
-        self.new_figure()
-        plt.subplot(2, 1, 1)
-        plt.plot(time, pilot_signal)
-        plt.plot(time, charge_rate)
-        plt.subplot(2, 1, 2)
-        plt.plot(time, remaining_demand)
+            i = int(sample['time'] - ev.arrival)
+            pilot_signal[i] = sample['pilot_signal']
+            charge_rate[i] = sample['charge_rate']
+            remaining_demand[i] = (sample['remaining_demand'] / (60 / self.simulation_output.period))*self.simulation_output.voltage/1000
+
+        fig = self.new_figure()
+        ax1 = fig.add_subplot(211)
+        ax1.plot(time, pilot_signal)
+        ax1.plot(time, charge_rate)
+        ax1.set_title('Pilot signal and actual charging rate of session {}'.format(session_id))
+        ax1.set_ylabel('Current [A]')
+        ax1.legend(('Pilot signal', 'Actual charging rate'))
+        ax1.xaxis.set_major_formatter(plt.FuncFormatter(self.__datetime_format_func))
+        ax2 = fig.add_subplot(212)
+        ax2.stackplot(time, remaining_demand)
+        ax2.set_title('Remaining energy demand of session {}'.format(session_id))
+        ax2.set_ylabel('Remaining demand [kWh]')
+        ax2.set_xlabel('Time')
+        ax2.xaxis.set_major_formatter(plt.FuncFormatter(self.__datetime_format_func))
 
     def print_station_sessions(self):
         '''

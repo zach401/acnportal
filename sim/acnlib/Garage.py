@@ -131,13 +131,14 @@ class Garage:
                 stay_duration = self.stat_model.get_stay_duration(new_weekday, new_hour)
                 # while stay_duration <= 0:
                 #    stay_duration = np.abs(np.random.normal(stay_hourly_mean[hour], math.sqrt(stay_hourly_var[hour])))
-                energy = self.stat_model.get_energy_demand(new_weekday, new_hour)
+                energy = 0
+                while energy < 0.5:
+                    energy = self.stat_model.get_energy_demand(new_weekday, new_hour)
                 free_charging_station_id = self.find_free_EVSE(EVs, next_arrival // 60 // period)
                 arrival_dt = datetime.fromtimestamp(next_arrival)
                 departure_dt = datetime.fromtimestamp(next_arrival + stay_duration * 3600)
                 if free_charging_station_id != None \
-                        and departure_dt < end_dt - timedelta(hours=config.time_zone_diff_hour) \
-                        and energy >= 0.5:
+                        and departure_dt < end_dt - timedelta(hours=config.time_zone_diff_hour):
                     ev = EV(next_arrival // 60 // period,
                             math.ceil((next_arrival + stay_duration * 3600) / 60 / period),
                             ((energy * (60 / period) * 1e3) / voltage),
