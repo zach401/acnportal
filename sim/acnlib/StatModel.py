@@ -26,7 +26,9 @@ class StatModel:
         self.arrival_rates_week, self.arrival_rates_weekend = self.__determine_arrival_rates()
         self.stay_density_arrays, self.stay_density_edges, \
             self.stay_density_arrays_weekend, self.stay_density_edges_weekend = self.__determine_stay_density_arrays()
-        self.energy_demand_density_arrays, self.energy_demand_density_edges_arrays = self.__determine_energy_demand_array()
+        self.energy_demand_density_arrays, self.energy_demand_density_edges_arrays, \
+            self.energy_demand_density_arrays_weekend, self.energy_demand_density_edges_arrays_weekend = self.__determine_energy_demand_array()
+
 
         pass
 
@@ -123,36 +125,53 @@ class StatModel:
                 The second list also contains the edge values each step in the CDF corresponds to.
         :rtype: tuple(tuple(list(float), list(float)), tuple(list(float), list(float)))
         '''
-        energy_demands = []
-        energy_demands_weekend = []
-        energy_demand_density = []
-        energy_demand_density_weekend =[]
+        energy_demand_hours = {}
+        energy_demand_hours_weekend = {}
+        for i in range(24):
+            energy_demand_hours[i] = []
+            energy_demand_hours_weekend[i] = []
+        # stay duration
         for s in self.sessions:
-            arrival = s[0] + timedelta(hours=config.time_zone_diff_hour)
+            arrival = s[0] - timedelta(hours=config.time_zone_diff_hour)
+            departure = s[1] - timedelta(hours=config.time_zone_diff_hour)
+            stay_duration = (departure - arrival).total_seconds() / 3600
+            energy_demand = s[2]
+            # if stay_duration >= 0 and stay_duration <= 1000:
             if arrival.weekday() < 5:
-                energy_demands.append(s[2])
+                energy_demand_hours[arrival.hour].append(energy_demand)
             else:
-                energy_demands_weekend.append(s[2])
-        hist_week, density_edges_week = np.histogram(energy_demands, bins=60, density=True)
-        hist_weekend, density_edges_weekend = np.histogram(energy_demands_weekend, bins=60, density=True)
-        i = 0
-        # Build the CDFs
-        for h in np.nditer(hist_week):
-            new_value = h * (density_edges_week[i + 1] - density_edges_week[i])
-            if i == 0:
-                energy_demand_density.append(new_value)
-            else:
-                energy_demand_density.append(energy_demand_density[i - 1] + new_value)
-            i = i + 1
-        i=0
-        for h in np.nditer(hist_weekend):
-            new_value = h * (density_edges_weekend[i + 1] - density_edges_weekend[i])
-            if i == 0:
-                energy_demand_density_weekend.append(new_value)
-            else:
-                energy_demand_density_weekend.append(energy_demand_density_weekend[i - 1] + new_value)
-            i = i + 1
-        return (energy_demand_density, energy_demand_density_weekend), (density_edges_week, density_edges_weekend)
+                energy_demand_hours_weekend[arrival.hour].append(energy_demand)
+        energy_demand_arrays = []
+        energy_demand_edges = []
+        for key, data in energy_demand_hours.items():
+            hist, edges = np.histogram(data, bins=120, density=True, range=(0, 60))
+            density_array = []
+            i = 0
+            for h in np.nditer(hist):
+                new_value = h * (edges[i + 1] - edges[i])
+                if i == 0:
+                    density_array.append(new_value)
+                else:
+                    density_array.append(density_array[i - 1] + new_value)
+                i = i + 1
+            energy_demand_arrays.append(density_array)
+            energy_demand_edges.append(edges)
+        energy_demand_arrays_weekend = []
+        energy_demand_edges_weekend = []
+        for key, data in energy_demand_hours_weekend.items():
+            hist, edges = np.histogram(data, bins=120, density=True, range=(0, 60))
+            density_array = []
+            i = 0
+            for h in np.nditer(hist):
+                new_value = h * (edges[i + 1] - edges[i])
+                if i == 0:
+                    density_array.append(new_value)
+                else:
+                    density_array.append(density_array[i - 1] + new_value)
+                i = i + 1
+            energy_demand_arrays_weekend.append(density_array)
+            energy_demand_edges_weekend.append(edges)
+        return energy_demand_arrays, energy_demand_edges, energy_demand_arrays_weekend, energy_demand_edges_weekend
 
 
     def get_arrival_rate(self, weekday, hour):
@@ -195,7 +214,7 @@ class StatModel:
             a = 0
         return stay_duration
 
-    def get_energy_demand(self, weekday=0):
+    def get_energy_demand(self, weekday=0, hour = 8):
         '''
         Returns the energy demand for an EV according to the energy demand distributions
         extracted from the real ACN data.
@@ -207,11 +226,11 @@ class StatModel:
         density_array = []
         edges = []
         if weekday < 5:
-            density_array = self.energy_demand_density_arrays[0]
-            edges = self.energy_demand_density_edges_arrays[0]
+            density_array = self.energy_demand_density_arrays[hour]
+            edges = self.energy_demand_density_edges_arrays[hour]
         else:
-            density_array = self.energy_demand_density_arrays[1]
-            edges = self.energy_demand_density_edges_arrays[1]
+            density_array = self.energy_demand_density_arrays_weekend[hour]
+            edges = self.energy_demand_density_edges_arrays_weekend[hour]
         rand = random.uniform(0, 1)
         i = 0
         while density_array[i] < rand:

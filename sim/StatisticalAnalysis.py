@@ -13,10 +13,11 @@ import config
 
 sessions = pickle.load(open('July_25_Sessions.pkl', 'rb'))
 
-
+energy_demand_hours = {}
 stay_duration_hours = {}
 for i in range(24):
     stay_duration_hours[i] = []
+    energy_demand_hours[i] = []
 stay_duration_list = []
 energy_demand = []
 
@@ -25,7 +26,7 @@ days_week = set()
 arrival_rates_weekend = [0]*24
 arrival_rates_week = [0]*24
 for s in sessions:
-    arrival = s[0]-timedelta(hours=7)
+    arrival = s[0]-timedelta(hours=config.time_zone_diff_hour)
     hour_of_day = arrival.hour
     if arrival.weekday() < 5:
         days_week.add(arrival.strftime('%y-%m-%d'))
@@ -40,13 +41,14 @@ arrival_rates_weekend[:] = [x / nbr_weekenddays for x in arrival_rates_weekend]
 
 
 
-# stay duration
+# stay duration and energy demand
 for s in sessions:
     arrival = s[0]-timedelta(hours=config.time_zone_diff_hour)
     departure = s[1]-timedelta(hours=config.time_zone_diff_hour)
     stay_duration = (departure - arrival).total_seconds() / 3600
     #if stay_duration >= 0 and stay_duration <= 1000:
     stay_duration_hours[arrival.hour].append(stay_duration)
+    energy_demand_hours[arrival.hour].append((s[2]))
     stay_duration_list.append(stay_duration)
     energy_demand.append(s[2])
 
@@ -65,6 +67,22 @@ for key, data in stay_duration_hours.items():
         i = i + 1
     stay_density_arrays.append(density_array)
     stay_density_edges.append(edges)
+
+energy_demand_arrays = []
+energy_demand_edges = []
+for key, data in energy_demand_hours.items():
+    hist, edges = np.histogram(data, bins=20, density=True,  range=(0, 40))
+    density_array = []
+    i = 0
+    for h in np.nditer(hist):
+        new_value = h * (edges[i+1]-edges[i])
+        if i == 0:
+            density_array.append(new_value)
+        else:
+            density_array.append(density_array[i - 1] + new_value)
+        i = i + 1
+    energy_demand_arrays.append(density_array)
+    energy_demand_edges.append(edges)
 
 
 def normal_curve(x, mu, sigma):
@@ -99,7 +117,7 @@ for key, data in stay_duration_hours.items():
     xx = np.linspace(0,40)
     yy = normal_curve(xx, mu, np.sqrt(sigma))
     #plt.plot(xx, yy)
-
+# -------------------------------------------------------
 fig = plt.figure(2)
 plt.suptitle('Cumulative distribution functions of EVs stay durations every hour of the day')
 ax = fig.add_subplot(111)
@@ -217,3 +235,24 @@ for i in range(24):
     ax.set_xlim(-1,40)
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
     ax.text(27, ax.get_ylim()[1] - 0.9 * (ax.get_ylim()[1] - ax.get_ylim()[0]), 'Hour {}'.format(i), bbox=props)
+
+# ----------------------------------------------------------
+
+fig = plt.figure(6)
+plt.suptitle('Energy demands')
+ax = fig.add_subplot(111)
+ax.spines['top'].set_color('none')
+ax.spines['bottom'].set_color('none')
+ax.spines['left'].set_color('none')
+ax.spines['right'].set_color('none')
+ax.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
+ax.set_xlabel('Stay durations [h]')
+ax.set_ylabel('Probability')
+i = 0
+for key, data in energy_demand_hours.items():
+    ax = fig.add_subplot(4, 6, i + 1)
+    #ax.step(density_edges, density_array)
+    ax.hist(data, bins=20, range=(0,40), density=True)
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    ax.text(27, ax.get_ylim()[1] - 0.9 * (ax.get_ylim()[1] - ax.get_ylim()[0]), 'Hour {}'.format(i), bbox=props)
+    i = i + 1
