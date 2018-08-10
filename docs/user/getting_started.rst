@@ -48,6 +48,12 @@ covered in this section.
 
 The predefined scheduling algorithms are:
 
+:MinRateAlgorithm:
+    Algorithm for always applying the smallest charging rate possible.
+
+:MaxRateAlgorithm:
+    Algorithm for always striving to apply the maximum charging rate possible.
+
 :EarliestDeadlineFirst:
     An algorithm that prioritize the EV that has to depart first. All other EVs are charged with minimum rate.
 

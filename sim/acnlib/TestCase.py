@@ -100,10 +100,16 @@ class TestCase:
     def get_network_data(self):
         return self.network_data
 
-    def get_acutal_charging_rates(self):
+    def get_actual_charging_rates(self):
         return self.actual_charging_rates
 
     def get_simulation_output(self):
+        '''
+        Compiles the last pieces of information to the simulation output object and then returns it
+
+        :return: The simulation output
+        :rtype: SimulationOutput
+        '''
         self.simulation_output.submit_all_EVs(self.EVs)
         self.simulation_output.last_departure = self.last_departure
         self.simulation_output.last_arrival = self.last_arrival
@@ -111,6 +117,13 @@ class TestCase:
 
 
     def event_occured(self, iteration):
+        '''
+        Tells if an event has happened during the specified time (period)
+
+        :param iteration: The time to check
+        :return: True if an event has occured, False if not
+        :rtype: boolean
+        '''
         for ev in self.EVs:
             if ev.arrival == iteration or ev.departure == iteration:
                 return True
@@ -142,19 +155,13 @@ def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, pe
     '''
     Generates a TestCase from real data. This test case will then be passed to the ``ACNsim`` to be simulated.
 
-    :param file_name: The file that holds the session data. This file should be a ``pickle`` file
+    :param string file_name: The file that holds the session data. This file should be a ``pickle`` file
         and located in the same folder as the simulation script.
-    :type file_name: string
-    :param start: When to start read the data from the file.
-    :type start: datetime
-    :param end: When to stop read the data from the file.
-    :type end: datetime
-    :param voltage: The voltage level of the power grid [V].
-    :type voltage: float
-    :param max_rate: The maximum rate the EVs can be charged with [A].
-    :type max_rate: float
-    :param period: The length of one iteration in the simulation [minutes].
-    :type period: int
+    :param datetime start: When to start read the data from the file.
+    :param datetime end: When to stop read the data from the file.
+    :param float voltage: The voltage level of the power grid [V].
+    :param float max_rate: The maximum rate the EVs can be charged with [A].
+    :param int period: The length of one iteration in the simulation [minutes].
     :return: The test case generated from the file containing the session data.
     :rtype: TestCase
     '''

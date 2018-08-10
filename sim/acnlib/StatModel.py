@@ -13,10 +13,11 @@ class StatModel:
     - The arriving times of the EVs are described with a poisson process with variable rate depending on the hour of
         the day and if it is a weekday or a weekend.
     - The stay durations are modeled by analyzing the hourly distributions of the real charging sessions and creating
-        empirical density functions. After that a CDF is calculated for every hour of the day from which the stay duration
-        can be caluclated when using random variables.
-    - The energy demand for the EVs are calculated by analyzing the real charging sessions and the distribution of how much
-        energy the EVs need. After that a CDF is calculated from which the energy demand can be calculated using random variables.
+        empirical density functions. After a CDF is calculated for every hour of the day from which the stay duration
+        can be calculated when using random variables.
+    - The energy demand for the EVs are calculated for every hour of the day by analyzing the real charging sessions
+        and the distribution of how much energy the EVs need.
+        After that a CDF is calculated from which the energy demand can be calculated using random variables.
 
     Upon creation, this class reads the file with the real charging sessions with the file name defined in ``sim/config.py``.
     '''

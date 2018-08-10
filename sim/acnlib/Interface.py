@@ -12,20 +12,27 @@ class Interface:
         """ Returns a list of active EVs for use by the algorithm.
 
         :return: List of EVs currently plugged in and not finished charging
-        :rtype: list
+        :rtype: list(EV)
         """
         active_EVs = self.simulator.get_active_EVs()
         return active_EVs
 
     def get_max_charging_rate(self):
+        '''
+        Returns the maximum charging rate that is allowed in the simulation.
+
+        :return: The maximum charging rate
+        :rtype: float
+        '''
         return self.simulator.garage.max_rate
 
     def get_allowable_pilot_signals(self, station_id):
         '''
-        Get the allowable pilot signal levels for a test case.
+        Get the allowable pilot signal levels for the specified EVSE.
 
+        :param string station_id: The station ID
         :return: A list with the allowable pilot signal levels. The values are sorted in increasing order.
-        :rtype: list
+        :rtype: list(int)
         '''
         return self.simulator.garage.get_allowable_rates(station_id)
 
@@ -45,7 +52,7 @@ class Interface:
         :return: A dictionary with the session ID as key and actual charging rate as value.
         :rtype: dict
         '''
-        return self.simulator.get_last_acctual_charging_rate()
+        return self.simulator.get_last_actual_charging_rate()
 
     def get_current_time(self):
         '''
@@ -57,7 +64,12 @@ class Interface:
         return self.simulator.iteration
 
     def submit_schedules(self, schedules):
-        """ Sends scheduled charging rates the the appropiate next step (simulator or influxDB).
+        """
+        Sends scheduled charging rates to the simulator.
+
+        This function is called internally. The schedules are the same as returned from
+        the ``schedule`` function, so to submit the schedules when writing a charging algorithm just
+        make the ``schedule`` function return them.
 
         :param dict schedules: Dictionary where key is the id of the EV and value is a list of scheduled charging rates.
         :return: None
@@ -67,7 +79,7 @@ class Interface:
 
     def submit_log(self, text):
         '''
-        Submits a text log to the simulator. This can be useful when debugging the custom
+        Submits a text log to the simulator. This can be useful when debugging a custom
         scheduling algorithm
 
         :param string text: String that should be logged

@@ -1,6 +1,11 @@
 import copy
 
 class SimulationOutput:
+    '''
+    The SimulationOutput describes objects that will hold the information about a simulation.
+    The SimulationOutput class provides functions to write data to be saved to the objects and also
+    functions to read the data once the simulation has finished.
+    '''
 
     def __init__(self, start_timestamp, period, max_rate, voltage):
         self.charging_data = {}
@@ -21,10 +26,10 @@ class SimulationOutput:
         a dictionary of sessions described by the key and the sample stored in a list.
 
         The sample is a dict with the following keys:
-        - time
-        - charge_rate
-        - pilot_signal
-        - remaining_demand
+            - time
+            - charge_rate
+            - pilot_signal
+            - remaining_demand
 
         :param int session_id: The ID of the session to which the sample should be stored
         :param dict sample: A dict containing the sample
@@ -40,9 +45,9 @@ class SimulationOutput:
         a list.
 
         The sample is a dict with the following keys
-        - time
-        - total_current
-        - nbr_active_EVs
+            - time
+            - total_current
+            - nbr_active_EVs
 
         :param dict sample: A dict containing the sample
         :return: None

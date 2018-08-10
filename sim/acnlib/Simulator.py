@@ -29,7 +29,8 @@ class Simulator:
         The most essential function of the Simulator class. Runs the main function of
         the simulation from start to finish and calls for the scheduler when needed.
 
-        :return: None
+        :return: The simulation output
+        :rtype: SimulationOutput
         '''
         self.submit_event(Event('INFO', self.iteration, 'Simulation started'))
         schedule_horizon = 0
@@ -77,7 +78,7 @@ class Simulator:
     def get_last_applied_pilot_signals(self):
         return self.last_applied_pilot_signals
 
-    def get_last_acctual_charging_rate(self):
+    def get_last_actual_charging_rate(self):
         self.garage.get_actual_charging_rates()
 
     def get_schedule_horizon(self):

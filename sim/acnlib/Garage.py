@@ -10,6 +10,16 @@ import config
 
 
 class Garage:
+    '''
+    The garage class describes the infrastructure of the charging network with
+    information about tbe types of the charging stations and the statistical model used
+    to generate charging sessions.
+
+    The Garage class is also the owner of the Test Case that the simulator operates on. The Garage class
+    can therefore be seen as an intermediate level between the test case and the simulator.
+    The Test case can either be created manually from real data and passed to the garage or generated internally
+    in the garage by a statistical model.
+    '''
 
     def __init__(self):
         self.EVSEs = []
@@ -48,7 +58,7 @@ class Garage:
         Manually set test case for the simulation.
         This function is used if the test case is generated from real data.
 
-        :param test_case: (TestCase) The manually generated test case
+        :param TestCase test_case: The manually generated test case
         :return: None
         '''
         self.test_case = test_case
@@ -73,13 +83,13 @@ class Garage:
         # add it to the if-else statements below.
 
         if model == 'empirical':
-            return self.emprical_model(start_dt,end_dt,period,voltage,max_rate)
+            return self.generate_from_emprical_model(start_dt, end_dt, period, voltage, max_rate)
         else:
             return None
 
 
 
-    def emprical_model(self, start_dt, end_dt, period, voltage, max_rate):
+    def generate_from_emprical_model(self, start_dt, end_dt, period, voltage, max_rate):
         '''
         This model is based on the real data and the arrivals, stay durations and energy demand
         are modelled as:
@@ -165,8 +175,9 @@ class Garage:
 
     def find_free_EVSE(self, EVs, current_time):
         '''
-        Function to determine which charging stations are empty.
-        Used in the function self.generate_test_case.
+        Function to determine which charging stations are empty at a specified time.
+
+        Currently used internally when generating Test Cases.
 
         :param EVs: (list) List of the current EVs that has been added to the simulation
         :param current_time: (int) The current time. Represented by the period number.
@@ -187,6 +198,7 @@ class Garage:
             return None
 
     def update_state(self, pilot_signals, iteration):
+        # Checking for forbidden changes in pilot signals
         evse_pilot_signals = {}
         for ev in self.active_EVs:
             new_pilot_signal = pilot_signals[ev.session_id]
@@ -205,6 +217,7 @@ class Garage:
                 # if no EV is using this station
                 evse.last_applied_pilot_signal = 0
 
+        # update the test case
         self.test_case.step(pilot_signals, iteration)
 
     def submit_event(self, event):
@@ -214,15 +227,16 @@ class Garage:
         return self.test_case.event_occurred(iteration)
 
     def get_simulation_output(self):
+        '''
+        Returns the simulation output. Also appends the EVSEs used in the simulation
+        to the simulation output.
+
+        :return: The simulation output
+        :rtype: SimulationOutput
+        '''
         simulation_output = self.test_case.get_simulation_output()
         simulation_output.submit_all_EVSEs(self.EVSEs)
         return simulation_output
-
-    def get_charging_data(self):
-        return self.test_case.get_charging_data()
-
-    def get_network_data(self):
-        return self.test_case.get_network_data()
 
     def get_actual_charging_rates(self):
         return self.test_case.get_actual_charging_rates()
@@ -259,14 +273,5 @@ class Garage:
     def allowable_rates(self):
         return self.test_case.ALLOWABLE_RATES
 
-    def __get_intermediate_hours(self, current_time, next_time):
-        hours_timestamps = []
-        t = (datetime.fromtimestamp(current_time).replace(microsecond=0, second=0, minute=0) + timedelta(
-                    hours=1)).timestamp()
-        while t < next_time:
-            hours_timestamps.append(t)
-            t = (datetime.fromtimestamp(t).replace(microsecond=0, second=0, minute=0) + timedelta(
-                    hours=1)).timestamp()
-        return hours_timestamps
 
 

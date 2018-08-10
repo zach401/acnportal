@@ -308,7 +308,7 @@ class OutputAnalyzer:
         # -- FIRST FIGURE --
         plt.subplot(1, 2, 1)
         #plt.hist(energy_percentage, bins=50, edgecolor='black', range=(0,100))
-        self.__plot_histogram(plt, energy_percentage, percentage=True, bins=50, range=(0,100))
+        self.__plot_histogram(plt, energy_percentage, percentage=True, bins=100, range=(0,100))
         plt.xlabel('Percentage of requested energy received')
         plt.ylabel('Percentage of EVs [%]' if percentage else 'Number of EVs')
         plt.title('How much of the EVs energy demand that was met')
