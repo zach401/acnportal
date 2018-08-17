@@ -34,7 +34,7 @@ class OutputAnalyzer:
     def plot_station_activity(self):
         '''
         Plots an activity plot of the test case. It shows the session activities at every charging station
-        in terms of present EVs and charge rates.
+        in terms of present EVs and charging rates.
 
         :return: None
         '''
@@ -191,9 +191,9 @@ class OutputAnalyzer:
         Plots the average daily arrivals of a day during the week and the weekend.
         Figure 1:
             - The distribution of the number of arrivals per day
+
         Figure 2:
-            - The average number of arrivals during the week and the weekend
-            and the standard deviation
+            - The average number of arrivals during the week and the weekend and the standard deviation
 
         :param boolean percentage: If the histograms should be presented in percentage or absolute values.
         :return: None
@@ -376,6 +376,7 @@ class OutputAnalyzer:
         ax2.set_title('Remaining energy demand of session {}'.format(session_id))
         ax2.set_ylabel('Remaining demand [kWh]')
         ax2.set_xlabel('Time')
+        ax2.grid(color='lightgrey', linestyle='--', linewidth=1)
         ax2.xaxis.set_major_formatter(plt.FuncFormatter(self.__datetime_format_func))
 
     def print_station_sessions(self):

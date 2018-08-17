@@ -7,7 +7,7 @@ import sys
 
 class EV:
     '''
-    This class models the bahavior of a Electrical Vehicle (EV).
+    This class models the behavior of an Electrical Vehicle (EV).
 
     The battery charging is currently described by a piecewise linear model, which charges
     at full speed to 80% and after that with a linearly decreasing rate.

@@ -3,7 +3,7 @@ import math
 class EVSE:
     '''
     This class models a Electrcial Vehicle Supply Equipment (charging station). Different manufacturers
-    has different behavior of their charging stations which is taken into account in this class.
+    have different behavior of their charging stations which is taken into account in this class.
 
     :ivar string station_id: The station ID for the EVSE.
     :ivar string manufacturer: The manufacturer name of the EVSE. Determines which pilot signal levels that are allowed.
