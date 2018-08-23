@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import math
@@ -336,7 +337,8 @@ class OutputAnalyzer:
         ax2.set_title('Charging station usage tracking')
         ax2.set_ylabel('Number of charging stations')
         ax2.set_xlabel('Time')
-
+        ax.set_xlim(x[0], x[-1])
+        ax2.set_xlim(x[0], x[-1])
 
     def plot_EV_stats(self, session_id):
         '''

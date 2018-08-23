@@ -1,3 +1,8 @@
+'''
+This is a script for generating graphs for analysis of different parts of the
+simulation module.
+'''
+
 from acnlib import TestCase
 import pickle
 from datetime import datetime, timedelta
@@ -215,14 +220,14 @@ fig = plt.figure(4)
 ax1 = fig.add_subplot(121)
 ax1.bar(range(0,24), stat_model.arrival_rates_week)
 ax1.set_ylim(0,18)
-ax1.set_ylabel('Arrivals / hour')
-ax1.set_xlabel('Hour of day')
-ax1.set_title('Arrival rates for every hour of a weekday')
+ax1.set_ylabel('Arrivals / hour', fontsize=24)
+ax1.set_xlabel('Hour of day', fontsize=24)
+ax1.set_title('Arrival rates for every hour of a weekday', fontsize=24)
 ax2 = fig.add_subplot(122)
 ax2.bar(range(0,24), stat_model.arrival_rates_weekend)
 ax2.set_ylim(0,18)
-ax2.set_xlabel('Hour of day')
-ax2.set_title('Arrival rates for every hour of a \nday during the weekend')
+ax2.set_xlabel('Hour of day', fontsize=24)
+ax2.set_title('Arrival rates for every hour of a \nday during the weekend', fontsize=24)
 
 
 fig = plt.figure(5)
@@ -233,8 +238,8 @@ ax.spines['bottom'].set_color('none')
 ax.spines['left'].set_color('none')
 ax.spines['right'].set_color('none')
 ax.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
-ax.set_xlabel('Stay duration [h]')
-ax.set_ylabel('Probability')
+ax.set_xlabel('Stay duration [h]', fontsize=24)
+ax.set_ylabel('Probability', fontsize=24)
 custom_lines = [Line2D([0], [0], color='#1f77b4', lw=2),
                 Line2D([0], [0], color='#ff7f0e', lw=2)]
 ax.legend(custom_lines, ('Week', 'Weekend'), bbox_to_anchor=(0.58, 1.07), ncol=2)
@@ -253,15 +258,15 @@ for i in range(24):
     ax.text(27, ax.get_ylim()[1] - 0.9 * (ax.get_ylim()[1] - ax.get_ylim()[0]), 'Hour {}'.format(i), bbox=props)
 
 fig = plt.figure(6)
-plt.suptitle('Probability density functions of EVs stay durations every hour of the day during the week')
+plt.suptitle('Probability density functions of EVs stay durations every hour of the day during the week', fontsize=24)
 ax = fig.add_subplot(111)
 ax.spines['top'].set_color('none')
 ax.spines['bottom'].set_color('none')
 ax.spines['left'].set_color('none')
 ax.spines['right'].set_color('none')
 ax.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
-ax.set_xlabel('Stay durations [h]')
-ax.set_ylabel('Probability density')
+ax.set_xlabel('Stay durations [h]', fontsize=24)
+ax.set_ylabel('Probability density', fontsize=24)
 for i in range(24):
     ax = fig.add_subplot(4, 6, i + 1)
     density_weekday,density_edges_weekday = stat_model.stay_density_arrays[i], stat_model.stay_density_edges[i].tolist()
@@ -394,7 +399,7 @@ ax.axvline(80,
            linewidth=1,)
 ax.text(38, 42, 'Bulk')
 ax.text(83, 42, 'Absorption')
-ax.set_ylabel('Charging rate [A]')
-ax.set_xlabel('State of charge [%]')
+ax.set_ylabel('Charging rate [A]', fontsize=20)
+ax.set_xlabel('State of charge [%]', fontsize=20)
 ax.set_title('The two charging stages of a piece-wise linear battery\nmodel and the corresponding maximum charging rate')
 

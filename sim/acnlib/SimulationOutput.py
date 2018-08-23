@@ -93,6 +93,15 @@ class SimulationOutput:
         '''
         return self.charging_data
 
+    def get_network_data(self):
+        '''
+        Returns the network data from the simulation.
+
+        :return: The network data
+        :rtype: dict
+        '''
+        return self.network_data
+
     def get_EV_charging_data(self, session_id):
         '''
         Get the charging data of one EV described by its ``session_id``.

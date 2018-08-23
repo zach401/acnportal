@@ -291,7 +291,7 @@ def __calc_statistical_distance(P, Q):
     for i in range(0,lenght):
         pow_sqrt_sum = pow_sqrt_sum + np.power((np.sqrt(P[i]) - np.sqrt(Q[i])), 2)
     hellinger_dist = np.sqrt(pow_sqrt_sum) / np.sqrt(2)
-    return hellinger_dist * np.sqrt(2)
+    return hellinger_dist
 
 def compare_model_to_real(real_test_case, model_test_case):
     '''
@@ -323,16 +323,16 @@ def compare_model_to_real(real_test_case, model_test_case):
                                                                                  bins=24)
     requested_energy_dist_real, requested_energy_dist_model = __get_distribution_probabilities(requested_energy_real,
                                                                                                range=(0,50),
-                                                                                               bins=15), \
+                                                                                               bins=50), \
                                                               __get_distribution_probabilities(requested_energy_model,
                                                                                                range=(0,50),
-                                                                                               bins=15)
+                                                                                               bins=50)
     stay_duration_dist_real, stay_duration_dist_model = __get_distribution_probabilities(stay_durations_real,
                                                                                          range=(0,50),
-                                                                                         bins=15), \
+                                                                                         bins=50), \
                                                         __get_distribution_probabilities(stay_durations_model,
                                                                                          range=(0,50),
-                                                                                         bins=15)
+                                                                                         bins=50)
 
     arrival_distance = __calc_statistical_distance(arrival_dist_real, arrival_dist_model)
     departure_distance = __calc_statistical_distance(departure_dist_real, departure_dist_model)
