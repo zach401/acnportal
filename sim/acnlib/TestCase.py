@@ -1,9 +1,10 @@
+import math
 import pickle
 from datetime import timedelta
-import math
+
+import config
 from acnlib.EV import EV
 from acnlib.SimulationOutput import SimulationOutput, Event
-import config
 
 
 class TestCase:
@@ -11,7 +12,8 @@ class TestCase:
     TestCase represents charging sessions over a certain simulation time.
     Stores the data of the test case when the simulation is run.
     '''
-    def __init__(self, EVs, start_timestamp,voltage=220, max_rate=32, period=1):
+
+    def __init__(self, EVs, start_timestamp, voltage=220, max_rate=32, period=1):
         self.voltage = voltage
         self.max_rate = max_rate
         self.period = period
@@ -35,7 +37,7 @@ class TestCase:
         :type iteration: int
         :return: None
         '''
-        self.actual_charging_rates = {} # reset the last actual charging rates
+        self.actual_charging_rates = {}  # reset the last actual charging rates
         active_EVs = self.get_active_EVs(iteration)
         total_current = 0
         for ev in active_EVs:
@@ -73,9 +75,8 @@ class TestCase:
                                                           ev.session_id))
 
         self.simulation_output.submit_network_data({'time': iteration,
-                                                    'total_current' : total_current,
+                                                    'total_current': total_current,
                                                     'nbr_active_EVs': len(active_EVs)})
-
 
     def get_active_EVs(self, iteration):
         '''
@@ -92,7 +93,6 @@ class TestCase:
             if not ev.fully_charged and ev.arrival <= iteration and ev.departure > iteration:
                 active_EVs.append(ev)
         return active_EVs
-
 
     def get_charging_data(self):
         return self.charging_data
@@ -114,7 +114,6 @@ class TestCase:
         self.simulation_output.last_departure = self.last_departure
         self.simulation_output.last_arrival = self.last_arrival
         return self.simulation_output
-
 
     def event_occured(self, iteration):
         '''
@@ -170,12 +169,13 @@ def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, pe
     uid = 0
     min_arrival = None
     for s in sessions:
-        if start <= s[0]-timedelta(hours=config.time_zone_diff_hour) and s[1]-timedelta(hours=config.time_zone_diff_hour) <= end and s[2] >= 0.5:
-            arrival = s[0]-timedelta(hours=config.time_zone_diff_hour)
-            departure = s[1]-timedelta(hours=config.time_zone_diff_hour)
+        if start <= s[0] - timedelta(hours=config.time_zone_diff_hour) and s[1] - timedelta(
+                hours=config.time_zone_diff_hour) <= end and s[2] >= 0.5:
+            arrival = s[0] - timedelta(hours=config.time_zone_diff_hour)
+            departure = s[1] - timedelta(hours=config.time_zone_diff_hour)
             ev = EV(arrival.timestamp() // 60 // period,
                     (math.ceil(departure.timestamp() / 60 / period)),
-                    ((s[2] * (60/period) * 1e3) / voltage),
+                    ((s[2] * (60 / period) * 1e3) / voltage),
                     max_rate,
                     s[3],
                     uid)
@@ -192,4 +192,4 @@ def generate_test_case_local(file_name, start, end, voltage=220, max_rate=32, pe
         ev.arrival -= min_arrival
         ev.departure -= min_arrival
     EVs.sort(key=lambda x: x.station_id)
-    return TestCase(EVs, (min_arrival*60*period),voltage, max_rate, period)
+    return TestCase(EVs, (min_arrival * 60 * period), voltage, max_rate, period)

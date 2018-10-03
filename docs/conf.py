@@ -14,10 +14,10 @@
 #
 import os
 import sys
-#sys.path.insert(0, os.path.abspath('../'))
+
+# sys.path.insert(0, os.path.abspath('../'))
 sys.path.append(os.path.join(os.path.dirname(__name__), '..'))
 sys.path.append(os.path.join(os.path.dirname(__name__), '../sim'))
-
 
 # -- Project information -----------------------------------------------------
 
@@ -30,7 +30,6 @@ version = ''
 # The full version, including alpha/beta/rc tags
 release = ''
 
-
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -41,7 +40,7 @@ release = ''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
+  'sphinx.ext.autodoc',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -70,7 +69,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
-
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -106,45 +104,42 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'ACN-portaldoc'
 
-
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
+  # The paper size ('letterpaper' or 'a4paper').
+  #
+  # 'papersize': 'letterpaper',
 
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    # 'pointsize': '10pt',
+  # The font size ('10pt', '11pt' or '12pt').
+  #
+  # 'pointsize': '10pt',
 
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
+  # Additional stuff for the LaTeX preamble.
+  #
+  # 'preamble': '',
 
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
+  # Latex figure (float) alignment
+  #
+  # 'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'ACN-portal.tex', 'ACN-portal Documentation',
-     'NetLab', 'manual'),
+  (master_doc, 'ACN-portal.tex', 'ACN-portal Documentation',
+   'NetLab', 'manual'),
 ]
-
 
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'acn-portal', 'ACN-portal Documentation',
-     [author], 1)
+  (master_doc, 'acn-portal', 'ACN-portal Documentation',
+   [author], 1)
 ]
-
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -152,10 +147,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'ACN-portal', 'ACN-portal Documentation',
-     author, 'ACN-portal', 'One line description of project.',
-     'Miscellaneous'),
+  (master_doc, 'ACN-portal', 'ACN-portal Documentation',
+   author, 'ACN-portal', 'One line description of project.',
+   'Miscellaneous'),
 ]
-
 
 # -- Extension configuration -------------------------------------------------

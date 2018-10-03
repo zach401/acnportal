@@ -1,5 +1,6 @@
 import copy
 
+
 class SimulationOutput:
     '''
     The SimulationOutput describes objects that will hold the information about a simulation.
@@ -290,4 +291,3 @@ class Event:
         self.iteration = iteration
         self.description = description
         self.session = session
-

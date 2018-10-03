@@ -1,7 +1,8 @@
+import sys
 from builtins import property
 
 import numpy as np
-import sys
+
 
 # Piecewise linear: https://www.sciencedirect.com/science/article/pii/S0378775316317396
 
@@ -47,7 +48,7 @@ class EV:
                 if noise_level > 0:
                     charge_rate -= abs(np.random.normal(0, noise_level))
             else:
-                charge_rate = min(pilot, ((1 - (self.energy_delivered / self.requested_energy)) / 0.2)*self.max_rate)
+                charge_rate = min(pilot, ((1 - (self.energy_delivered / self.requested_energy)) / 0.2) * self.max_rate)
                 if noise_level > 0:
                     charge_rate += np.random.normal(0, noise_level)
         # Ideal charging model
@@ -59,7 +60,7 @@ class EV:
         # Ensure that noise did not move charge rate out of allowable range
         charge_rate = min([charge_rate, pilot, self.max_rate])
 
-        #Update energy delivered
+        # Update energy delivered
         self.energy_delivered += charge_rate
         return charge_rate
 

@@ -2,6 +2,7 @@
 This module contains methods for directly interacting with the simulator. 
 """
 
+
 class Interface:
 
     def __init__(self, simulator):

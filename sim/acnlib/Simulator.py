@@ -1,5 +1,7 @@
-from acnlib.SimulationOutput import Event
 import copy
+
+from acnlib.SimulationOutput import Event
+
 
 class Simulator:
     '''
@@ -35,7 +37,8 @@ class Simulator:
         self.submit_event(Event('INFO', self.iteration, 'Simulation started'))
         schedule_horizon = 0
         while self.iteration < self.garage.last_departure:
-            if self.iteration >= self.last_schedule_update + schedule_horizon or self.garage.event_occurred(self.iteration):
+            if self.iteration >= self.last_schedule_update + schedule_horizon or self.garage.event_occurred(
+                    self.iteration):
                 # call the scheduling algorithm
                 self.scheduler.run()
                 self.last_schedule_update = self.iteration
@@ -47,7 +50,7 @@ class Simulator:
             self.iteration = self.iteration + 1
         self.submit_event(Event('INFO', self.iteration, 'Simulation finished'))
         simulation_output = self.garage.get_simulation_output()
-        #charging_data = self.test_case.get_charging_data()
+        # charging_data = self.test_case.get_charging_data()
         return simulation_output
 
     def submit_event(self, event):
@@ -56,7 +59,6 @@ class Simulator:
     def submit_log_event(self, text):
         event = Event('LOG', self.iteration, text, 'ALGORITHM')
         self.garage.test_case.simulation_output.submit_event(event)
-
 
     def get_current_pilot_signals(self):
         '''
@@ -115,6 +117,3 @@ class Simulator:
         :rtype: dict
         '''
         return self.garage.get_charging_data()
-
-
-

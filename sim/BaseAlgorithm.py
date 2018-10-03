@@ -1,8 +1,8 @@
-
 class BaseAlgorithm:
     """ This is a base-class meant to be inherited from to implement new algorithms.
         Each new algorithm should override the schedule method.
     """
+
     def __init__(self, interface):
         pass
 
@@ -17,7 +17,7 @@ class BaseAlgorithm:
 
         schedules = {}
         return schedules
-    
+
     def run(self):
         """ Runs one instance of the scheduling algorithm and submits the resulting schedule.
 
@@ -83,6 +83,7 @@ class BaseAlgorithm:
             new_index = 1
         return allowable_rates[new_index]
 
+
 class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
 
     def __init__(self):
@@ -113,6 +114,7 @@ class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
             if earliest_EV == None or earliest_EV.departure > ev.departure:
                 earliest_EV = ev
         return earliest_EV
+
 
 class LeastLaxityFirstAlgorithm(BaseAlgorithm):
 
@@ -155,6 +157,7 @@ class LeastLaxityFirstAlgorithm(BaseAlgorithm):
     def get_laxity(self, EV, current_time):
         laxity = (EV.departure - current_time) - (EV.requested_energy - EV.energy_delivered) / self.max_charging_rate
         return laxity
+
 
 class MLLF(BaseAlgorithm):
     '''
@@ -231,13 +234,13 @@ class MLLF(BaseAlgorithm):
             schedule[ev.session_id] = charge_rates
         return schedule
 
-
     def get_laxity(self, EV, current_time):
         laxity = (EV.departure - current_time) - (EV.requested_energy - EV.energy_delivered) / self.max_charging_rate
         return laxity
 
     def sort_by_laxity(self, list):
         return sorted(list, key=lambda ev: ev['laxity'])
+
 
 class MaxRateAlgorithm(BaseAlgorithm):
 
@@ -257,6 +260,7 @@ class MaxRateAlgorithm(BaseAlgorithm):
             schedule[ev.session_id] = [new_pilot_signal]
 
         return schedule
+
 
 class MinRateAlgorithm(BaseAlgorithm):
 

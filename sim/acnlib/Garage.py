@@ -1,12 +1,13 @@
-from acnlib.EVSE import EVSE
-from acnlib.EV import EV
-from acnlib.TestCase import TestCase
-from acnlib.StatModel import StatModel
-from acnlib.SimulationOutput import Event
 import math
-from datetime import datetime, timedelta
 import random
+from datetime import datetime, timedelta
+
 import config
+from acnlib.EV import EV
+from acnlib.EVSE import EVSE
+from acnlib.SimulationOutput import Event
+from acnlib.StatModel import StatModel
+from acnlib.TestCase import TestCase
 
 
 class Garage:
@@ -53,17 +54,7 @@ class Garage:
             else:
                 self.EVSEs.append(EVSE('CA-' + str(i), 'AeroVironment'))
 
-    def set_test_case(self, test_case):
-        '''
-        Manually set test case for the simulation.
-        This function is used if the test case is generated from real data.
-
-        :param TestCase test_case: The manually generated test case
-        :return: None
-        '''
-        self.test_case = test_case
-
-    def generate_test_case(self, start_dt, end_dt, model='empirical', period=1, voltage = 220, max_rate = 32):
+    def generate_test_case(self, start_dt, end_dt, model='empirical', period=1, voltage=220, max_rate=32):
         '''
         Function for auto-generating a test case. The test case is generated from a statistical model based
         on real data from Caltech ACN.
@@ -86,8 +77,6 @@ class Garage:
             return self.generate_from_emprical_model(start_dt, end_dt, period, voltage, max_rate)
         else:
             return None
-
-
 
     def generate_from_emprical_model(self, start_dt, end_dt, period, voltage, max_rate):
         '''
@@ -125,8 +114,8 @@ class Garage:
             rate = self.stat_model.get_arrival_rate(weekday, hour)
             rand = 1 - random.random()  # a number in range (0, 1]
             next_full_hour = (
-                        datetime.fromtimestamp(last_arrival).replace(microsecond=0, second=0, minute=0) + timedelta(
-                    hours=1)).timestamp()
+                    datetime.fromtimestamp(last_arrival).replace(microsecond=0, second=0, minute=0) + timedelta(
+                hours=1)).timestamp()
 
             next_arrival = last_arrival + 3601
             if rate != 0:
@@ -202,7 +191,7 @@ class Garage:
         evse_pilot_signals = {}
         for ev in self.active_EVs:
             new_pilot_signal = pilot_signals[ev.session_id]
-            evse_pilot_signals[ev.station_id] = (ev.session_id ,new_pilot_signal)
+            evse_pilot_signals[ev.station_id] = (ev.session_id, new_pilot_signal)
         for evse in self.EVSEs:
             if evse.station_id in evse_pilot_signals:
                 session_id = evse_pilot_signals[evse.station_id][0]
@@ -211,7 +200,8 @@ class Garage:
                 if not change_ok and session_id == evse.last_session_id:
                     self.submit_event(Event('WARNING',
                                             iteration,
-                                            'Wrong increase/decrease of pilot signal for station {}'.format(evse.station_id),
+                                            'Wrong increase/decrease of pilot signal for station {}'.format(
+                                                evse.station_id),
                                             session_id))
             else:
                 # if no EV is using this station
@@ -272,6 +262,3 @@ class Garage:
     @property
     def allowable_rates(self):
         return self.test_case.ALLOWABLE_RATES
-
-
-

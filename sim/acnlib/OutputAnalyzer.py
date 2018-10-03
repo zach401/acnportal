@@ -1,9 +1,10 @@
-import matplotlib
-import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
 import math
+from datetime import datetime
+
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
+
 
 class OutputAnalyzer:
 
@@ -39,6 +40,7 @@ class OutputAnalyzer:
 
         :return: None
         '''
+
         def format_func(value, tick_number):
             return '0'
 
@@ -68,21 +70,22 @@ class OutputAnalyzer:
                         end = sample['time']
                         xc, yc = [start, end], [ev.station_id, ev.station_id]
                         if sample['charge_rate'] != 0:
-                            color = (1 - (charge_rate/max_rate)) * 0.9
+                            color = (1 - (charge_rate / max_rate)) * 0.9
                             ax.plot(xc, yc, color=([1.0, color, 0.0]), linewidth=7.0)
                             ax.xaxis.set_major_formatter(plt.FuncFormatter(self.__datetime_format_func))
                         start = end + 0.01
                         charge_rate = sample['charge_rate']
                     counter = counter + 1
-            #if ev.finishing_time > 0:
-                #plt.plot(ev.finishing_time, ev.station_id,'ko')
+            # if ev.finishing_time > 0:
+            # plt.plot(ev.finishing_time, ev.station_id,'ko')
         custom_lines = [Line2D([0], [0], color=([1.0, 0.0, 0.0]), lw=4),
                         Line2D([0], [0], color=([1.0, 0.9, 0.0]), lw=4),
                         Line2D([0], [0], color='g', lw=4)]
         plt.xlabel('Time')
         plt.ylabel('Station')
         plt.title('Charging station activity')
-        plt.legend(custom_lines, ['Max rate ({} A)'.format(self.simulation_output.max_rate), 'Min rate (0 A)', 'Finished charging'])
+        plt.legend(custom_lines,
+                   ['Max rate ({} A)'.format(self.simulation_output.max_rate), 'Min rate (0 A)', 'Finished charging'])
         plt.show()
         self.figures = self.figures + 1
 
@@ -110,12 +113,13 @@ class OutputAnalyzer:
                                                   self.simulation_output.start_timestamp)
             departure_time = datetime.fromtimestamp(ev.departure * 60 * self.simulation_output.period +
                                                     self.simulation_output.start_timestamp)
-            arrival_time = arrival_time #- timedelta(hours=7)
-            departure_time = departure_time #- timedelta(hours=7)
+            arrival_time = arrival_time  # - timedelta(hours=7)
+            departure_time = departure_time  # - timedelta(hours=7)
             arrival_hours.append(arrival_time.hour)
             departure_hours.append(departure_time.hour)
             # - Gather data for requested energy
-            requested_energy.append((ev.requested_energy / (60 / self.simulation_output.period))*self.simulation_output.voltage/1000)
+            requested_energy.append(
+                (ev.requested_energy / (60 / self.simulation_output.period)) * self.simulation_output.voltage / 1000)
             # - Gather data for stay times
             stay_durations.append(((ev.departure - ev.arrival) * self.simulation_output.period) / 60)
 
@@ -126,21 +130,20 @@ class OutputAnalyzer:
 
         arrival_hours_percentage = [x / number_of_EVs * 100 for x in arrival_hours]
 
-
-        ax1 = plt.subplot(1,3,1)
-        #plt.hist([arrival_hours, departure_hours], bins=24)
-        hist_arrival, bins_arrival = np.histogram(arrival_hours, bins=24, range=(0,24))
-        hist_departure, bins_departure = np.histogram(departure_hours, bins=24, range=(0,24))
+        ax1 = plt.subplot(1, 3, 1)
+        # plt.hist([arrival_hours, departure_hours], bins=24)
+        hist_arrival, bins_arrival = np.histogram(arrival_hours, bins=24, range=(0, 24))
+        hist_departure, bins_departure = np.histogram(departure_hours, bins=24, range=(0, 24))
         b1 = ax1.bar(bins_arrival[:-1],
-                hist_arrival.astype(np.float32) / ((hist_arrival.sum() / 100) if percentage else 1),
-                width=-(bins_arrival[1] - bins_arrival[0])/2,
-                edgecolor=['black'] * len(hist_arrival),
-                align='edge')
+                     hist_arrival.astype(np.float32) / ((hist_arrival.sum() / 100) if percentage else 1),
+                     width=-(bins_arrival[1] - bins_arrival[0]) / 2,
+                     edgecolor=['black'] * len(hist_arrival),
+                     align='edge')
         b2 = ax1.bar(bins_departure[:-1],
-                hist_departure.astype(np.float32) / ((hist_departure.sum() / 100) if percentage else 1),
-                width=(bins_departure[1] - bins_departure[0]) / 2,
-                edgecolor=['black'] * len(bins_departure),
-                align='edge')
+                     hist_departure.astype(np.float32) / ((hist_departure.sum() / 100) if percentage else 1),
+                     width=(bins_departure[1] - bins_departure[0]) / 2,
+                     edgecolor=['black'] * len(bins_departure),
+                     align='edge')
         handles, labels = ax1.get_legend_handles_labels()
         ax1.set_ylim(0, 25)
         ax1.legend([b1, b2], ['Arrivals', 'Departures'])
@@ -148,14 +151,14 @@ class OutputAnalyzer:
         plt.ylabel('Percentage of arriving and departing EVs [%]' if percentage else 'Number of EVs')
         plt.title('Distribution of Arrival and Departure hours of the EVs using\n the ACN during the period ' +
                   self.__get_simulation_duration_date_string())
-        #plt.legend(['Arrivals', 'Departures'])
+        # plt.legend(['Arrivals', 'Departures'])
         plt.subplot(1, 3, 2)
-        #plt.hist(stay_durations, bins=15,edgecolor='black', range=(0, 40))
+        # plt.hist(stay_durations, bins=15,edgecolor='black', range=(0, 40))
         hist, bins = np.histogram(stay_durations, bins=20, range=(0, 40))
         plt.bar(bins[:-1],
                 hist.astype(np.float32) / ((hist.sum() / 100) if percentage else 1),
                 width=(bins[1] - bins[0]),
-                edgecolor=['black']*len(hist),
+                edgecolor=['black'] * len(hist),
                 align='edge')
         plt.axvline(mean_stay_duration,
                     color='r',
@@ -168,7 +171,7 @@ class OutputAnalyzer:
                   self.__get_simulation_duration_date_string())
         plt.legend()
         plt.subplot(1, 3, 3)
-        #plt.hist(requested_energy, bins=15, edgecolor='black')
+        # plt.hist(requested_energy, bins=15, edgecolor='black')
         hist, bins = np.histogram(requested_energy, bins=20, range=(0, 40))
         plt.bar(bins[:-1],
                 hist.astype(np.float32) / ((hist.sum() / 100) if percentage else 1),
@@ -179,7 +182,8 @@ class OutputAnalyzer:
                     color='r',
                     linestyle='dashed',
                     linewidth=1,
-                    label='Average requested energy: {} kWh,\nSTD: {} kWh'.format(mean_energy_requested, std_energy_requested))
+                    label='Average requested energy: {} kWh,\nSTD: {} kWh'.format(mean_energy_requested,
+                                                                                  std_energy_requested))
         plt.xlabel('Requested energy [kWh]')
         plt.ylabel('Percentage of EVs [%]' if percentage else 'Number of EVs')
         plt.title('Distribution of requested energy by the EVs using\n the ACN during the period ' +
@@ -232,9 +236,9 @@ class OutputAnalyzer:
         weekends_std = round(np.sqrt(np.var(weekends_arrivals)), 2)
 
         self.new_figure()
-        ax1 = plt.subplot(1,2,1)
-        #ax1.hist(weekdays_arrivals, range=(0,70), bins=15, edgecolor='black')
-        self.__plot_histogram(ax1, weekdays_arrivals, percentage=percentage, bins=20, range=(0,100), align='center')
+        ax1 = plt.subplot(1, 2, 1)
+        # ax1.hist(weekdays_arrivals, range=(0,70), bins=15, edgecolor='black')
+        self.__plot_histogram(ax1, weekdays_arrivals, percentage=percentage, bins=20, range=(0, 100), align='center')
         ax1.axvline(weekdays_mean,
                     color='r',
                     linestyle='dashed',
@@ -243,10 +247,10 @@ class OutputAnalyzer:
         ax1.set_xlabel('Numbers of EVs arriving per day')
         ax1.set_ylabel('Percentage of days [%]' if percentage else 'Number of days')
         ax1.set_title('Distribution of the daily number of EVs arriving during a weekday,\n(' +
-                     self.__get_simulation_duration_date_string()+')')
+                      self.__get_simulation_duration_date_string() + ')')
         ax1.legend()
-        ax2 = plt.subplot(1,2,2)
-        #ax2.hist(weekends_arrivals, range=(0,70), bins=15, edgecolor='black')
+        ax2 = plt.subplot(1, 2, 2)
+        # ax2.hist(weekends_arrivals, range=(0,70), bins=15, edgecolor='black')
         self.__plot_histogram(ax2, weekends_arrivals, percentage=percentage, bins=20, range=(0, 100), align='center')
         ax2.axvline(weekends_mean,
                     color='r',
@@ -256,7 +260,7 @@ class OutputAnalyzer:
         ax2.set_xlabel('Number of EVs arriving per day')
         ax2.set_ylabel('Percentage of days [%]' if percentage else 'Number of days')
         ax2.set_title('Distribution of the daily number of EVs arriving during a day of the weekend,\n(' +
-                     self.__get_simulation_duration_date_string()+')')
+                      self.__get_simulation_duration_date_string() + ')')
         ax2.legend()
 
         fig, ax = plt.subplots()
@@ -268,11 +272,9 @@ class OutputAnalyzer:
                                  'Average value: {}, STD: {}'.format(weekends_mean, weekends_std)))
         ax.set_ylabel('Average number of EVs arriving per day')
         ax.set_title('Average number of EVs arriving per day of a\n weekday or a day during the weekend,\n(' +
-                     self.__get_simulation_duration_date_string()+')')
-        #ax.set_xticks(2)
-        #ax.set_xticklabels(('Weekdays', 'Weekends'))
-
-
+                     self.__get_simulation_duration_date_string() + ')')
+        # ax.set_xticks(2)
+        # ax.set_xticklabels(('Weekdays', 'Weekends'))
 
     def plot_algorithm_result_stats(self, percentage=True):
         '''
@@ -300,21 +302,23 @@ class OutputAnalyzer:
             energy_percentage.append(p)
             # - Calculate the stay time of EVs not fully charged
             if not ev.fully_charged:
-                stay_duration_not_finished_EVs.append(((ev.departure - ev.arrival) * self.simulation_output.period) / 60)
+                stay_duration_not_finished_EVs.append(
+                    ((ev.departure - ev.arrival) * self.simulation_output.period) / 60)
             # - Accumulate the total current used by all sessions
             if ev.session_id in self.simulation_output.charging_data:
                 for sample in self.simulation_output.charging_data[ev.session_id]:
-                    total_power[sample['time']] = total_power[sample['time']] + sample['charge_rate']*self.simulation_output.voltage/1000
+                    total_power[sample['time']] = total_power[sample['time']] + sample[
+                        'charge_rate'] * self.simulation_output.voltage / 1000
 
         # -- FIRST FIGURE --
         plt.subplot(1, 2, 1)
-        #plt.hist(energy_percentage, bins=50, edgecolor='black', range=(0,100))
-        self.__plot_histogram(plt, energy_percentage, percentage=True, bins=100, range=(0,100))
+        # plt.hist(energy_percentage, bins=50, edgecolor='black', range=(0,100))
+        self.__plot_histogram(plt, energy_percentage, percentage=True, bins=100, range=(0, 100))
         plt.xlabel('Percentage of requested energy received')
         plt.ylabel('Percentage of EVs [%]' if percentage else 'Number of EVs')
         plt.title('How much of the EVs energy demand that was met')
         plt.subplot(1, 2, 2)
-        #plt.hist(stay_duration_not_finished_EVs, bins=20, edgecolor='black')
+        # plt.hist(stay_duration_not_finished_EVs, bins=20, edgecolor='black')
         self.__plot_histogram(plt, stay_duration_not_finished_EVs, percentage=True, bins=20, range=(0, 40))
         plt.xlabel('Stay duration [hours]')
         plt.ylabel('Percentage of EVs not fully charged [%]' if percentage else 'Number of EVs not fully charged')
@@ -331,7 +335,7 @@ class OutputAnalyzer:
 
         x, y1, y2, y3, y4 = self.__get_result_stack_plot_data()
         ax2 = fig.add_subplot('212')
-        ax2.stackplot(x,y1,y2,y3,y4, colors=('#1f77b4', '#ff7f0e', '#d62728', '#2ca02c'))
+        ax2.stackplot(x, y1, y2, y3, y4, colors=('#1f77b4', '#ff7f0e', '#d62728', '#2ca02c'))
         ax2.xaxis.set_major_formatter(plt.FuncFormatter(self.__datetime_format_func))
         ax2.legend(('Not charging', 'Adapting', 'Full speed', 'Unplugged'))
         ax2.set_title('Charging station usage tracking')
@@ -363,7 +367,8 @@ class OutputAnalyzer:
             i = int(sample['time'] - ev.arrival)
             pilot_signal[i] = sample['pilot_signal']
             charge_rate[i] = sample['charge_rate']
-            remaining_demand[i] = (sample['remaining_demand'] / (60 / self.simulation_output.period))*self.simulation_output.voltage/1000
+            remaining_demand[i] = (sample['remaining_demand'] / (
+                    60 / self.simulation_output.period)) * self.simulation_output.voltage / 1000
 
         fig = self.new_figure()
         ax1 = fig.add_subplot(211)
@@ -427,9 +432,10 @@ class OutputAnalyzer:
             events = self.simulation_output.get_events_errors()
             print('Printing LOG events. Number of LOG events: {}'.format(len(events)))
 
-        print('-'*60)
+        print('-' * 60)
         for e in events:
-            print('{0:14s} | {1:6s} | {2:8s} | {3}'.format(self.__datetime_string_from_iteration(e.iteration), e.type, str(e.session), e.description))
+            print('{0:14s} | {1:6s} | {2:8s} | {3}'.format(self.__datetime_string_from_iteration(e.iteration), e.type,
+                                                           str(e.session), e.description))
 
         if len(events) == 0:
             print('No events')
@@ -469,7 +475,7 @@ class OutputAnalyzer:
         total_energy = 0
         for sample in self.simulation_output.network_data:
             iteration = sample['time']
-            power = sample['total_current'] * self.simulation_output.voltage/1000
+            power = sample['total_current'] * self.simulation_output.voltage / 1000
             concurrent_EVs = sample['nbr_active_EVs']
             d = datetime.fromtimestamp(start_timestamp + iteration * period * 60).date()
             energy = power * (period / 60)
@@ -498,13 +504,13 @@ class OutputAnalyzer:
         print('{0:>9s} | {1:>11s} | {2:>13s} | {3:>15s}'.format('Day', 'delivered', 'Peak power', 'sessions'))
         for key, value in daily_energy.items():
             print('{0:9s} | {1:7.1f} kWh | {2:10.1f} kW | {3:15.0f}'.format(key.strftime('%m/%d/%y'),
-                                                                           value,
-                                                                           daily_peak_power[key],
-                                                                           daily_max_concurrent_EVs[key]))
+                                                                            value,
+                                                                            daily_peak_power[key],
+                                                                            daily_max_concurrent_EVs[key]))
         print('{0:9s} | {1:7.1f} kWh | {2:10.1f} kW | {3:15.0f}'.format('TOTAL',
-                                                                       total_energy,
-                                                                       average_peak,
-                                                                       average_concurrent_EVs))
+                                                                        total_energy,
+                                                                        average_peak,
+                                                                        average_concurrent_EVs))
         print('-' * 57)
         print('\n')
 
@@ -516,17 +522,17 @@ class OutputAnalyzer:
                 nbr_EVs_fully_charged = nbr_EVs_fully_charged + 1
             else:
                 not_fully_charged.append(ev.energy_delivered / ev.requested_energy)
-        hist, bins = np.histogram(not_fully_charged, bins=10, range=(0,1))
+        hist, bins = np.histogram(not_fully_charged, bins=10, range=(0, 1))
         total_nbr_EVs = hist.sum() + nbr_EVs_fully_charged
         hist_norm = hist.astype(np.float32) / (total_nbr_EVs / 100)
         i = 0
         print('ENERGY FULFILLMENT')
-        print('-'*40)
+        print('-' * 40)
         print('{0:15s} | {1:10s}'.format('Percentage of demand', 'Percentage of EVs'))
         for v in hist_norm.tolist():
-            print('{0:12.1f} -{1:5.1f}% | {2:5.2f}%'.format(bins[i]*100, bins[i+1]*100-0.1, v))
-            i = i+1
-        print('{0:19.1f}% | {1:5.2f}%'.format(100, (nbr_EVs_fully_charged / total_nbr_EVs)*100))
+            print('{0:12.1f} -{1:5.1f}% | {2:5.2f}%'.format(bins[i] * 100, bins[i + 1] * 100 - 0.1, v))
+            i = i + 1
+        print('{0:19.1f}% | {1:5.2f}%'.format(100, (nbr_EVs_fully_charged / total_nbr_EVs) * 100))
         print('-' * 40)
         print('\n')
 
@@ -551,7 +557,8 @@ class OutputAnalyzer:
         for ev in self.simulation_output.EVs:
             if ev.session_id in self.simulation_output.charging_data:
                 for sample in self.simulation_output.charging_data[ev.session_id]:
-                    total_power[sample['time']] = total_power[sample['time']] + sample['charge_rate']*self.simulation_output.voltage/1000
+                    total_power[sample['time']] = total_power[sample['time']] + sample[
+                        'charge_rate'] * self.simulation_output.voltage / 1000
         return total_power
 
     def __get_simulation_duration_date_string(self):
@@ -574,10 +581,10 @@ class OutputAnalyzer:
     def __plot_histogram(self, ax, data, percentage=True, bins=20, range=None, align='edge'):
         hist, bins = np.histogram(data, bins=bins, range=range)
         bar = ax.bar(bins[:-1],
-                hist.astype(np.float32) / ((hist.sum() / 100) if percentage else 1),
-                width=(bins[1] - bins[0]),
-                edgecolor=['black'] * len(hist),
-                align=align)
+                     hist.astype(np.float32) / ((hist.sum() / 100) if percentage else 1),
+                     width=(bins[1] - bins[0]),
+                     edgecolor=['black'] * len(hist),
+                     align=align)
         return bar
 
     def __get_result_stack_plot_data(self):
@@ -610,6 +617,3 @@ class OutputAnalyzer:
             unplugged_array.append(nbr_unplugged)
 
         return x, not_charging_array, adapting_array, max_pilot_array, unplugged_array
-
-
-

@@ -42,7 +42,7 @@ section at the top of the script:
 Defining the scheduling algorithm
 ---------------------------------
 
-The ``BaseAlgorithm`` module has already som predefined charging algorithms that can be used if no other algorithm has yet been
+The ``BaseAlgorithm`` module has already some predefined charging algorithms that can be used if no other algorithm has yet been
 defined. The section :ref:`writing-a-scheduling-algorithm` covers how to implement a custom scheduling algorithm which can be used in the same way as the ones
 covered in this section.
 

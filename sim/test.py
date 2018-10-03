@@ -3,15 +3,17 @@ This is a script for testing different parts of the simulation module and
 draw some useful plots.
 '''
 
-from acnlib import TestCase
-from acnlib.Garage import Garage
 from datetime import datetime
-from acnlib import StatModel
-from acnlib.ACNsim import ACNsim
-from BaseAlgorithm import *
-import matplotlib.pyplot as plt
 
-#tc = TestCase.generate_test_case_local()
+import matplotlib.pyplot as plt
+from BaseAlgorithm import *
+from acnlib import StatModel
+from acnlib import TestCase
+from acnlib.ACNsim import ACNsim
+from acnlib.Garage import Garage
+
+
+# tc = TestCase.generate_test_case_local()
 def __datetime_format_func(self, value, tick_number):
     return self.__datetime_string_from_iteration(value)
 
@@ -25,6 +27,7 @@ def __datetime_string_from_iteration(self, timestamp):
 
 def __get_datetime_string(self, dt):
     return dt.strftime('%H:%M %m/%d/%y')
+
 
 def filter_total(series):
     b = 200
@@ -43,6 +46,7 @@ def filter_total(series):
         filtered.append(sum)
     return filtered
 
+
 if __name__ == '__main__':
 
     garage = Garage()
@@ -54,9 +58,9 @@ if __name__ == '__main__':
                                                        datetime.strptime("09/06/18", "%d/%m/%y"),
                                                        period=1)
     test_case_real2 = TestCase.generate_test_case_local('July_25_Sessions.pkl',
-                                                       datetime.strptime("02/06/18", "%d/%m/%y"),
-                                                       datetime.strptime("09/06/18", "%d/%m/%y"),
-                                                       period=1)
+                                                        datetime.strptime("02/06/18", "%d/%m/%y"),
+                                                        datetime.strptime("09/06/18", "%d/%m/%y"),
+                                                        period=1)
     StatModel.compare_model_to_real(test_case_real, test_case_model)
     print(len(test_case_model.EVs))
     print(len(test_case_real.EVs))
@@ -78,10 +82,9 @@ if __name__ == '__main__':
     for sample in network_data_2:
         total_current2.append(sample['total_current'] * simout2.voltage / 1000)
 
-
     fig = plt.figure(0)
     ax = fig.add_subplot('111')
-    ax.plot(range(0, len(total_current1)), total_current1,range(0, len(total_current2)), total_current2)
+    ax.plot(range(0, len(total_current1)), total_current1, range(0, len(total_current2)), total_current2)
     ax.set_xlabel('Time', fontsize=20)
     ax.set_ylabel('Total Power [kWh]', fontsize=20)
     ax.set_title('Total Power usage of the simulated network', fontsize=20)

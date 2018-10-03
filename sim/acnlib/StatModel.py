@@ -1,10 +1,10 @@
 import pickle
-from datetime import datetime, timedelta
-import numpy as np
 import random
+from datetime import datetime, timedelta
+
 import config
-import math
-from acnlib.TestCase import TestCase
+import numpy as np
+
 
 class StatModel:
     '''
@@ -26,10 +26,9 @@ class StatModel:
         self.sessions = pickle.load(open(config.stat_model_data_source, 'rb'))
         self.arrival_rates_week, self.arrival_rates_weekend = self.__determine_arrival_rates()
         self.stay_density_arrays, self.stay_density_edges, \
-            self.stay_density_arrays_weekend, self.stay_density_edges_weekend = self.__determine_stay_density_arrays()
+        self.stay_density_arrays_weekend, self.stay_density_edges_weekend = self.__determine_stay_density_arrays()
         self.energy_demand_density_arrays, self.energy_demand_density_edges_arrays, \
-            self.energy_demand_density_arrays_weekend, self.energy_demand_density_edges_arrays_weekend = self.__determine_energy_demand_array()
-
+        self.energy_demand_density_arrays_weekend, self.energy_demand_density_edges_arrays_weekend = self.__determine_energy_demand_array()
 
         pass
 
@@ -88,11 +87,11 @@ class StatModel:
         stay_density_arrays = []
         stay_density_edges = []
         for key, data in stay_duration_hours.items():
-            hist, edges = np.histogram(data, bins=120, density=True, range=(0,60))
+            hist, edges = np.histogram(data, bins=120, density=True, range=(0, 60))
             density_array = []
             i = 0
             for h in np.nditer(hist):
-                new_value = h * (edges[i+1]-edges[i])
+                new_value = h * (edges[i + 1] - edges[i])
                 if i == 0:
                     density_array.append(new_value)
                 else:
@@ -103,11 +102,11 @@ class StatModel:
         stay_density_arrays_weekend = []
         stay_density_edges_weekend = []
         for key, data in stay_duration_hours_weekend.items():
-            hist, edges = np.histogram(data, bins=120, density=True, range=(0,60))
+            hist, edges = np.histogram(data, bins=120, density=True, range=(0, 60))
             density_array = []
             i = 0
             for h in np.nditer(hist):
-                new_value = h * (edges[i+1]-edges[i])
+                new_value = h * (edges[i + 1] - edges[i])
                 if i == 0:
                     density_array.append(new_value)
                 else:
@@ -174,7 +173,6 @@ class StatModel:
             energy_demand_edges_weekend.append(edges)
         return energy_demand_arrays, energy_demand_edges, energy_demand_arrays_weekend, energy_demand_edges_weekend
 
-
     def get_arrival_rate(self, weekday, hour):
         '''
         Returns the poisson process rate describing the EV arrival rate.
@@ -210,12 +208,12 @@ class StatModel:
         i = 0
         while density_array[i] < rand:
             i = i + 1
-        stay_duration = random.uniform(edges[i], edges[i+1])
+        stay_duration = random.uniform(edges[i], edges[i + 1])
         if stay_duration > 30:
             a = 0
         return stay_duration
 
-    def get_energy_demand(self, weekday=0, hour = 8):
+    def get_energy_demand(self, weekday=0, hour=8):
         '''
         Returns the energy demand for an EV according to the energy demand distributions
         extracted from the real ACN data.
@@ -272,10 +270,12 @@ def __get_beahavioral_stats(test_case):
         stay_durations.append(((ev.departure - ev.arrival) * test_case.period) / 60)
     return (arrival_hours, departure_hours, requested_energy, stay_durations)
 
+
 def __get_distribution_probabilities(data, percentage=True, bins=20, range=None, align='center'):
     hist, bins = np.histogram(data, bins=bins, range=range)
     distribution = hist.astype(np.float32) / ((hist.sum()) if percentage else 1)
     return distribution.tolist()
+
 
 def __calc_statistical_distance(P, Q):
     '''
@@ -288,10 +288,11 @@ def __calc_statistical_distance(P, Q):
     '''
     pow_sqrt_sum = 0
     lenght = len(P)
-    for i in range(0,lenght):
+    for i in range(0, lenght):
         pow_sqrt_sum = pow_sqrt_sum + np.power((np.sqrt(P[i]) - np.sqrt(Q[i])), 2)
     hellinger_dist = np.sqrt(pow_sqrt_sum) / np.sqrt(2)
     return hellinger_dist
+
 
 def compare_model_to_real(real_test_case, model_test_case):
     '''
@@ -305,33 +306,33 @@ def compare_model_to_real(real_test_case, model_test_case):
     :return: None
     '''
     arrival_hours_real, departure_hours_real, \
-        requested_energy_real, stay_durations_real = __get_beahavioral_stats(real_test_case)
+    requested_energy_real, stay_durations_real = __get_beahavioral_stats(real_test_case)
     arrival_hours_model, departure_hours_model, \
-        requested_energy_model, stay_durations_model = __get_beahavioral_stats(model_test_case)
+    requested_energy_model, stay_durations_model = __get_beahavioral_stats(model_test_case)
 
     arrival_dist_real, arrival_dist_model = __get_distribution_probabilities(arrival_hours_real,
-                                                                             range=(0,24),
-                                                                             bins=24),\
+                                                                             range=(0, 24),
+                                                                             bins=24), \
                                             __get_distribution_probabilities(arrival_hours_model,
-                                                                             range=(0,24),
+                                                                             range=(0, 24),
                                                                              bins=24)
     departure_dist_real, departure_dist_model = __get_distribution_probabilities(departure_hours_real,
-                                                                                 range=(0,24),
+                                                                                 range=(0, 24),
                                                                                  bins=24), \
                                                 __get_distribution_probabilities(departure_hours_model,
-                                                                                 range=(0,24),
+                                                                                 range=(0, 24),
                                                                                  bins=24)
     requested_energy_dist_real, requested_energy_dist_model = __get_distribution_probabilities(requested_energy_real,
-                                                                                               range=(0,50),
+                                                                                               range=(0, 50),
                                                                                                bins=50), \
                                                               __get_distribution_probabilities(requested_energy_model,
-                                                                                               range=(0,50),
+                                                                                               range=(0, 50),
                                                                                                bins=50)
     stay_duration_dist_real, stay_duration_dist_model = __get_distribution_probabilities(stay_durations_real,
-                                                                                         range=(0,50),
+                                                                                         range=(0, 50),
                                                                                          bins=50), \
                                                         __get_distribution_probabilities(stay_durations_model,
-                                                                                         range=(0,50),
+                                                                                         range=(0, 50),
                                                                                          bins=50)
 
     arrival_distance = __calc_statistical_distance(arrival_dist_real, arrival_dist_model)
@@ -343,5 +344,3 @@ def compare_model_to_real(real_test_case, model_test_case):
     print('Departure stat dist: {}'.format(departure_distance))
     print('Energy stat dist: {}'.format(energy_distance))
     print('Stay stat dist: {}'.format(stay_distance))
-
-
