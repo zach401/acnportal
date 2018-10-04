@@ -1,6 +1,8 @@
 import copy
 
-from acnlib.SimulationOutput import Event
+from acnlib.SimulationOutput import SimulationOutput, Event
+from acnlib.event_queue import UnplugEvent
+from acnlib.EV import EV
 
 
 class Simulator:
@@ -8,23 +10,14 @@ class Simulator:
     The Simulator class is the central class of the ACN research portal simulator.
     '''
 
-    def __init__(self, garage, max_iterations=3000):
+    def __init__(self, garage, scheduler, max_iterations=3000):
+        self.garage = garage
+        self.scheduler = scheduler
+        self.schedules = {}
+        self.last_applied_pilot_signals = {}
+        self.max_iterations = max_iterations
         self.iteration = 0
         self.last_schedule_update = -1
-        self.garage = garage
-        self.scheduler = None
-        self.schedules = {}
-        self.max_iterations = max_iterations
-        self.last_applied_pilot_signals = {}
-
-    def define_scheduler(self, scheduler):
-        '''
-        Sets the scheduler class of the simulator.
-
-        :param BaseAlgorithm scheduler: The scheduling algorithm that should be used by the simulator. This object must extend BaseAlgorithm.
-        :return: None
-        '''
-        self.scheduler = scheduler
 
     def run(self):
         '''
@@ -36,13 +29,13 @@ class Simulator:
         '''
         self.submit_event(Event('INFO', self.iteration, 'Simulation started'))
         schedule_horizon = 0
-        while self.iteration < self.garage.last_departure:
-            if self.iteration >= self.last_schedule_update + schedule_horizon or self.garage.event_occurred(
-                    self.iteration):
+        while self.iteration < self.garage.last_departure:  # TODO(zlee): last_departure should be a member of test_case
+            if self.iteration >= self.last_schedule_update + schedule_horizon or self.garage.event_occurred(  # TODO(zlee): schedule_horizon should be minimum_resolve_period
+                    self.iteration):  # TODO(zlee): event_occured should come from test_case
                 # call the scheduling algorithm
-                self.scheduler.run()
+                self.scheduler.run()  # TODO(zlee): this should probably return something rather than using the interface behind the scenes
                 self.last_schedule_update = self.iteration
-                schedule_horizon = self.get_schedule_horizon()
+                schedule_horizon = self.get_schedule_horizon()  # TODO(zlee): this about this, should horizon be set by algorithm in this way, or configured beforehand
                 self.submit_event(Event('INFO', self.iteration, 'New charging schedule calculated'))
             pilot_signals = self.get_current_pilot_signals()
             self.garage.update_state(pilot_signals, self.iteration)
@@ -53,7 +46,7 @@ class Simulator:
         # charging_data = self.test_case.get_charging_data()
         return simulation_output
 
-    def submit_event(self, event):
+    def submit_event(self, event):  # TODO(zlee): move simulation output to simulation, perhaps each level gets a reference though
         self.garage.test_case.simulation_output.submit_event(event)
 
     def submit_log_event(self, text):
@@ -90,7 +83,7 @@ class Simulator:
                 min_horizon = len(sch_list)
         return min_horizon
 
-    def update_schedules(self, new_schedule):
+    def update_schedules(self, new_schedule):                                                                           # TODO(zlee): this should not be nessesary when we update the interface
         '''
         Update the schedules used in the simulation.
         This function is called by the interface to the scheduling algorithm.

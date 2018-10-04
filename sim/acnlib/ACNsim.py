@@ -11,10 +11,9 @@ class ACNsim:
         pass
 
     def simulate(self, scheduler, garage):
-        sim = Simulator(garage)
+        sim = Simulator(garage, scheduler)
         interface = Interface(sim)
         scheduler.interface_setup(interface)
-        sim.define_scheduler(scheduler)
 
         simulation_output = sim.run()
         return simulation_output
