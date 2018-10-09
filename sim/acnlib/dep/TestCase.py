@@ -3,7 +3,7 @@ import pickle
 from datetime import timedelta
 
 import config
-from acnlib.EV import EV
+from acnlib.models.ev import EV
 from acnlib.SimulationOutput import SimulationOutput, Event
 
 
