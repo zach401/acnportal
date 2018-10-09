@@ -18,14 +18,14 @@ class Interface:
         active_EVs = self.simulator.get_active_EVs()
         return active_EVs
 
-    def get_max_charging_rate(self):
+    def get_max_aggregate_limit(self):
         '''
         Returns the maximum charging rate that is allowed in the simulation.
 
         :return: The maximum charging rate
         :rtype: float
         '''
-        return self.simulator.garage.max_rate
+        return self.simulator.network.aggregate_max
 
     def get_allowable_pilot_signals(self, station_id):
         '''
@@ -35,16 +35,21 @@ class Interface:
         :return: A list with the allowable pilot signal levels. The values are sorted in increasing order.
         :rtype: list(int)
         '''
-        return self.simulator.garage.get_allowable_rates(station_id)
+        return self.simulator.network.EVSEs[station_id].allowable_rates
 
     def get_last_applied_pilot_signals(self):
         '''
-        Get the pilot signals that were applied in the last iteration of the simulation.
+        Get the pilot signals that were applied in the last iteration of the simulation for all active EVs.
 
         :return: A dictionary with the session ID as key and the pilot signal as value.
         :rtype: dict
         '''
-        return self.simulator.get_last_applied_pilot_signals()
+        active_evs = self.get_active_EVs()
+        i = self.simulator.iteration - 1
+        if i > 0:
+            return {ev.session_id: self.simulator.pilot_signals[ev.station_id][i] for ev in active_evs}
+        else:
+            return {}
 
     def get_last_actual_charging_rate(self):
         '''
@@ -53,7 +58,9 @@ class Interface:
         :return: A dictionary with the session ID as key and actual charging rate as value.
         :rtype: dict
         '''
-        return self.simulator.get_last_actual_charging_rate()
+        active_evs = self.get_active_EVs()
+        i = self.simulator.iteration
+        return {ev.session_id: ev.current_charging_rate for ev in active_evs}
 
     def get_current_time(self):
         '''
@@ -76,14 +83,13 @@ class Interface:
         :return: None
         """
         self.simulator.update_schedules(schedules)
-        pass
 
-    def submit_log(self, text):
-        '''
-        Submits a text log to the simulator. This can be useful when debugging a custom
-        scheduling algorithm
-
-        :param string text: String that should be logged
-        :return: None
-        '''
-        self.simulator.submit_log_event(text)
+    # def submit_log(self, text):
+    #     '''
+    #     Submits a text log to the simulator. This can be useful when debugging a custom
+    #     scheduling algorithm
+    #
+    #     :param string text: String that should be logged
+    #     :return: None
+    #     '''
+    #     self.simulator.submit_log_event(text)
