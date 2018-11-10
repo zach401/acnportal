@@ -3,8 +3,8 @@ class BaseAlgorithm:
         Each new algorithm should override the schedule method.
     """
 
-    def __init__(self, interface):
-        pass
+    def __init__(self):
+        self.interface = None
 
     def schedule(self, active_EVs):
         """
@@ -25,11 +25,12 @@ class BaseAlgorithm:
         """
         active_EVs = self.interface.get_active_EVs()
         schedules = self.schedule(active_EVs)
-        self.interface.submit_schedules(schedules)
+        return schedules
+        # self.interface.submit_schedules(schedules)
 
-    def interface_setup(self, interface):
+    def register_interface(self, interface):
         '''
-        Used internaly by the simulator to set up the required dependencies to provide the resources needed
+        Used internally by the simulator to set up the required dependencies to provide the resources needed
         to write a scheduling algorithm.
 
         :param Interface interface: The simulation API
@@ -39,7 +40,7 @@ class BaseAlgorithm:
 
     def get_increased_charging_rate(self, current_pilot_signal, allowable_rates):
         '''
-        As many EVSEs has limited sets of pilot signal this function returns the next increased pilot
+        As many _EVSEs has limited sets of pilot signal this function returns the next increased pilot
         signal depending of the current pilot signal applied at the charging station.
 
         :param float current_pilot_signal: The current pilot signal for the session
@@ -54,7 +55,7 @@ class BaseAlgorithm:
 
     def get_decreased_charging_rate(self, current_pilot_signal, allowable_rates):
         '''
-        As many EVSEs has limited sets of pilot signal this function returns the next decreased pilot signal
+        As many _EVSEs has limited sets of pilot signal this function returns the next decreased pilot signal
         depending of the current pilot signal applied at the charging station.
 
         :param float current_pilot_signal: The current pilot signal for the session
@@ -69,7 +70,7 @@ class BaseAlgorithm:
 
     def get_decreased_charging_rate_nz(self, current_pilot_signal, allowable_rates):
         '''
-        As many EVSEs has limited sets of pilot signal this function returns the next decreased pilot signal
+        As many _EVSEs has limited sets of pilot signal this function returns the next decreased pilot signal
         depending of the current pilot signal applied at the charging station. This function also prevents that
         the calculated pilot signal will be 0 as the pilot signal should never be set to 0 before the EV has finished charging.
 
@@ -85,10 +86,6 @@ class BaseAlgorithm:
 
 
 class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
-
-    def __init__(self):
-        pass
-
     def schedule(self, active_EVs):
         schedule = {}
         earliest_EV = self.get_earliest_EV(active_EVs)
@@ -105,7 +102,7 @@ class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
             else:
                 new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal, allowable_pilot_signals)
                 charge_rates.append(new_rate)
-            schedule[ev.session_id] = charge_rates
+            schedule[ev.station_id] = charge_rates
         return schedule
 
     def get_earliest_EV(self, EVs):
@@ -117,10 +114,6 @@ class EarliestDeadlineFirstAlgorithm(BaseAlgorithm):
 
 
 class LeastLaxityFirstAlgorithm(BaseAlgorithm):
-
-    def __init__(self):
-        pass
-
     def schedule(self, active_EVs):
         self.max_charging_rate = self.interface.get_max_charging_rate()
         schedule = {}
@@ -140,8 +133,6 @@ class LeastLaxityFirstAlgorithm(BaseAlgorithm):
                 new_rate = self.get_decreased_charging_rate_nz(last_pilot_signal, allowable_pilot_signals)
                 charge_rates.append(new_rate)
             schedule[ev.session_id] = charge_rates
-        return schedule
-
         return schedule
 
     def get_least_laxity_EV(self, EVs, current_time):
@@ -166,14 +157,14 @@ class MLLF(BaseAlgorithm):
     This algorithm builds upon the Least Laxity scheduling algorithm but also includes
     the possiblity to have many processes (sessions) running at the same time.
     The algorithm calculates a laxity value of every session and then rank them according
-    to this value. The sessions with least laxity get moved to a queue which will get prioritized in
-    the charging schedule. A session in this queue will receive the maximum pilot signal. The other
+    to this value. The sessions with least laxity get moved to a _queue which will get prioritized in
+    the charging schedule. A session in this _queue will receive the maximum pilot signal. The other
     sessions will get the minumum pilot signal
 
-    There is an option to select if the charging schedule will allow preemtion of the active queue.
-    If there is no preemtion allowed a session once entered the active queue will not leave until it
-    has finished charging. If preemtion is allowed the ready queue will get recalculated every iteration
-    to allow new sessions with smaller laxity to interrupt the current sessions in the queue.
+    There is an option to select if the charging schedule will allow preemtion of the active _queue.
+    If there is no preemtion allowed a session once entered the active _queue will not leave until it
+    has finished charging. If preemtion is allowed the ready _queue will get recalculated every iteration
+    to allow new sessions with smaller laxity to interrupt the current sessions in the _queue.
     '''
 
     def __init__(self, preemption=False, queue_length=4):
@@ -187,8 +178,8 @@ class MLLF(BaseAlgorithm):
         current_time = self.interface.get_current_time()
         last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
 
-        # No preemtion: check queue and remove non-active EVs
-        # Preemtion: Always empty the queue
+        # No preemtion: check _queue and remove non-active EVs
+        # Preemtion: Always empty the _queue
         for session_id in self.queue:
             if self.preemption:
                 self.queue = []
@@ -202,7 +193,7 @@ class MLLF(BaseAlgorithm):
                     self.queue.remove(session_id)
 
         # choose the EVs that should be evaluated for laxity and then sort them
-        # If no preemtion the EVs already in the queue should be omitted.
+        # If no preemtion the EVs already in the _queue should be omitted.
         ev_laxity = []
         for ev in active_EVs:
             if self.preemption or (not self.preemption and ev.session_id not in self.queue):
@@ -211,7 +202,7 @@ class MLLF(BaseAlgorithm):
 
         sorted_ev_laxity = self.sort_by_laxity(ev_laxity)
 
-        # add the EVs to the queue
+        # add the EVs to the _queue
         ql = len(self.queue)
         for i in range(min(self.queue_length - ql, len(sorted_ev_laxity))):
             ev = sorted_ev_laxity[i]
@@ -243,14 +234,9 @@ class MLLF(BaseAlgorithm):
 
 
 class MaxRateAlgorithm(BaseAlgorithm):
-
-    def __init__(self):
-        pass
-
     def schedule(self, active_EVs):
         schedule = {}
         last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
-        max_rate = self.interface.get_max_charging_rate()
         for ev in active_EVs:
             allowable_rates = self.interface.get_allowable_pilot_signals(ev.station_id)
             last_pilot_signal = 0
@@ -263,14 +249,9 @@ class MaxRateAlgorithm(BaseAlgorithm):
 
 
 class MinRateAlgorithm(BaseAlgorithm):
-
-    def __init__(self):
-        pass
-
     def schedule(self, active_EVs):
         schedule = {}
         last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
-        max_rate = self.interface.get_max_charging_rate()
         for ev in active_EVs:
             allowable_rates = self.interface.get_allowable_pilot_signals(ev.station_id)
             last_pilot_signal = 0

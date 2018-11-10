@@ -84,12 +84,31 @@ class Interface:
         """
         self.simulator.update_schedules(schedules)
 
-    # def submit_log(self, text):
-    #     '''
-    #     Submits a text log to the simulator. This can be useful when debugging a custom
-    #     scheduling algorithm
-    #
-    #     :param string text: String that should be logged
-    #     :return: None
-    #     '''
-    #     self.simulator.submit_log_event(text)
+    def get_prices(self, start, length):
+        """
+        Get a vector of prices beginning at time start and continuing for length periods.
+
+        :param int start: Time step of the simulation where price vector should begin.
+        :param int length: Number of elements in the prices vector. One entry per period.
+        :return: vector of floats of length length where each entry is a price which is valid for one period.
+        """
+        if self.simulator.prices is not None:
+            return self.simulator.prices.get_prices(start, length)
+        else:
+            raise ValueError('No pricing method is specified.')
+
+    def get_demand_charge(self):
+        if self.simulator.prices is not None:
+            return self.simulator.prices.demand_charge
+        else:
+            raise ValueError('No pricing method is specified.')
+
+    def get_revenue(self):
+        if self.simulator.prices is not None:
+            return self.simulator.prices.revenue
+        else:
+            raise ValueError('No pricing method is specified.')
+
+    def get_prev_peak(self):
+        return self.simulator.peak
+

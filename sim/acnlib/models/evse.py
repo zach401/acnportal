@@ -6,7 +6,7 @@ CC = 'ClipperCreek'
 
 def get_EVSE_by_type(station_id, evse_type):
     '''
-    Factory to produce EVSEs of a given type.
+    Factory to produce _EVSEs of a given type.
 
     :param station_id: unique identifier of the station.
     :param evse_type:
@@ -85,11 +85,9 @@ class EVSE:
         :raises InvalidRateError: raises error when assigned pilot is not a valid rate.
         '''
         if self._valid_rate(pilot):
+            self._current_pilot = pilot
             if self._EV is not None:
-                self._current_pilot = pilot
                 self._EV.charge(pilot)
-            else:
-                raise Empty('ERROR: There is no EV currently assigned to EVSE {0}'.format(self.station_id))
         else:
             raise InvalidRateError('Pilot {0} A is not valid for for station {1}'.format(pilot, self.station_id))
 
@@ -105,6 +103,7 @@ class EVSE:
 
     def unplug(self):
         self._EV = None
+        self._current_pilot = 0
 
 
 class FiniteRatesEVSE(EVSE):

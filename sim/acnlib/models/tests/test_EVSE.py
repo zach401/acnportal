@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import Mock, create_autospec
+from unittest.mock import create_autospec
 from ..ev import EV
 from ..evse import EVSE, FiniteRatesEVSE, InvalidRateError, Empty, StationOccupiuedError
 
