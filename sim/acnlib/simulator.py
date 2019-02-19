@@ -14,16 +14,19 @@ class Simulator:
     The Simulator class is the central class of the ACN research portal simulator.
     '''
 
-    def __init__(self, network, scheduler, events, start, prices=None, store_schedule_history=False):
+    def __init__(self, network, scheduler, events, start, period=1, max_recomp=None, prices=None, store_schedule_history=False):
         self.network = network
         self.scheduler = scheduler
         self.scheduler.register_interface(Interface(self))
         self.event_queue = events
+        self.period = period
+        self.max_recompute = max_recomp
         self.prices = prices
         self.start = start
 
         # Local Variables
         self.iteration = 0
+        self.resolve = False
         self.last_schedule_update = 0
         self.pilot_signals = {station_id: [] for station_id in self.network.get_space_ids()}
         self.charging_rates = {station_id: [] for station_id in self.network.get_space_ids()}
@@ -49,6 +52,11 @@ class Simulator:
             for e in current_events:
                 self.event_history.append(e)
                 self.process_event(e)
+            if self.resolve or \
+                    self.max_recompute is not None and self.iteration - self.last_schedule_update >= self.max_recompute:
+                self.update_schedules(self.scheduler.run())
+                self.last_schedule_update = self.iteration
+                self.resolve = False
             self._expand_pilots()
             self.network.update_pilots(self.pilot_signals, self.iteration)
             self.update_charging_rates()
@@ -60,17 +68,16 @@ class Simulator:
             self.network.plugin(event.EV, event.EV.station_id)
             self.ev_history[event.EV.session_id] = event.EV
             self.event_queue.add_event(UnplugEvent(event.EV.departure, event.EV.station_id, event.EV.session_id))
-            self.update_schedules(self.scheduler.run())
+            self.resolve = True
             self.last_schedule_update = event.timestamp
         elif event.type == 'Unplug':
             print('Unplug Event...')
             self.network.unplug(event.station_id)
-            self.update_schedules(self.scheduler.run())
+            self.resolve = True
             self.last_schedule_update = event.timestamp
         elif event.type == 'Recompute':
             print('Recompute Event...')
-            self.update_schedules(self.scheduler.run())
-            self.last_schedule_update = event.timestamp
+            self.resolve = True
 
     def update_schedules(self, new_schedule):
         if len(new_schedule) == 0:
