@@ -55,7 +55,7 @@ class Battery:
 
 
 class NoisyBattery(Battery):
-    def __init__(self, capacity, init_charge, max_rate, noise_level):
+    def __init__(self, capacity, init_charge, max_rate, noise_level=0):
         super().__init__(capacity, init_charge, max_rate)
         self._noise_level = noise_level
 

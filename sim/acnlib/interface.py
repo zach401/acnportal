@@ -40,6 +40,7 @@ class Interface:
     def get_last_applied_pilot_signals(self):
         '''
         Get the pilot signals that were applied in the last iteration of the simulation for all active EVs.
+        Do not include EVs that arrived in the current iteration.
 
         :return: A dictionary with the session ID as key and the pilot signal as value.
         :rtype: dict
@@ -47,7 +48,7 @@ class Interface:
         active_evs = self.get_active_EVs()
         i = self.simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self.simulator.pilot_signals[ev.station_id][i] for ev in active_evs}
+            return {ev.session_id: self.simulator.pilot_signals[ev.station_id][i] for ev in active_evs if ev.arrival < self.simulator.iteration}
         else:
             return {}
 
@@ -59,7 +60,6 @@ class Interface:
         :rtype: dict
         '''
         active_evs = self.get_active_EVs()
-        i = self.simulator.iteration
         return {ev.session_id: ev.current_charging_rate for ev in active_evs}
 
     def get_current_time(self):
@@ -97,13 +97,24 @@ class Interface:
         else:
             raise ValueError('No pricing method is specified.')
 
-    def get_demand_charge(self):
+    def get_demand_charge(self, schedule_len):
+        """
+        Get the demand charge scaled according to the length of the scheduling period.
+
+        :param int schedule_len: length of the schedule in number of periods.
+        :return: float Demand charge scaled for the scheduling period.
+        """
         if self.simulator.prices is not None:
-            return self.simulator.prices.demand_charge
+            return self.simulator.prices.get_normalized_demand_charge(self.simulator.period, schedule_len)
         else:
             raise ValueError('No pricing method is specified.')
 
     def get_revenue(self):
+        """
+        Get the per unit revenue of energy.
+
+        :return: float Revenue per unit of energy.
+        """
         if self.simulator.prices is not None:
             return self.simulator.prices.revenue
         else:
@@ -112,3 +123,11 @@ class Interface:
     def get_prev_peak(self):
         return self.simulator.peak
 
+    def ramp_down(self, ev, eps=0.1):
+        actual = ev.current_charging_rate
+        i = self.simulator.iteration - 1
+        pilot = self.simulator.pilot_signals[ev.station_id][i]
+        if pilot - actual > eps:
+            return actual
+        else:
+            return ev.max_rate
