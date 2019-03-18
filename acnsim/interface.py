@@ -19,56 +19,57 @@ class Interface:
         return active_evs
 
     def get_max_aggregate_limit(self):
-        '''
+        """
         Returns the maximum charging rate that is allowed in the simulation.
 
         :return: The maximum charging rate
         :rtype: float
-        '''
+        """
         return self.simulator.network.aggregate_max
 
     def get_allowable_pilot_signals(self, station_id):
-        '''
+        """
         Get the allowable pilot signal levels for the specified EVSE.
 
         :param string station_id: The station ID
         :return: A list with the allowable pilot signal levels. The values are sorted in increasing order.
         :rtype: list(int)
-        '''
+        """
         return self.simulator.network.EVSEs[station_id].allowable_rates
 
     def get_last_applied_pilot_signals(self):
-        '''
+        """
         Get the pilot signals that were applied in the last iteration of the simulation for all active EVs.
         Does not include EVs that arrived in the current iteration.
 
         :return: A dictionary with the session ID as key and the pilot signal as value.
         :rtype: dict
-        '''
+        """
         active_evs = self.get_active_evs()
         i = self.simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self.simulator.pilot_signals[ev.station_id][i] for ev in active_evs if ev.arrival <= i}
+            return {ev.session_id: self.simulator.pilot_signals[ev.station_id][i] for ev in active_evs if
+                    ev.arrival <= i}
         else:
             return {}
 
     def get_last_actual_charging_rate(self):
-        '''
+        """
         Get the actual charging rates in the last period for all active EVs.
 
         :return: A dictionary with the session ID as key and actual charging rate as value.
         :rtype: dict
-        '''
+        """
         active_evs = self.get_active_evs()
         return {ev.session_id: ev.current_charging_rate for ev in active_evs}
 
     def get_current_time(self):
-        '''
+        """
         Get the current time (the current iteration) of the simulator.
 
         :return: The current iteration time in the simulator.
         :rtype: int
-        '''
+        """
         return self.simulator.iteration
 
     def submit_schedules(self, schedules):

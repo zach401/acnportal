@@ -1,7 +1,8 @@
 from unittest import TestCase
 from unittest.mock import Mock, create_autospec
-from ..ev import EV
+
 from ..battery import Battery
+from ..ev import EV
 
 
 class TestEV(TestCase):
@@ -28,4 +29,3 @@ class TestEV(TestCase):
         self.ev.reset()
         self.assertEqual(self.ev.energy_delivered, 0)
         self.ev._battery.reset.assert_called_once()
-

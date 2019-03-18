@@ -1,6 +1,7 @@
 import unittest
-from unittest.mock import patch
 from unittest import TestCase
+from unittest.mock import patch
+
 from ..battery import Battery, NoisyBattery, Linear2StageBattery
 
 

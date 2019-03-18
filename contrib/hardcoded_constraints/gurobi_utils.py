@@ -1,7 +1,8 @@
 from collections import defaultdict
 from gurobipy import *
+
 import numpy as np
-from collections import defaultdict
+
 AFFINE = 'affine'
 PHASE_AWARE = 'phase_aware'
 
@@ -51,7 +52,8 @@ class OptimizationScheduler:
         self.m = Model('scheduler')
         self.m.setParam('OutputFlag', verbose)
 
-        self.currents = {'ALL': defaultdict(int), 'AB': defaultdict(int), 'BC': defaultdict(int), 'CA': defaultdict(int),
+        self.currents = {'ALL': defaultdict(int), 'AB': defaultdict(int), 'BC': defaultdict(int),
+                         'CA': defaultdict(int),
                          'AV-Pod': defaultdict(int), 'CC-Pod': defaultdict(int)}
         self.active_times = set()
         self.schedules = {}
@@ -103,7 +105,7 @@ class OptimizationScheduler:
         #     active_t |= c.keys()
         # return list(active_t)
         return self.active_times
-        
+
     def _add_affine_infrastructure_constraints(self, turns_ratio=4):
         active_t = self._active_times()
 
@@ -138,9 +140,12 @@ class OptimizationScheduler:
 
         for t in active_t:
             # Secondary Side
-            Ia_sec_sq = _sq(self.currents['AB'][t]) + _sq(self.currents['CA'][t]) + (self.currents['AB'][t] * self.currents['CA'][t])
-            Ib_sec_sq = _sq(self.currents['BC'][t]) + _sq(self.currents['AB'][t]) + (self.currents['BC'][t] * self.currents['AB'][t])
-            Ic_sec_sq = _sq(self.currents['CA'][t]) + _sq(self.currents['BC'][t]) + (self.currents['CA'][t] * self.currents['BC'][t])
+            Ia_sec_sq = _sq(self.currents['AB'][t]) + _sq(self.currents['CA'][t]) + (
+                    self.currents['AB'][t] * self.currents['CA'][t])
+            Ib_sec_sq = _sq(self.currents['BC'][t]) + _sq(self.currents['AB'][t]) + (
+                    self.currents['BC'][t] * self.currents['AB'][t])
+            Ic_sec_sq = _sq(self.currents['CA'][t]) + _sq(self.currents['BC'][t]) + (
+                    self.currents['CA'][t] * self.currents['BC'][t])
 
             secondary_limit_sq = _sq(self.secondary_line_const)
             self.m.addConstr(Ia_sec_sq <= secondary_limit_sq)
@@ -148,16 +153,19 @@ class OptimizationScheduler:
             self.m.addConstr(Ic_sec_sq <= secondary_limit_sq)
 
             # Primary Side
-            Ia_prime = {part: self.currents['AB'][t] * phaseAB[part] + self.currents['BC'][t] * phaseBC[part] - 2 * self.currents['CA'][t] * phaseCA[part] for part in ['re', 'im']}
-            Ib_prime = {part: -2 * self.currents['AB'][t] * phaseAB[part] + self.currents['BC'][t] * phaseBC[part] + self.currents['CA'][t] * phaseCA[part] for part in ['re', 'im']}
-            Ic_prime = {part: self.currents['AB'][t] * phaseAB[part] - 2 * self.currents['BC'][t] * phaseBC[part] + self.currents['CA'][t] * phaseCA[part] for part in ['re', 'im']}
+            Ia_prime = {part: self.currents['AB'][t] * phaseAB[part] + self.currents['BC'][t] * phaseBC[part] - 2 *
+                              self.currents['CA'][t] * phaseCA[part] for part in ['re', 'im']}
+            Ib_prime = {part: -2 * self.currents['AB'][t] * phaseAB[part] + self.currents['BC'][t] * phaseBC[part] +
+                              self.currents['CA'][t] * phaseCA[part] for part in ['re', 'im']}
+            Ic_prime = {part: self.currents['AB'][t] * phaseAB[part] - 2 * self.currents['BC'][t] * phaseBC[part] +
+                              self.currents['CA'][t] * phaseCA[part] for part in ['re', 'im']}
 
             # Add Primary Line Capacity Constraints
             primary_limit_tr_sq = _sq(self.primary_line_const * turns_ratio)
             self.m.addConstr(_sq(Ia_prime['re']) + _sq(Ia_prime['im']) <= primary_limit_tr_sq)
             self.m.addConstr(_sq(Ib_prime['re']) + _sq(Ib_prime['im']) <= primary_limit_tr_sq)
             self.m.addConstr(_sq(Ic_prime['re']) + _sq(Ic_prime['im']) <= primary_limit_tr_sq)
-    
+
     def _add_pod_constraints(self):
         active_t = self._active_times()
         self.m.addConstrs((self.currents['AV-Pod'][t] <= self.pod_const for t in active_t), 'AV-pod-cap')
@@ -234,7 +242,8 @@ class OptimizationScheduler:
     def tracking_obj(self, signal, alpha=0):
         active_t = self._active_times()
         if alpha > 0:
-            signal_tracking = -quicksum((((1-alpha)**t)*_sq(self.currents['ALL'][t] - signal[t]) for t in active_t))
+            signal_tracking = -quicksum(
+                (((1 - alpha) ** t) * _sq(self.currents['ALL'][t] - signal[t]) for t in active_t))
         else:
             signal_tracking = -quicksum((_sq(self.currents['ALL'][t] - signal[t]) for t in active_t))
         return signal_tracking
@@ -256,7 +265,8 @@ class OptimizationScheduler:
         smooth = 0
         if prev_rates is not None:
             smooth += -quicksum(
-                _sq(rates[sorted_times[key][0]] - prev_rates[key]) for key, rates in self.schedules.items() if key in prev_rates)
+                _sq(rates[sorted_times[key][0]] - prev_rates[key]) for key, rates in self.schedules.items() if
+                key in prev_rates)
         # Add smoothing for all subsequent rates
         for key, rates in self.schedules.items():
             smooth += -quicksum(_sq(rates[t] - rates[t - 1]) for t in sorted_times[key][1:])
@@ -285,5 +295,5 @@ class OptimizationPostProcessor(OptimizationScheduler):
     def post_processing_obj(self, targets, alpha=1e-2):
         energy_target = sum(targets.values())
         obj = -_sq(energy_target - self.currents['ALL'][0])
-        obj += alpha*quicksum((-_sq(targets[sess_id] - self.schedules[sess_id][0]) for sess_id in self.schedules))
+        obj += alpha * quicksum((-_sq(targets[sess_id] - self.schedules[sess_id][0]) for sess_id in self.schedules))
         return obj

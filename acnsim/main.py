@@ -1,14 +1,15 @@
-from simulator import Simulator
-from network import get_caltech_acn
-from event_queue import EventQueue
-from utils.generate_events import generate_test_case_api
-from contrib.basic_network import get_caltech_cs
-from contrib.acn_opt_algorithm import ProfitMaximization
-from datetime import datetime
 from copy import deepcopy
+from datetime import datetime
+
 import numpy as np
+from contrib.acn_opt_algorithm import ProfitMaximization
+from contrib.basic_network import get_caltech_cs
+from event_queue import EventQueue
 from matplotlib import pyplot as plt
+from network import get_caltech_acn
 from signals.prices import TOUPrices
+from simulator import Simulator
+from utils.generate_events import generate_test_case_api
 
 simulation_name = 'Demo'
 
@@ -39,7 +40,7 @@ events2 = deepcopy(events)
 # Pricing
 pricing = TOUPrices(period, start, voltage)
 
-sim = Simulator(cn, sch, events, start,  prices=pricing, store_schedule_history=True)
+sim = Simulator(cn, sch, events, start, prices=pricing, store_schedule_history=True)
 sim.run()
 agg_current = sum(np.array(rates) for rates in sim.charging_rates.values())
 plt.plot(agg_current)

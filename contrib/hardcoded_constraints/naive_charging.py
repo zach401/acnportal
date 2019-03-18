@@ -1,9 +1,10 @@
-from algorithms.base_algorithm import BaseAlgorithm
 import cmath
 import math
-from copy import copy
 from collections import deque, defaultdict
+from copy import copy
+
 import numpy as np
+from algorithms.base_algorithm import BaseAlgorithm
 
 
 def get_groupings():
@@ -56,7 +57,7 @@ class NaiveCharging(BaseAlgorithm):
     def __init__(self, sort_fn, const_scale=1, agg_max=None):
         super().__init__()
         self.groups = get_groupings()
-        self.const_scale=const_scale
+        self.const_scale = const_scale
         self.sort_fn = sort_fn
         self._init_agg_max = agg_max if agg_max is not None else float('inf')
 
@@ -129,9 +130,12 @@ class NaiveCharging(BaseAlgorithm):
         primary_feasible = all(feasible['primary'].values())
         groups_feasible = {}
         groups_feasible['ALL'] = feasible['ALL']
-        groups_feasible['AB'] = feasible['ALL'] and primary_feasible and feasible['secondary']['a'] and feasible['secondary']['b']
-        groups_feasible['BC'] = feasible['ALL'] and primary_feasible and feasible['secondary']['b'] and feasible['secondary']['c']
-        groups_feasible['CA'] = feasible['ALL'] and primary_feasible and feasible['secondary']['a'] and feasible['secondary']['c']
+        groups_feasible['AB'] = feasible['ALL'] and primary_feasible and feasible['secondary']['a'] and \
+                                feasible['secondary']['b']
+        groups_feasible['BC'] = feasible['ALL'] and primary_feasible and feasible['secondary']['b'] and \
+                                feasible['secondary']['c']
+        groups_feasible['CA'] = feasible['ALL'] and primary_feasible and feasible['secondary']['a'] and \
+                                feasible['secondary']['c']
         groups_feasible['CC-Pod'] = groups_feasible['AB'] and feasible['CC-Pod']
         groups_feasible['AV-Pod'] = groups_feasible['AB'] and feasible['AV-Pod']
         return groups_feasible
@@ -185,11 +189,11 @@ class IndividualGreedyCostMin(NaiveWithFillUp):
         T = int(math.ceil(np.max([ev.departure for ev in active_evs]))) + 1
         t = self.interface.get_current_time()
 
-        currents = [{'AB': 0, 'BC': 0, 'CA': 0, 'AV-Pod': 0, 'CC-Pod': 0, 'ALL': 0}]*(T-t)
+        currents = [{'AB': 0, 'BC': 0, 'CA': 0, 'AV-Pod': 0, 'CC-Pod': 0, 'ALL': 0}] * (T - t)
         ev_queue = self.sort_fn(active_evs)
-        schedule = {ev.station_id: [0]*(T-t) for ev in active_evs}
+        schedule = {ev.station_id: [0] * (T - t) for ev in active_evs}
         for ev in ev_queue:
-            prices = self.interface.get_prices(t, ev.departure-t)
+            prices = self.interface.get_prices(t, ev.departure - t)
             pref = np.argsort(prices, kind='mergesort')
             e_del = 0
             for i in pref:
@@ -236,7 +240,6 @@ class IndividualGreedyCostMin(NaiveWithFillUp):
 #             self.bisection_level_search(active_evs, lb, mid, currents, eps)
 
 
-
 def fcfs(evs):
     return sorted(evs, key=lambda x: x.arrival)
 
@@ -248,5 +251,5 @@ def edf(evs):
 def llf(evs):
     def laxity(ev):
         return (ev.departure - ev.arrival) - (ev.remaining_demand / ev.max_rate)
-    return sorted(evs, key=lambda x: laxity(x))
 
+    return sorted(evs, key=lambda x: laxity(x))

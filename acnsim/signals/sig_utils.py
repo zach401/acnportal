@@ -7,6 +7,6 @@ def periods_since_midnight(t, period):
 
 
 def extended_schedule(schedule, start, length):
-    tile_multiple = math.ceil((start + length)/len(schedule))
-    tiled_schedule = schedule*tile_multiple
-    return tiled_schedule[start:start+length]
+    tile_multiple = math.ceil((start + length) / len(schedule))
+    tiled_schedule = schedule * tile_multiple
+    return tiled_schedule[start:start + length]

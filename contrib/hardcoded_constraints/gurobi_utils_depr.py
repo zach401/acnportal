@@ -1,5 +1,6 @@
 from collections import defaultdict
 from gurobipy import *
+
 import numpy as np
 
 AFFINE = 'affine'
@@ -30,6 +31,7 @@ def get_groupings():
     groups['AV-Pod'] = list(AV_pod)
     groups['CC-Pod'] = list(CC_pod)
     return groups
+
 
 # Helpful functions
 def ev_active(ev, t):
@@ -207,7 +209,6 @@ def gurobi_schedule_w_peak(obj_function, prev_max, EVs, cap_const=AFFINE, const_
     rates = m.addVars(EVs_dict.keys(), range(T), name='rates')
     peak = m.addVar(name='peak')
 
-
     # Set objective
     obj = obj_function(rates, peak, T)
     m.setObjective(obj, GRB.MAXIMIZE)
@@ -273,7 +274,7 @@ def minimize_transformer(EVs, cap_const=PHASE_AWARE):
     cap = m.addVar(lb=0, name='cap')
 
     # Set objective
-    obj = 1*cap
+    obj = 1 * cap
     m.setObjective(obj, GRB.MINIMIZE)
 
     # Rate Constraints
@@ -283,7 +284,7 @@ def minimize_transformer(EVs, cap_const=PHASE_AWARE):
     _add_energy_equality_constraints(m, rates, EVs_dict)
 
     # Capacity Constraints
-    primary_line_const = cap / (3*277)
+    primary_line_const = cap / (3 * 277)
     secondary_line_const = cap / (3 * 120)
     if cap_const == AFFINE:
         _add_affine_cap_constraints(m, rates, groups, T, primary_line_const, secondary_line_const, turns_ratio=4)
@@ -314,7 +315,7 @@ def minimize_transformer(EVs, cap_const=PHASE_AWARE):
 
 # Objective Functions
 def greedy_obj(rates, T):
-    return quicksum((rates.sum('*', '*', t) * (T-t+1) for t in range(T)))
+    return quicksum((rates.sum('*', '*', t) * (T - t + 1) for t in range(T)))
 
 
 def max_revenue_obj(unit_revenue, unit_cost, demand_charge):
@@ -324,6 +325,7 @@ def max_revenue_obj(unit_revenue, unit_cost, demand_charge):
         demand_price = demand_charge * peak
         obj = revenue - energy_price - demand_price
         return obj
+
     return _max_revenue_obj
 
 
@@ -333,6 +335,7 @@ def min_cost_obj(unit_cost, demand_charge):
         demand_price = demand_charge * peak
         obj = - (energy_price + demand_price)
         return obj
+
     return _min_cost_obj
 
 
@@ -346,4 +349,3 @@ def smooth_obj(obj, rates, prev_rates, active_evs, T, eta=1e-4):
     obj += eta * quicksum(((rates[s[0], s[1], t] - rates[s[0], s[1], t - 1]) *
                            (rates[s[0], s[1], t] - rates[s[0], s[1], t - 1])
                            for t in range(1, T) for s in active_evs.keys()))
-

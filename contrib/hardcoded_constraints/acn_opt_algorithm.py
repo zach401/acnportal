@@ -1,10 +1,11 @@
-from algorithms.base_algorithm import BaseAlgorithm
-from contrib.hardcoded_constraints.gurobi_utils import OptimizationScheduler, OptimizationPostProcessor, InfeasibilityException, PHASE_AWARE
 import math
-import numpy as np
 from collections import defaultdict
 from copy import deepcopy
 
+import numpy as np
+from algorithms.base_algorithm import BaseAlgorithm
+from contrib.hardcoded_constraints.gurobi_utils import OptimizationScheduler, OptimizationPostProcessor, \
+    InfeasibilityException, PHASE_AWARE
 
 FORCE_UNIQUE_COEFF = 1e-7
 
@@ -36,7 +37,8 @@ class OptScheduler(BaseAlgorithm):
             ev.departure -= t
         T = int(math.ceil(np.max([ev.departure for ev in active_evs]))) + 1
 
-        sch = OptimizationScheduler(const_type=PHASE_AWARE, const_scale=self.const_scale, energy_equality=self.energy_equality)
+        sch = OptimizationScheduler(const_type=PHASE_AWARE, const_scale=self.const_scale,
+                                    energy_equality=self.energy_equality)
         sch.add_evs(active_evs)
         sch.obj = self.obj(sch, T)
 
@@ -56,12 +58,14 @@ class OptScheduler(BaseAlgorithm):
 
         T = int(math.ceil(np.max([ev.departure for ev in active_evs]))) + 1
         ev_to_evse = {ev.session_id: ev.station_id for ev in active_evs}
-        full_schedule = {ev_to_evse[key]: np.clip(schedule_dict_to_list(val, T), a_min=0, a_max=None) for key, val in schedule.items()}
+        full_schedule = {ev_to_evse[key]: np.clip(schedule_dict_to_list(val, T), a_min=0, a_max=None) for key, val in
+                         schedule.items()}
         return full_schedule
 
 
 class ProfitMaximization(OptScheduler):
-    def __init__(self, dc_proportional=False, const_scale=1, const_type=PHASE_AWARE, init_peak=0, force_unique=False, energy_equality=False):
+    def __init__(self, dc_proportional=False, const_scale=1, const_type=PHASE_AWARE, init_peak=0, force_unique=False,
+                 energy_equality=False):
         super().__init__(const_scale, const_type, init_peak, force_unique, energy_equality)
         self.dc_proportional = dc_proportional
 
@@ -80,23 +84,25 @@ class ProfitMaximization(OptScheduler):
         prev_peak = self.get_peak()
         temp_obj = scheduler.max_profit_obj(revenue, prices, demand_charge, prev_peak)
         if self.force_unique:
-            temp_obj += FORCE_UNIQUE_COEFF*scheduler.force_concave()
+            temp_obj += FORCE_UNIQUE_COEFF * scheduler.force_concave()
         return temp_obj
 
 
 class ProfitMaximizationWithQuickCharge(ProfitMaximization):
-    def __init__(self, alpha, dc_proportional=False, const_scale=1, const_type=PHASE_AWARE, init_peak=0, force_unique=False, energy_equality=False):
+    def __init__(self, alpha, dc_proportional=False, const_scale=1, const_type=PHASE_AWARE, init_peak=0,
+                 force_unique=False, energy_equality=False):
         super().__init__(dc_proportional, const_scale, const_type, init_peak, force_unique, energy_equality)
         self.alpha = alpha
 
     def obj(self, scheduler, length):
         temp_obj = super().obj(scheduler, length)
-        temp_obj += (self.alpha/length)*scheduler.quick_charge_obj()
+        temp_obj += (self.alpha / length) * scheduler.quick_charge_obj()
         return temp_obj
 
 
 class ProfitMaximizationSolar(ProfitMaximizationWithQuickCharge):
-    def __init__(self, alpha, solar, dc_proportional=False, const_scale=1, const_type=PHASE_AWARE, init_peak=0, force_unique=False, energy_equality=False):
+    def __init__(self, alpha, solar, dc_proportional=False, const_scale=1, const_type=PHASE_AWARE, init_peak=0,
+                 force_unique=False, energy_equality=False):
         super().__init__(alpha, dc_proportional, const_scale, const_type, init_peak, force_unique, energy_equality)
         self.solar_signal = solar
 
@@ -109,9 +115,9 @@ class ProfitMaximizationSolar(ProfitMaximizationWithQuickCharge):
         solar_gen = self.solar_signal.get_generation(t, length)
         temp_obj = scheduler.max_profit_w_solar_obj(revenue, prices, demand_charge, solar_gen, prev_peak)
         if self.force_unique:
-            temp_obj += FORCE_UNIQUE_COEFF*scheduler.force_concave()
+            temp_obj += FORCE_UNIQUE_COEFF * scheduler.force_concave()
         if self.alpha > 0:
-            temp_obj += (self.alpha/length)*scheduler.quick_charge_obj()
+            temp_obj += (self.alpha / length) * scheduler.quick_charge_obj()
         return temp_obj
 
 
@@ -119,12 +125,13 @@ class GreedySchedule(OptScheduler):
     def obj(self, scheduler, length):
         temp_obj = scheduler.quick_charge_obj()
         if self.force_unique:
-            temp_obj += FORCE_UNIQUE_COEFF*scheduler.force_concave()
+            temp_obj += FORCE_UNIQUE_COEFF * scheduler.force_concave()
         return temp_obj
 
 
 class TrackSignal(OptScheduler):
-    def __init__(self, solar, alpha=0, const_scale=1, const_type=PHASE_AWARE, init_peak=0, force_unique=False, energy_equality=False):
+    def __init__(self, solar, alpha=0, const_scale=1, const_type=PHASE_AWARE, init_peak=0, force_unique=False,
+                 energy_equality=False):
         super().__init__(const_scale, const_type, init_peak, force_unique, energy_equality)
         self.solar_signal = solar
         self.alpha = alpha
@@ -172,13 +179,15 @@ class PostProcessor:
 
         processed_schedule = defaultdict(dict)
         e_del = {ev.session_id: 0 for ev in active_evs}
-        for t in range(T_min, T_max+1):
+        for t in range(T_min, T_max + 1):
             if t not in schedule_by_time or len(schedule_by_time[t]) == 0:
                 continue
-            target = {id: val for id, val in schedule_by_time[t].items() if evs[id].remaining_demand - e_del[id] >= self.min_rate}
+            target = {id: val for id, val in schedule_by_time[t].items() if
+                      evs[id].remaining_demand - e_del[id] >= self.min_rate}
             if len(target) == 0:
                 continue
-            sch = OptimizationPostProcessor(self.min_rate, self.cutoff, e_del, const_type=PHASE_AWARE, const_scale=self.const_scale)
+            sch = OptimizationPostProcessor(self.min_rate, self.cutoff, e_del, const_type=PHASE_AWARE,
+                                            const_scale=self.const_scale)
             sch.add_evs([evs[id] for id in target])
             sch.obj = sch.post_processing_obj(target)
 

@@ -1,9 +1,8 @@
 from builtins import property
-import numpy as np
 
 
 class EV:
-    '''
+    """
     This class models the behavior of an Electrical Vehicle (EV).
 
     :ivar int arrival: Arrival time of the EV [periods]
@@ -14,7 +13,7 @@ class EV:
     :ivar string station_id: The ID for the charging station
     :ivar string session_id: The ID for the charging session
     :ivar int finishing_time: The time the EV finished charging [periods]
-    '''
+    """
 
     def __init__(self, arrive, depart, requested_energy, station_id, session_id, battery):
         # User Defined Parameters
@@ -34,7 +33,7 @@ class EV:
 
     @arrival.setter
     def arrival(self, value):
-       self._arrival = value
+        self._arrival = value
 
     @property
     def departure(self):

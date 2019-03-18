@@ -1,6 +1,6 @@
-from signals.sig_utils import *
-import pandas as pd
 import numpy as np
+import pandas as pd
+from signals.sig_utils import *
 
 
 class NetDemand:
@@ -25,10 +25,10 @@ class NetDemandCSV(NetDemand):
         self.csv = csv_source
         raw_solar = pd.read_csv(self.csv, index_col='Time', infer_datetime_format=True, parse_dates=True)
         raw_solar = raw_solar.resample('{0}T'.format(self.period)).pad()
-        self.scale=scale
+        self.scale = scale
         gen = raw_solar['Net Demand'].fillna(0).clip(lower=0).values
         if self.scale is not None:
-            gen = (gen / np.max(gen))*self.scale
+            gen = (gen / np.max(gen)) * self.scale
         self.generation = list(gen)
 
     def get_demand(self, start, length):

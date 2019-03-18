@@ -29,11 +29,11 @@ class BaseAlgorithm:
         # self.interface.submit_schedules(schedules)
 
     def register_interface(self, interface):
-        '''
+        """
         Used internally by the simulator to set up the required dependencies to provide the resources needed
         to write a scheduling algorithm.
 
         :param Interface interface: The simulation API
         :return: None
-        '''
+        """
         self.interface = interface

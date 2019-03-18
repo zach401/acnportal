@@ -1,8 +1,10 @@
 from unittest import TestCase
 from unittest.mock import Mock, create_autospec
-from network import ChargingNetwork
-from models import EVSE
+
 from models import EV
+from models import EVSE
+from network import ChargingNetwork
+
 
 class TestChargingNetwork(TestCase):
     def setUp(self):
@@ -26,7 +28,7 @@ class TestChargingNetwork(TestCase):
     def test_plugin_station_does_not_exist(self):
         ev = create_autospec(EV)
         with self.assertRaises(KeyError):
-           self.network.plugin(ev, 'PS-001')
+            self.network.plugin(ev, 'PS-001')
 
     def test_unplug_station_exists(self):
         evse = EVSE('PS-001')
@@ -49,4 +51,3 @@ class TestChargingNetwork(TestCase):
     def test_get_ev_station_does_not_exist(self):
         with self.assertRaises(KeyError):
             self.network.get_ev('PS-001')
-

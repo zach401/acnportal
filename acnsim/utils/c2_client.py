@@ -1,6 +1,7 @@
-import requests
 from datetime import datetime
+
 import pytz
+import requests
 
 BASE_URL = 'http://131.215.140.211/c2data/v1/'
 

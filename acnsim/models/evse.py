@@ -6,13 +6,13 @@ CC = 'ClipperCreek'
 
 
 def get_EVSE_by_type(station_id, evse_type):
-    '''
+    """
     Factory to produce _EVSEs of a given type.
 
     :param station_id: unique identifier of the station.
     :param evse_type:
     :return:
-    '''
+    """
     if evse_type == BASIC:
         return EVSE(station_id)
     elif evse_type == AV:
@@ -37,7 +37,7 @@ class StationOccupiuedError(Exception):
 
 
 class EVSE:
-    '''
+    """
     Base class to  model Electric Vehicle Supply Equipment (charging station).
     This model allows for charging in a continuous range from min_rate to max_rate.
 
@@ -47,7 +47,7 @@ class EVSE:
     :ivar string last_session_id: The ID of the charging session that was using this EVSE last.
     :ivar float max_rate: Maximum allowed charging rate of the EVSE.
     :ivar float min_rate: Minimum allowed charging rate of the EVSE.
-    '''
+    """
 
     def __init__(self, station_id, max_rate=float('inf'), min_rate=0):
         self._station_id = station_id
@@ -77,14 +77,14 @@ class EVSE:
         return self._current_pilot
 
     def set_pilot(self, pilot):
-        '''
+        """
         Applies a new pilot signal to this EVSE. Also check if the new pilot signal is allowed.
 
         :param float new_pilot_signal: The new pilot signal that is applied
 
         :raises Empty: raises exception when no EV is assigned to the EVSE.
         :raises InvalidRateError: raises error when assigned pilot is not a valid rate.
-        '''
+        """
         if self._valid_rate(pilot):
             self._current_pilot = pilot
             if self._EV is not None:
@@ -108,7 +108,7 @@ class EVSE:
 
 
 class FiniteRatesEVSE(EVSE):
-    '''
+    """
     Child class to  model Electric Vehicle Supply Equipment which only allow finite sets of charging rates.
 
     :ivar string station_id: The station ID for the EVSE.
@@ -118,7 +118,8 @@ class FiniteRatesEVSE(EVSE):
     :ivar float max_rate: Maximum allowed charging rate of the EVSE.
     :ivar float min_rate: Minimum allowed charging rate of the EVSE.
     :ivar list(int) allowable_rates: The pilot signals that are allowed for this EVSE.
-    '''
+    """
+
     def __init__(self, station_id, allowable_rates):
         super().__init__(station_id, max(allowable_rates), min(allowable_rates))
         self.allowable_rates = allowable_rates

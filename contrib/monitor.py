@@ -1,9 +1,8 @@
-import numpy as np
-import math
 import copy
+import math
+
+import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-from matplotlib import animation
 
 
 def create_pod_limits(test_case):
@@ -78,18 +77,18 @@ def post_process(EVs, pilot, processor, processor_kwargs):
     working_EVs = copy.deepcopy(EVs)
 
     T = int(math.ceil(np.max([ev.departure for ev in working_EVs])))
-    post_pilot = {ev.session_id : np.zeros((T,)) for ev in working_EVs}
-    delivered = {ev.session_id : 0 for ev in working_EVs}
+    post_pilot = {ev.session_id: np.zeros((T,)) for ev in working_EVs}
+    delivered = {ev.session_id: 0 for ev in working_EVs}
     for t in range(T):
-        active_set = [ev for ev in working_EVs if t >= ev.arrival and t<= ev.departure and ev.remaining_demand() >= 6]
-        active_pilots = {ev.session_id:pilot[ev.session_id][t] for ev in active_set}
+        active_set = [ev for ev in working_EVs if t >= ev.arrival and t <= ev.departure and ev.remaining_demand() >= 6]
+        active_pilots = {ev.session_id: pilot[ev.session_id][t] for ev in active_set}
 
         post_pilot_t = processor(active_set, active_pilots, **processor_kwargs)
 
         for ev in active_set:
-          post_pilot[ev.session_id][t] = post_pilot_t[ev.session_id]
-          ev.delivered += post_pilot_t[ev.session_id]
-          # ev.max_rate = min(ev.max_rate, max(ev.remaining_demand(),0))
+            post_pilot[ev.session_id][t] = post_pilot_t[ev.session_id]
+            ev.delivered += post_pilot_t[ev.session_id]
+            # ev.max_rate = min(ev.max_rate, max(ev.remaining_demand(),0))
 
     return post_pilot
 
@@ -104,7 +103,7 @@ def discretize_rates(rate, inc, min_rate=0, max_rate=32):
     :return:            rate rounded down to the next valid discrete rate
     """
     if inc > 0:
-        new_rate = int(rate/inc)*inc
+        new_rate = int(rate / inc) * inc
     else:
         new_rate = rate
     return max(min(new_rate, max_rate), min_rate)
@@ -146,18 +145,24 @@ def get_line_currents(rates):
     phaseCA = {'re': np.cos(np.deg2rad(150)), 'im': np.sin(np.deg2rad(150))}
 
     line_currents = pd.DataFrame()
-    line_currents['A'] = sum((re_im[part] * phase_currents['AB'] * phaseAB[part] - re_im[part] * phase_currents['CA'] * phaseCA[part] for part in ['re', 'im']))
-    line_currents['B'] = sum((re_im[part] * phase_currents['BC'] * phaseBC[part] - re_im[part] * phase_currents['AB'] * phaseAB[part] for part in ['re', 'im']))
-    line_currents['C'] = sum((re_im[part] * phase_currents['CA'] * phaseCA[part] - re_im[part] * phase_currents['BC'] * phaseBC[part] for part in ['re', 'im']))
+    line_currents['A'] = sum(
+        (re_im[part] * phase_currents['AB'] * phaseAB[part] - re_im[part] * phase_currents['CA'] * phaseCA[part] for
+         part in ['re', 'im']))
+    line_currents['B'] = sum(
+        (re_im[part] * phase_currents['BC'] * phaseBC[part] - re_im[part] * phase_currents['AB'] * phaseAB[part] for
+         part in ['re', 'im']))
+    line_currents['C'] = sum(
+        (re_im[part] * phase_currents['CA'] * phaseCA[part] - re_im[part] * phase_currents['BC'] * phaseBC[part] for
+         part in ['re', 'im']))
     return line_currents
 
 
 def get_primary_currents(rates):
     secondary_line_currents = get_line_currents(rates)
     primary_line_currents = pd.DataFrame()
-    primary_line_currents['A'] = (1/4) * (secondary_line_currents['A'] - secondary_line_currents['C'])
-    primary_line_currents['B'] = (1/4) * (secondary_line_currents['B'] - secondary_line_currents['A'])
-    primary_line_currents['C'] = (1/4) * (secondary_line_currents['C'] - secondary_line_currents['B'])
+    primary_line_currents['A'] = (1 / 4) * (secondary_line_currents['A'] - secondary_line_currents['C'])
+    primary_line_currents['B'] = (1 / 4) * (secondary_line_currents['B'] - secondary_line_currents['A'])
+    primary_line_currents['C'] = (1 / 4) * (secondary_line_currents['C'] - secondary_line_currents['B'])
     return primary_line_currents
 
 
@@ -167,8 +172,3 @@ def get_pod_currents(rates):
     for pod in ['AV-Pod', 'CC-Pod']:
         pod_currents[pod] = sum_cols(rates, groups[pod])
     return pod_currents
-
-
-
-
-

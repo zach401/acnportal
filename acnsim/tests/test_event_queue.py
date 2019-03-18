@@ -1,4 +1,5 @@
 from unittest import TestCase
+
 from event_queue import EventQueue, Event
 
 

@@ -6,10 +6,10 @@ class StationOccupiedError(Exception):
 
 
 class ChargingNetwork:
-    '''
+    """
     The ChargingNetwork class describes the infrastructure of the charging network with
     information about the types of the charging station_schedule.
-    '''
+    """
 
     def __init__(self):
         self._EVSEs = {}
@@ -64,11 +64,11 @@ class ChargingNetwork:
 
 
 def get_caltech_acn(basic=False):
-    '''
+    """
 
     :param basic:
     :return:
-    '''
+    """
     if basic:
         evse_type = {'AV': 'BASIC', 'CC': 'BASIC'}
     else:
@@ -92,13 +92,12 @@ def get_caltech_acn(basic=False):
             cn.register_evse(get_EVSE_by_type('CA-' + str(i), evse_type['AV']))
     return cn
 
-
 # def get_caltech_acn_basic():
-#     '''
+#     """
 #     Creates the _EVSEs of the garage.
 #
 #     :return: None
-#     '''
+#     """
 #     cn = ChargingNetwork()
 #     cn.register_evse(get_EVSE_by_type('CA-148', 'BASIC'))
 #     cn.register_evse(get_EVSE_by_type('CA-148', 'BASIC'))

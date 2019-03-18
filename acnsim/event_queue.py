@@ -8,6 +8,7 @@ class EventQueue:
     :ivar list((int, Event)) _queue: heap used to store events. The heap invariant is based on the event timestamp.
     :ivar int _timestep: last timestep for which events have been popped.
     """
+
     def __init__(self):
         self._queue = []
         self._timestep = 0
@@ -42,6 +43,7 @@ class Event:
     :ivar float precedence: importance of the event. Used to order occurance for events that happen in the same timestep.
 
     """
+
     def __init__(self, timestamp):
         self.timestamp = timestamp
         self.type = ''

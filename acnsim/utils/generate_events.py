@@ -1,8 +1,9 @@
-from event_queue import PluginEvent
-from models.ev import EV
-from models.battery import Battery
-from utils import c2_client
 import math
+
+from event_queue import PluginEvent
+from models.battery import Battery
+from models.ev import EV
+from utils import c2_client
 
 
 def datetime_to_timestamp(dt, period, round_up=False):
@@ -22,7 +23,7 @@ def datetime_to_timestamp(dt, period, round_up=False):
 
 
 def _convert_session_units(docs, start, voltage=220, max_rate=32, period=1, max_len=float('inf'),
-                       force_feasible=False, battery_type=Battery, batt_args=None, battery_cap_fn=None):
+                           force_feasible=False, battery_type=Battery, batt_args=None, battery_cap_fn=None):
     """ Convert iterable of sessions to simulator units.
 
     :param Iterable(dict) docs: iterable of sessions as dicts.
@@ -45,10 +46,10 @@ def _convert_session_units(docs, start, voltage=220, max_rate=32, period=1, max_
         departure = datetime_to_timestamp(d['disconnectTime'], period) - start_offset
         if departure - arrival > max_len:
             departure = arrival + max_len
-        requested_energy = d['kWhDelivered'] * 1000 * (60/period) / voltage  # A*periods
+        requested_energy = d['kWhDelivered'] * 1000 * (60 / period) / voltage  # A*periods
         max_rate = max_rate
         if force_feasible:
-            requested_energy = min(requested_energy, max_rate*(departure - arrival))
+            requested_energy = min(requested_energy, max_rate * (departure - arrival))
         session_id = d['sessionID']
         station_id = d['spaceID']
         batt_args = {} if batt_args is None else batt_args
@@ -80,7 +81,8 @@ def get_sessions_mongo(collection, start, end, **kwargs):
     :return: list of dictionaries each of which describe a charging session.
     :rtype list(dict)
     """
-    docs = collection.find({'connectionTime': {'$gte': start, '$lt': end}}, {'chargingCurrent': 0, 'pilotSignal': 0}).sort('connectionTime', 1)
+    docs = collection.find({'connectionTime': {'$gte': start, '$lt': end}},
+                           {'chargingCurrent': 0, 'pilotSignal': 0}).sort('connectionTime', 1)
     return _convert_session_units(docs, start, **kwargs)
 
 

@@ -6,13 +6,14 @@ TWO_STAGE = 'TwoStage'
 
 
 class Battery:
-    '''
+    """
     This class models the behavior of a battery and battery management system (BMS).
 
     :ivar float capacity: Capacity of the battery [acnsim units]
     :ivar float init_charge: Initial charge of the battery [acnsim units]
     :ivar float max_rate: Maximum charging rate of the battery [acnsim units]
-    '''
+    """
+
     def __init__(self, capacity, init_charge, max_rate):
         if init_charge > capacity:
             raise ValueError('Initial Charge cannot be greater than capacity.')
@@ -20,7 +21,6 @@ class Battery:
         self._current_charge = init_charge
         self._max_rate = max_rate
         self._current_charging_rate = 0
-
 
     @property
     def _soc(self):

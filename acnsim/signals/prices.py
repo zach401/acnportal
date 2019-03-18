@@ -36,24 +36,24 @@ class TOUPrices(Prices):
             # self.price_schedule = [0.05]*(8*period_per_hour) + [0.12]*(4*period_per_hour) + \
             #                       [0.29]*(6*period_per_hour) + [0.12]*(5*period_per_hour) + \
             #                       [0.05]*period_per_hour  # $/kWh
-            self.price_schedule = [0.06]*(8*period_per_hour) + [0.09]*(4*period_per_hour) + \
-                                  [0.25]*(6*period_per_hour) + [0.09]*(5*period_per_hour) + \
-                                  [0.06]*period_per_hour  # $/kWh
-            energy_conversion = (voltage*period)/(1000*60) # #/A*period
-            self.price_schedule = [energy_conversion*p for p in self.price_schedule]
+            self.price_schedule = [0.06] * (8 * period_per_hour) + [0.09] * (4 * period_per_hour) + \
+                                  [0.25] * (6 * period_per_hour) + [0.09] * (5 * period_per_hour) + \
+                                  [0.06] * period_per_hour  # $/kWh
+            energy_conversion = (voltage * period) / (1000 * 60)  # #/A*period
+            self.price_schedule = [energy_conversion * p for p in self.price_schedule]
         else:
             raise NotImplementedError('Only periods which divide 60 evenly are allowed.')
         if include_dc:
-            power_conversion = voltage/1000
+            power_conversion = voltage / 1000
             # self.demand_charge = 13.20 # $/kW/month
             self.demand_charge = 15.48  # $/kW/month
-            self.demand_charge *= power_conversion # $/A/month
+            self.demand_charge *= power_conversion  # $/A/month
         else:
             self.demand_charge = 0
         if revenue_max_maginal:
             self.revenue = self.demand_charge + max(self.price_schedule) + 1e-6
         else:
-            self.revenue = revenue*energy_conversion
+            self.revenue = revenue * energy_conversion
 
     def get_prices(self, start, length):
         """
@@ -77,7 +77,7 @@ class TOUPrices(Prices):
         :param int schedule_len: length of the schedule in number of periods.
         :return: float Demand charge scaled for the scheduling period.
         """
-        return self.demand_charge * (period*schedule_len)/(30*24*60)
+        return self.demand_charge * (period * schedule_len) / (30 * 24 * 60)
 
 
 class WinterTOUPrices(TOUPrices):
@@ -85,10 +85,10 @@ class WinterTOUPrices(TOUPrices):
         super().__init__(period, init_time, voltage, include_dc, revenue, revenue_max_maginal)
         if 60 % period == 0:
             period_per_hour = 60 // self.period
-            self.price_schedule = [0.07]*(8*period_per_hour) + [0.08]*(4*period_per_hour) + \
-                                  [0.08]*(6*period_per_hour) + [0.08]*(5*period_per_hour) + \
-                                  [0.07]*period_per_hour  # $/kWh
-            energy_conversion = (voltage*period)/(1000*60) # #/A*period
-            self.price_schedule = [energy_conversion*p for p in self.price_schedule]
+            self.price_schedule = [0.07] * (8 * period_per_hour) + [0.08] * (4 * period_per_hour) + \
+                                  [0.08] * (6 * period_per_hour) + [0.08] * (5 * period_per_hour) + \
+                                  [0.07] * period_per_hour  # $/kWh
+            energy_conversion = (voltage * period) / (1000 * 60)  # #/A*period
+            self.price_schedule = [energy_conversion * p for p in self.price_schedule]
         else:
             raise NotImplementedError('Only periods which divide 60 evenly are allowed.')

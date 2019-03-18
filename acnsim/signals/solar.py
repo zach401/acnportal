@@ -1,6 +1,7 @@
-from signals.sig_utils import *
-import pandas as pd
 import numpy as np
+import pandas as pd
+from signals.sig_utils import *
+
 
 class Solar:
     def __init__(self, period, init_time):
@@ -19,20 +20,20 @@ class Solar:
 
 
 class SolarCSV(Solar):
-    def __init__(self, period, init_time, csv_source, scale=None, capacity=None, index_col='Time', col_name='Average Last 5 points'):
+    def __init__(self, period, init_time, csv_source, scale=None, capacity=None, index_col='Time',
+                 col_name='Average Last 5 points'):
         super().__init__(period, init_time)
         self.csv = csv_source
         raw_solar = pd.read_csv(self.csv, index_col=index_col, infer_datetime_format=True, parse_dates=True)
         raw_solar = raw_solar.resample('{0}T'.format(self.period)).pad()
-        self.scale=scale
+        self.scale = scale
         gen = raw_solar[col_name].fillna(0).clip(lower=0).values
         if self.scale is not None:
             if capacity is None:
-                gen = (gen / np.max(gen))*self.scale
+                gen = (gen / np.max(gen)) * self.scale
             else:
                 gen = (gen / capacity) * self.scale
         self.generation = list(gen)
-
 
     def get_generation(self, start, length):
         """
@@ -46,5 +47,3 @@ class SolarCSV(Solar):
         offset = self.init_time + start
         gen = extended_schedule(self.generation, offset, length)
         return gen
-
-
