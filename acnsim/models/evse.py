@@ -80,7 +80,7 @@ class EVSE:
         """
         Applies a new pilot signal to this EVSE. Also check if the new pilot signal is allowed.
 
-        :param float new_pilot_signal: The new pilot signal that is applied
+        :param float pilot: The new pilot signal that is applied
 
         :raises Empty: raises exception when no EV is assigned to the EVSE.
         :raises InvalidRateError: raises error when assigned pilot is not a valid rate.

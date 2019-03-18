@@ -1,14 +1,14 @@
 from unittest import TestCase
 from unittest.mock import Mock, create_autospec
 
-from models import EV
-from models import EVSE
+from models.ev import EV
+from models.evse import EVSE
 from network import ChargingNetwork
 
 
 class TestChargingNetwork(TestCase):
     def setUp(self):
-        self.network = ChargingNetwork(1000)
+        self.network = ChargingNetwork()
 
     def test_register_evse(self):
         evse = EVSE('PS-001')
@@ -16,6 +16,7 @@ class TestChargingNetwork(TestCase):
         self.assertIn('PS-001', self.network._EVSEs)
         self.assertIs(self.network._EVSEs['PS-001'], evse)
 
+    # noinspection PyUnresolvedReferences
     def test_plugin_station_exists(self):
         evse = EVSE('PS-001')
         evse.plugin = Mock(evse.plugin)

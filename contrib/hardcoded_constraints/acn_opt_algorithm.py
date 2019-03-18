@@ -170,9 +170,9 @@ class PostProcessor:
         evs = {ev.session_id: deepcopy(ev) for ev in active_evs}
 
         schedule_by_time = defaultdict(dict)
-        for id in schedule:
-            for t in schedule[id]:
-                schedule_by_time[t][id] = schedule[id][t]
+        for _id in schedule:
+            for t in schedule[_id]:
+                schedule_by_time[t][_id] = schedule[_id][t]
 
         T_min = min(schedule_by_time.keys())
         T_max = max(schedule_by_time.keys())
@@ -182,22 +182,22 @@ class PostProcessor:
         for t in range(T_min, T_max + 1):
             if t not in schedule_by_time or len(schedule_by_time[t]) == 0:
                 continue
-            target = {id: val for id, val in schedule_by_time[t].items() if
-                      evs[id].remaining_demand - e_del[id] >= self.min_rate}
+            target = {_id: val for _id, val in schedule_by_time[t].items() if
+                      evs[_id].remaining_demand - e_del[_id] >= self.min_rate}
             if len(target) == 0:
                 continue
             sch = OptimizationPostProcessor(self.min_rate, self.cutoff, e_del, const_type=PHASE_AWARE,
                                             const_scale=self.const_scale)
-            sch.add_evs([evs[id] for id in target])
+            sch.add_evs([evs[_id] for _id in target])
             sch.obj = sch.post_processing_obj(target)
 
             sch.compile()
             obj, schedule, runtime = sch.solve()
 
-            for id in schedule:
-                rate = project_rate(schedule[id][0])
-                processed_schedule[id][t] = rate
-                e_del[id] += rate
+            for _id in schedule:
+                rate = project_rate(schedule[_id][0])
+                processed_schedule[_id][t] = rate
+                e_del[_id] += rate
             # except InfeasibilityException:
             #     print('An error occured at time {0}'.format(t))
         return processed_schedule
