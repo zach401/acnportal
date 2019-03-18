@@ -17,7 +17,7 @@ import sys
 
 # sys.path.insert(0, os.path.abspath('../'))
 sys.path.append(os.path.join(os.path.dirname(__name__), '..'))
-sys.path.append(os.path.join(os.path.dirname(__name__), '../sim'))
+sys.path.append(os.path.join(os.path.dirname(__name__), '../acnsim'))
 
 # -- Project information -----------------------------------------------------
 
@@ -59,7 +59,7 @@ master_doc = 'index'
 # for a list of supported languages.
 #
 # This is also used if you do content translation via gettext catalogs.
-# Usually you set "language" from the command line for these cases.
+# Usually you set "language" from the command current for these cases.
 language = None
 
 # List of patterns, relative to source directory, that match files and
@@ -75,7 +75,7 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'bizstyle'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -148,7 +148,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   (master_doc, 'ACN-portal', 'ACN-portal Documentation',
-   author, 'ACN-portal', 'One line description of project.',
+   author, 'ACN-portal', 'One current description of project.',
    'Miscellaneous'),
 ]
 

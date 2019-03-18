@@ -3,7 +3,7 @@
 Writing a scheduling algorithm
 ==============================
 
-Last updated: 07/23/2018, Daniel Johansson
+Last updated: 03/12/2019
 
 This section will describe how to write a scheduling algorithm for Electrical Vehicles charging
 at a charging network.
@@ -77,11 +77,11 @@ Earliest Deadline First
         def __init__(self):
             pass
 
-        def schedule(self, active_EVs):
+        def schedule(self, active_evs):
             schedule = {}
-            earliest_EV = self.get_earliest_EV(active_EVs)
+            earliest_EV = self.get_earliest_EV(active_evs)
             last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
-            for ev in active_EVs:
+            for ev in active_evs:
                 charge_rates = []
                 last_pilot_signal = 0
                 allowable_pilot_signals = self.interface.get_allowable_pilot_signals(ev.station_id)
@@ -113,13 +113,13 @@ Least Laxity First
         def __init__(self):
             pass
 
-        def schedule(self, active_EVs):
+        def schedule(self, active_evs):
             self.max_charging_rate = self.interface.get_max_charging_rate()
             schedule = {}
             current_time = self.interface.get_current_time()
-            least_slack_EV = self.get_least_laxity_EV(active_EVs, current_time)
+            least_slack_EV = self.get_least_laxity_EV(active_evs, current_time)
             last_applied_pilot_signals = self.interface.get_last_applied_pilot_signals()
-            for ev in active_EVs:
+            for ev in active_evs:
                 charge_rates = []
                 last_pilot_signal = 0
                 allowable_pilot_signals = self.interface.get_allowable_pilot_signals(ev.station_id)
@@ -175,7 +175,7 @@ Multi Least Laxity First
             self.preemption = preemption
             self.queue_length = queue_length
 
-        def schedule(self, active_EVs):
+        def schedule(self, active_evs):
             self.max_charging_rate = self.interface.get_max_charging_rate()
             schedule = {}
             current_time = self.interface.get_current_time()
@@ -188,7 +188,7 @@ Multi Least Laxity First
                     self.queue = []
                 else:
                     found = False
-                    for ev in active_EVs:
+                    for ev in active_evs:
                         if ev.session_id == session_id:
                             found = True
                             break
@@ -198,7 +198,7 @@ Multi Least Laxity First
             # choose the EVs that should be evaluated for laxity and then sort them
             # If no preemtion the EVs already in the queue should be omitted.
             ev_laxity = []
-            for ev in active_EVs:
+            for ev in active_evs:
                 if self.preemption or (not self.preemption and ev.session_id not in self.queue):
                     ev_info = {'session_id': ev.session_id, 'laxity': self.get_laxity(ev, current_time)}
                     ev_laxity.append(ev_info)
@@ -212,7 +212,7 @@ Multi Least Laxity First
                 self.queue.append(ev['session_id'])
 
             # calculate the new pilot signals
-            for ev in active_EVs:
+            for ev in active_evs:
                 charge_rates = []
                 last_pilot_signal = 0
                 allowable_pilot_signals = self.interface.get_allowable_pilot_signals(ev.station_id)

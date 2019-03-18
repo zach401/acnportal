@@ -44,16 +44,6 @@ def get_groupings():
     return groups
 
 
-# def get_session_phase_groups(test_case):
-#     groups = get_groupings()
-#     session_groups = {}
-#     session_groups['AB'] = [ev.session_id for ev in test_case if ev.station_id in groups['AB']]
-#     session_groups['BC'] = [ev.session_id for ev in test_case if ev.station_id in groups['BC']]
-#     session_groups['CA'] = [ev.session_id for ev in test_case if ev.station_id in groups['CA']]
-#     session_groups['AV-Pod'] = [ev.session_id for ev in test_case if ev.station_id in groups['AV-Pod']]
-#     session_groups['CC-Pod'] = [ev.session_id for ev in test_case if ev.station_id in groups['CC-Pod']]
-#     return session_groups
-
 def get_session_phase_groups(ids):
     groups = get_groupings()
     session_groups = {}
