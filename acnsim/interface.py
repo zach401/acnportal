@@ -1,89 +1,77 @@
 """
-This module contains methods for directly interacting with the simulator. 
+This module contains methods for directly interacting with the _simulator.
 """
 
 
 class Interface:
+    """ Interface between algorithms and the ACN Simulation Environment."""
 
     def __init__(self, simulator):
-        self.simulator = simulator
+        self._simulator = simulator
         pass
 
-    def get_active_evs(self):
+    @property
+    def active_evs(self):
         """ Returns a list of active EVs for use by the algorithm.
 
-        :return: List of EVs currently plugged in and not finished charging
-        :rtype: list(EV)
+        Returns:
+            List[EV]: List of EVs currently plugged in and not finished charging
         """
-        active_evs = self.simulator.get_active_evs()
-        return active_evs
+        return self._simulator.get_active_evs()
 
-    def get_max_aggregate_limit(self):
-        """
-        Returns the maximum charging rate that is allowed in the simulation.
+    @property
+    def last_applied_pilot_signals(self):
+        """ Return the pilot signals that were applied in the last iteration of the simulation for all active EVs.
 
-        :return: The maximum charging rate
-        :rtype: float
-        """
-        return self.simulator.network.aggregate_max
-
-    def get_allowable_pilot_signals(self, station_id):
-        """
-        Get the allowable pilot signal levels for the specified EVSE.
-
-        :param string station_id: The station ID
-        :return: A list with the allowable pilot signal levels. The values are sorted in increasing order.
-        :rtype: list(int)
-        """
-        return self.simulator.network.EVSEs[station_id].allowable_rates
-
-    def get_last_applied_pilot_signals(self):
-        """
-        Get the pilot signals that were applied in the last iteration of the simulation for all active EVs.
         Does not include EVs that arrived in the current iteration.
 
-        :return: A dictionary with the session ID as key and the pilot signal as value.
-        :rtype: dict
+        Returns:
+            Dict[str, number]: A dictionary with the session ID as key and the pilot signal as value.
         """
-        active_evs = self.get_active_evs()
-        i = self.simulator.iteration - 1
+        i = self._simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self.simulator.pilot_signals[ev.station_id][i] for ev in active_evs if
+            return {ev.session_id: self._simulator.pilot_signals[ev.station_id][i] for ev in self.active_evs if
                     ev.arrival <= i}
         else:
             return {}
 
+    @property
     def get_last_actual_charging_rate(self):
-        """
-        Get the actual charging rates in the last period for all active EVs.
+        """ Return the actual charging rates in the last period for all active EVs.
 
-        :return: A dictionary with the session ID as key and actual charging rate as value.
-        :rtype: dict
+        Returns:
+            Dict[str, number]:  A dictionary with the session ID as key and actual charging rate as value.
         """
-        active_evs = self.get_active_evs()
-        return {ev.session_id: ev.current_charging_rate for ev in active_evs}
+        return {ev.session_id: ev.current_charging_rate for ev in self.active_evs}
 
-    def get_current_time(self):
+    @property
+    def current_time(self):
+        """ Get the current time (the current iteration) of the simulator.
+
+        Returns:
+            int: The current iteration of the simulator.
         """
-        Get the current time (the current iteration) of the simulator.
+        return self._simulator.iteration
 
-        :return: The current iteration time in the simulator.
-        :rtype: int
+    @property
+    def max_recompute_time(self):
+        """ Return the maximum recompute time of the simulator.
+
+        Returns:
+            int: Maximum recompute time of the simulator in number of periods.
         """
-        return self.simulator.iteration
+        return self._simulator.max_recompute
 
-    def submit_schedules(self, schedules):
+    def get_allowable_pilot_signals(self, station_id):
+        """ Returns the allowable pilot signal levels for the specified EVSE.
+
+        Args:
+            station_id (str): The ID of the station for which the allowable rates should be returned.
+
+        Returns:
+            List[number]: A list of the allowable pilot signal levels. Values are sorted in increasing order.
         """
-        Sends scheduled charging rates to the simulator.
-
-        This function is called internally. The schedules are the same as returned from
-        the ``schedule`` function, so to submit the schedules when writing a charging algorithm just
-        make the ``schedule`` function return them.
-
-        :param dict schedules: Dictionary where key is the id of the EV and value is a list of scheduled charging rates.
-        :return: None
-        """
-        self.simulator.update_schedules(schedules)
+        return self._simulator.network.EVSEs[station_id].allowable_rates
 
     def get_prices(self, start, length):
         """
@@ -93,8 +81,8 @@ class Interface:
         :param int length: Number of elements in the prices vector. One entry per period.
         :return: vector of floats of length length where each entry is a price which is valid for one period.
         """
-        if self.simulator.prices is not None:
-            return self.simulator.prices.get_prices(start, length)
+        if self._simulator.prices is not None:
+            return self._simulator.prices.get_prices(start, length)
         else:
             raise ValueError('No pricing method is specified.')
 
@@ -105,8 +93,8 @@ class Interface:
         :param int schedule_len: length of the schedule in number of periods.
         :return: float Demand charge scaled for the scheduling period.
         """
-        if self.simulator.prices is not None:
-            return self.simulator.prices.get_normalized_demand_charge(self.simulator.period, schedule_len)
+        if self._simulator.prices is not None:
+            return self._simulator.prices.get_normalized_demand_charge(self._simulator.period, schedule_len)
         else:
             raise ValueError('No pricing method is specified.')
 
@@ -116,8 +104,8 @@ class Interface:
 
         :return: float Revenue per unit of energy.
         """
-        if self.simulator.prices is not None:
-            return self.simulator.prices.revenue
+        if self._simulator.prices is not None:
+            return self._simulator.prices.revenue
         else:
             raise ValueError('No pricing method is specified.')
 
@@ -128,4 +116,8 @@ class Interface:
         :return: peak demand so far in the simulation.
         :rtype: float
         """
-        return self.simulator.peak
+        return self._simulator.peak
+
+    def get_max_recompute_period(self):
+        return self._simulator.max_recompute
+
