@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import create_autospec
 
 from ..ev import EV
-from ..evse import EVSE, FiniteRatesEVSE, InvalidRateError, Empty, StationOccupiuedError
+from ..evse import EVSE, FiniteRatesEVSE, InvalidRateError, Empty, StationOccupiedError
 
 
 class TestEVSE(TestCase):
@@ -12,32 +12,32 @@ class TestEVSE(TestCase):
     def test_plugin_unoccupied(self):
         ev = create_autospec(EV)
         self.evse.plugin(ev)
-        self.assertEqual(self.evse.EV, ev)
+        self.assertEqual(self.evse.ev, ev)
 
     def test_plugin_occupied(self):
         ev = create_autospec(EV)
         ev2 = create_autospec(EV)
         self.evse.plugin(ev)
-        self.assertEqual(self.evse.EV, ev)
-        with self.assertRaises(StationOccupiuedError):
+        self.assertEqual(self.evse.ev, ev)
+        with self.assertRaises(StationOccupiedError):
             self.evse.plugin(ev2)
 
     def test_unplug_occupied(self):
         ev = create_autospec(EV)
         self.evse.plugin(ev)
         self.evse.unplug()
-        self.assertIsNone(self.evse.EV)
+        self.assertIsNone(self.evse.ev)
 
     def test_unplug_unoccupied(self):
         self.evse.unplug()
-        self.assertIsNone(self.evse.EV)
+        self.assertIsNone(self.evse.ev)
 
     def test_set_pilot_has_ev_valid_rate(self):
         ev = create_autospec(EV)
         self.evse.plugin(ev)
         self.evse.set_pilot(16)
         self.assertEqual(self.evse.current_pilot, 16)
-        self.evse.EV.charge.assert_called_once()
+        self.evse.ev.charge.assert_called_once()
 
     def test_set_pilot_has_ev_negative_rate(self):
         ev = create_autospec(EV)

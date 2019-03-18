@@ -6,12 +6,12 @@ TWO_STAGE = 'TwoStage'
 
 
 class Battery:
-    """
-    This class models the behavior of a battery and battery management system (BMS).
+    """This class models the behavior of a battery and battery management system (BMS).
 
-    :ivar float capacity: Capacity of the battery [acnsim units]
-    :ivar float init_charge: Initial charge of the battery [acnsim units]
-    :ivar float max_rate: Maximum charging rate of the battery [acnsim units]
+    Attributes:
+        capacity (float): Capacity of the battery [acnsim units]
+        init_charge (float): Initial charge of the battery [acnsim units]
+        max_rate (float): Maximum charging rate of the battery [acnsim units]
     """
 
     def __init__(self, capacity, init_charge, max_rate):
@@ -37,9 +37,12 @@ class Battery:
     def charge(self, pilot):
         """ Method to "charge" the battery
 
-        :param float pilot: Pilot signal passed to the battery
-        :return: actual charging rate of the battery
-        :rtype: float
+        Args:
+            pilot (float): Pilot signal passed to the battery.
+
+        Returns:
+            float: actual charging rate of the battery.
+
         """
         charge_rate = min([pilot, self.max_rate, self._capacity - self._current_charge])
         self._current_charge += charge_rate
@@ -49,7 +52,11 @@ class Battery:
     def reset(self, init_charge):
         """ Reset battery to initial state.
 
-        :param float init_charge: charge (in simulation units) battery should be reset to.
+        Args:
+            init_charge (float): charge battery should be reset to. [acnsim units]
+
+        Returns:
+            None
         """
         if init_charge > self._capacity:
             raise ValueError('Initial Charge cannot be greater than capacity.')
@@ -58,16 +65,28 @@ class Battery:
 
 
 class NoisyBattery(Battery):
+    """ Extends Battery to model noise in the charging process.
+
+    Noise here is modeled as rectified Gaussian noise which is subtracted from the normal maximum charging
+    rate. This noise roughly models the behavior of the battery management system which might restrict battery
+    charging rate during the charging process.
+
+    All public attributes are the same as Battery.
+    """
+
     def __init__(self, capacity, init_charge, max_rate, noise_level=0):
         super().__init__(capacity, init_charge, max_rate)
         self._noise_level = noise_level
 
     def charge(self, pilot):
-        """ Method to "charge" the battery
+        """ Method to "charge" the battery include subtractive rectified Gaussian noise.
 
-        :param float pilot: pilot signal passed to the battery
-        :return: Actual charging rate of the battery
-        :rtype: float
+        Args:
+            pilot (float): Pilot signal passed to the battery.
+
+        Returns:
+            float: actual charging rate of the battery.
+
         """
         charge_rate = min([pilot, self.max_rate, self._capacity - self._current_charge])
         if self._noise_level > 0:
@@ -77,17 +96,34 @@ class NoisyBattery(Battery):
         return charge_rate
 
 
-# Piecewise linear: https://www.sciencedirect.com/science/article/pii/S0378775316317396
 class Linear2StageBattery(NoisyBattery):
-    def charge(self, pilot):
-        """ Method to "charge" the battery
+    """ Extends NoisyBattery with a simple piecewise linear model of battery dynamics based on SoC.
 
-        :param float pilot: pilot signal passed to the battery
-        :return: Actual charging rate of the battery
-        :rtype: float
+    Battery model based on a piecewise linear approximation of battery behavior. The battery will charge at the
+    minimum of max_rate and the pilot until it reaches _transition_soc. After this, the maximum charging rate of the
+    battery will decrease linearly to 0 at 100% state of charge.
+
+    For more info on model: https://www.sciencedirect.com/science/article/pii/S0378775316317396
+
+    All public attributes are the same as Battery.
+    """
+
+    def __init__(self, capacity, init_charge, max_rate, noise_level=0, transition_soc=0.8):
+        super().__init__(capacity, init_charge, max_rate)
+        self._noise_level = noise_level
+        self._transition_soc = transition_soc
+
+    def charge(self, pilot):
+        """ Method to "charge" the battery based on a two-stage linear battery model.
+
+        Args:
+            pilot (float): Pilot signal passed to the battery.
+
+        Returns:
+            float: actual charging rate of the battery.
+
         """
-        # Implement 2-phase charging model
-        if self._soc < 0.8:
+        if self._soc < self._transition_soc:
             charge_rate = min(pilot, self.max_rate)
             if self._noise_level > 0:
                 charge_rate -= abs(np.random.normal(0, self._noise_level))

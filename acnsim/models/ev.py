@@ -2,17 +2,20 @@ from builtins import property
 
 
 class EV:
-    """
-    This class models the behavior of an Electrical Vehicle (EV).
+    """Class to model the behavior of an Electrical Vehicle (ev).
 
-    :ivar int arrival: Arrival time of the EV [periods]
-    :ivar int departure: Departure time of the EV [periods]
-    :ivar float requested_energy: The energy the EV has requested upon arrival [kWh]
-    :ivar float energy_delivered: The energy that has been delivered to the EV [kWh]
-    :ivar float max_rate: Max charging rate for the EV [A]
-    :ivar string station_id: The ID for the charging station
-    :ivar string session_id: The ID for the charging session
-    :ivar int finishing_time: The time the EV finished charging [periods]
+    Attributes:
+        arrival (int): Arrival time of the ev. [periods]
+        departure (int): Departure time of the ev. [periods]
+        requested_energy (float): Energy requested by the ev on arrival. [acnsim units]
+        max_rate (float): Maximum charging rate of the ev. [acnsim units]
+        session_id (str): Identifier of the session belonging to this ev.
+        station_id (str): Identifier of the station used by this ev.
+        energy_delivered (float): Amount of energy delivered to the ev so far. [acnsim units]
+        current_charging_rate (float): Charging rate at the current time step. [acnsim units]
+        remaining_demand (float): Energy which still needs to be delivered to meet requested_energy. [acnsim units]
+        fully_charged (bool): If the ev is fully charged.
+        percent_remaining (float): remaining_demand as a percent of requested_energy.
     """
 
     def __init__(self, arrive, depart, requested_energy, station_id, session_id, battery):
@@ -80,15 +83,23 @@ class EV:
         return self.remaining_demand / self.requested_energy
 
     def charge(self, pilot):
-        """ Method to "charge" the EV
+        """ Method to "charge" the ev.
 
-        :param pilot: Pilot signal passed to the EV
-        :return: Actual charging rate of the EV
+        Args:
+            pilot (float): Pilot signal pass to the ev.
+
+        Returns:
+            float: Actual charging rate of the ev.
         """
         charge_rate = self._battery.charge(pilot)
         self._energy_delivered += charge_rate
         return charge_rate
 
     def reset(self):
+        """ Reset battery back to its initialization. Also reset energy delivered.
+
+        Returns:
+            None.
+        """
         self._energy_delivered = 0
         self._battery.reset()
