@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from event_queue import EventQueue, Event
+from events import EventQueue, Event
 
 
 class TestEventQueue(TestCase):

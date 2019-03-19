@@ -1,6 +1,6 @@
 import math
 
-from event_queue import PluginEvent
+from events import PluginEvent
 from models.battery import Battery
 from models.ev import EV
 from utils import c2_client
@@ -10,7 +10,7 @@ def datetime_to_timestamp(dt, period, round_up=False):
     """ Convert a datetime object to a timestamp measured in simulation periods.
 
     :param datetime.datetime dt: datetime to be converted to timestamp
-    :param int period: length of one period in the simulator
+    :param int period: length of one period in the _simulator
     :param bool round_up: whether the timestamp should be rounded up or down when casting to int
     :return: timestamp of the datetime in simulation periods.
     :rtype: int
@@ -24,7 +24,7 @@ def datetime_to_timestamp(dt, period, round_up=False):
 
 def _convert_session_units(docs, start, voltage=220, max_rate=32, period=1, max_len=float('inf'),
                            force_feasible=False, battery_type=Battery, batt_args=None, battery_cap_fn=None):
-    """ Convert iterable of sessions to simulator units.
+    """ Convert iterable of sessions to _simulator units.
 
     :param Iterable(dict) docs: iterable of sessions as dicts.
     :param datetime.datetime start: only get sessions which start before this time.
@@ -65,7 +65,7 @@ def _convert_session_units(docs, start, voltage=220, max_rate=32, period=1, max_
 
 
 def get_sessions_mongo(collection, start, end, **kwargs):
-    """ Get list of sessions from MongoDB and convert them to the simulator units.
+    """ Get list of sessions from MongoDB and convert them to the _simulator units.
 
     :param pymongo.collection.Collection collection: pymongo collection from which session info should be retrieved.
     :param datetime.datetime start: only get sessions which start before this time.
@@ -87,7 +87,7 @@ def get_sessions_mongo(collection, start, end, **kwargs):
 
 
 def get_sessions_api(token, start, end, **kwargs):
-    """ Get list of sessions from C2 API and convert them to the simulator units.
+    """ Get list of sessions from C2 API and convert them to the _simulator units.
 
     :param str token: API token needed to access the C2 API.
     :param datetime.datetime start: only get sessions which start before this time.

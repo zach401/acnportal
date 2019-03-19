@@ -21,9 +21,9 @@ class Interface:
 
     @property
     def last_applied_pilot_signals(self):
-        """ Return the pilot signals that were applied in the last iteration of the simulation for all active EVs.
+        """ Return the pilot signals that were applied in the last _iteration of the simulation for all active EVs.
 
-        Does not include EVs that arrived in the current iteration.
+        Does not include EVs that arrived in the current _iteration.
 
         Returns:
             Dict[str, number]: A dictionary with the session ID as key and the pilot signal as value.
@@ -46,10 +46,10 @@ class Interface:
 
     @property
     def current_time(self):
-        """ Get the current time (the current iteration) of the simulator.
+        """ Get the current time (the current _iteration) of the simulator.
 
         Returns:
-            int: The current iteration of the simulator.
+            int: The current _iteration of the simulator.
         """
         return self._simulator.iteration
 

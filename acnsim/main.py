@@ -2,11 +2,10 @@ from copy import deepcopy
 from datetime import datetime
 
 import numpy as np
-from contrib.acn_opt_algorithm import ProfitMaximization
-from contrib.basic_network import get_caltech_cs
-from event_queue import EventQueue
+from algorithms import UncontrolledCharging
+from events import EventQueue
 from matplotlib import pyplot as plt
-from network import get_caltech_acn
+from network.sites import CaltechACN
 from signals.prices import TOUPrices
 from simulator import Simulator
 from utils.generate_events import generate_test_case_api
@@ -26,11 +25,11 @@ period = 5  # minute
 voltage = 220  # volts
 
 # Network
-cn = get_caltech_acn('BASIC')
-cs = get_caltech_cs()
+cn = CaltechACN()
 
 # Scheduling Algorithm
-sch = ProfitMaximization(cs, force_unique=True)
+# sch = ProfitMaximization(cs, force_unique=True)
+sch = UncontrolledCharging()
 
 # Event Queue
 events = EventQueue()
