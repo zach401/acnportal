@@ -36,6 +36,7 @@ class BaseAlgorithm:
         Returns:
             None
         """
+        self._interface = interface
 
     def schedule(self, active_evs):
         """ Creates a schedule of charging rates for each ev in the active_evs list.
@@ -63,6 +64,5 @@ class BaseAlgorithm:
         Returns:
             See schedule.
         """
-        active_evs = self.interface.get_active_evs()
-        schedules = self.schedule(active_evs)
+        schedules = self.schedule(self.interface.active_evs)
         return schedules

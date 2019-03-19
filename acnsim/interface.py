@@ -36,7 +36,7 @@ class Interface:
             return {}
 
     @property
-    def get_last_actual_charging_rate(self):
+    def last_actual_charging_rate(self):
         """ Return the actual charging rates in the last period for all active EVs.
 
         Returns:
