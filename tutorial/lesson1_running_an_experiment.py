@@ -1,11 +1,20 @@
+"""
+ACN-Sim Tutorial: Lesson 1
+Running an Experiment
+by Zachary Lee
+Last updated: 03/19/2019
+--
+
+In this first lesson we will learn how to setup and run a simulation using a built-in scheduling algorithm.
+After running the simulation we will learn how to use the analysis subpackage to analyze the results of the simulation.
+"""
+
 from datetime import datetime
 import pytz
 import numpy as np
 from matplotlib import pyplot as plt
 
 from algorithms import UncontrolledCharging
-from algorithms import SortingAlgorithm
-from algorithms import earliest_deadline_first
 from acnsim.events import EventQueue
 from acnsim.network.sites import CaltechACN
 from acnsim.simulator import Simulator
@@ -37,8 +46,8 @@ cn = CaltechACN(basic_evse=True)
 # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------
 # For this simple experiment we will use the predefined Uncontrolled Charging algorithm. We will cover more advanced
 # algorithms and how to define a custom algorithm in future tutorials.
-# sch = UncontrolledCharging()
-sch = SortingAlgorithm(earliest_deadline_first)
+sch = UncontrolledCharging()
+
 
 # -- Events ------------------------------------------------------------------------------------------------------------
 # Each simulation needs a queue of events. These events can be defined manually, or more commonly, are created from

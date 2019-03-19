@@ -6,7 +6,7 @@ import numpy as np
 from .base_algorithm import BaseAlgorithm
 
 
-class SortingAlgorithm(BaseAlgorithm):
+class SortedSchedulingAlgo(BaseAlgorithm):
     """ Class for sorting based algorithms like First Come First Served (FCFS) and Earliest Deadline First (EDF).
 
     Implements abstract class BaseAlgorithm.
@@ -80,7 +80,7 @@ class SortingAlgorithm(BaseAlgorithm):
         return bisection(station_id, 0, ub, schedule)
 
 
-class RoundRobin(SortingAlgorithm):
+class RoundRobin(SortedSchedulingAlgo):
     """ Family of algorithms which allocate charging rates among active EVs using a round robin approach.
 
     Extends SortingAlgorithm.

@@ -51,7 +51,7 @@ class BaseAlgorithm:
             Dict[str, List[float]]: Dictionary mapping a station_id to a list of charging rates. Each charging rate is
                 valid for one period measured relative to the current period, i.e. schedule['abc'][0] is the charging
                 rate for station 'abc' during the current period and schedule['abc'][1] is the charging rate for the
-                next period, and so on. If an algorithm only produces charging rates for the current timer period, the
+                next period, and so on. If an algorithm only produces charging rates for the current time period, the
                 length of each list should be 1. If this is the case, make sure to also set the maximum resolve period
                 to be 1 period so that the algorithm will be called each period. An alternative is to repeat the
                 charging rate a number of times equal to the max recompute period.

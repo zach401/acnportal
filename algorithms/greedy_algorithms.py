@@ -1,10 +1,10 @@
 import math
 
 import numpy as np
-from .sorting_algorithms import SortingAlgorithm
+from .sorted_algorithms import SortedSchedulingAlgo
 
 
-class GreedyCostMinimization(SortingAlgorithm):
+class GreedyCostMinimization(SortedSchedulingAlgo):
     """ Greedy algorithm which minimizes cost for each EV individually.
 
     For this family of algorithms, active EVs are first sorted by some metric, then each EV is allowed to select a
