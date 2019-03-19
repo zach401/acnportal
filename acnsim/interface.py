@@ -73,51 +73,67 @@ class Interface:
         """
         return self._simulator.network.EVSEs[station_id].allowable_rates
 
-    def get_prices(self, start, length):
-        """
-        Get a vector of prices beginning at time start and continuing for length periods.
+    def is_feasible(self, load_currents, t=0, linear=False):
+        """ Return if a set of current magnitudes for each load are feasible.
 
-        :param int start: Time step of the simulation where price vector should begin.
-        :param int length: Number of elements in the prices vector. One entry per period.
-        :return: vector of floats of length length where each entry is a price which is valid for one period.
-        """
-        if self._simulator.prices is not None:
-            return self._simulator.prices.get_prices(start, length)
-        else:
-            raise ValueError('No pricing method is specified.')
+        Wraps Network's is_feasible method.
 
-    def get_demand_charge(self, schedule_len):
-        """
-        Get the demand charge scaled according to the length of the scheduling period.
+        Args:
+            load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
+            t (int): Index into the charging rate schedule where feasibility should be checked.
+            linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
+                ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 
-        :param int schedule_len: length of the schedule in number of periods.
-        :return: float Demand charge scaled for the scheduling period.
+        Returns:
+            bool: If load_currents is feasible at time t according to this constraint set.
         """
-        if self._simulator.prices is not None:
-            return self._simulator.prices.get_normalized_demand_charge(self._simulator.period, schedule_len)
-        else:
-            raise ValueError('No pricing method is specified.')
+        return self._simulator.network.is_feasible(load_currents, t, linear)
 
-    def get_revenue(self):
-        """
-        Get the per unit revenue of energy.
-
-        :return: float Revenue per unit of energy.
-        """
-        if self._simulator.prices is not None:
-            return self._simulator.prices.revenue
-        else:
-            raise ValueError('No pricing method is specified.')
-
-    def get_prev_peak(self):
-        """
-        Get the highest aggregate peak demand so far in the simulation.
-
-        :return: peak demand so far in the simulation.
-        :rtype: float
-        """
-        return self._simulator.peak
-
-    def get_max_recompute_period(self):
-        return self._simulator.max_recompute
+    # def get_prices(self, start, length):
+    #     """
+    #     Get a vector of prices beginning at time start and continuing for length periods.
+    #
+    #     :param int start: Time step of the simulation where price vector should begin.
+    #     :param int length: Number of elements in the prices vector. One entry per period.
+    #     :return: vector of floats of length length where each entry is a price which is valid for one period.
+    #     """
+    #     if self._simulator.prices is not None:
+    #         return self._simulator.prices.get_prices(start, length)
+    #     else:
+    #         raise ValueError('No pricing method is specified.')
+    #
+    # def get_demand_charge(self, schedule_len):
+    #     """
+    #     Get the demand charge scaled according to the length of the scheduling period.
+    #
+    #     :param int schedule_len: length of the schedule in number of periods.
+    #     :return: float Demand charge scaled for the scheduling period.
+    #     """
+    #     if self._simulator.prices is not None:
+    #         return self._simulator.prices.get_normalized_demand_charge(self._simulator.period, schedule_len)
+    #     else:
+    #         raise ValueError('No pricing method is specified.')
+    #
+    # def get_revenue(self):
+    #     """
+    #     Get the per unit revenue of energy.
+    #
+    #     :return: float Revenue per unit of energy.
+    #     """
+    #     if self._simulator.prices is not None:
+    #         return self._simulator.prices.revenue
+    #     else:
+    #         raise ValueError('No pricing method is specified.')
+    #
+    # def get_prev_peak(self):
+    #     """
+    #     Get the highest aggregate peak demand so far in the simulation.
+    #
+    #     :return: peak demand so far in the simulation.
+    #     :rtype: float
+    #     """
+    #     return self._simulator.peak
+    #
+    # def get_max_recompute_period(self):
+    #     return self._simulator.max_recompute
 

@@ -46,7 +46,7 @@ class ConstraintSet:
         """ Return if a set of current magnitudes for each load are feasible.
 
         Args:
-            load_currents Dict[str, List[number]]: Dictionary mapping load_ids to schedules of charging rates.
+            load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
             t (int): Index into the charging rate schedule where feasibility should be checked.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.

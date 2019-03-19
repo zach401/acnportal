@@ -70,12 +70,12 @@ class SortingAlgorithm(BaseAlgorithm):
             new_schedule[_station_id][time] = mid
             if (_ub - _lb) <= eps:
                 return _lb
-            elif self.interface.constraints.is_feasible(new_schedule, time):
+            elif self.interface.is_feasible(new_schedule, time):
                 return bisection(_station_id, mid, _ub, new_schedule)
             else:
                 return bisection(_station_id, _lb, mid, new_schedule)
 
-        if self.interface.constraints.is_feasible(schedule):
+        if not self.interface.is_feasible(schedule):
             raise ValueError('The initial schedule is not feasible.')
         return bisection(station_id, 0, ub, schedule)
 

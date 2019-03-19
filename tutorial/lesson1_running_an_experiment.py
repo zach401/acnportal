@@ -4,6 +4,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from algorithms import UncontrolledCharging
+from algorithms import SortingAlgorithm
+from algorithms import earliest_deadline_first
 from acnsim.events import EventQueue
 from acnsim.network.sites import CaltechACN
 from acnsim.simulator import Simulator
@@ -16,8 +18,8 @@ from acnsim.analysis import *
 timezone = pytz.timezone('America/Los_Angeles')
 
 # Start and End times are used when collecting data.
-start = datetime(2018, 9, 1).astimezone(timezone)
-end = datetime(2018, 9, 2).astimezone(timezone)
+start = datetime(2018, 9, 5).astimezone(timezone)
+end = datetime(2018, 9, 6).astimezone(timezone)
 
 # The period of the simulation is how long each time interval will be.
 period = 5  # minute
@@ -29,14 +31,14 @@ voltage = 220  # volts
 # -- Network -----------------------------------------------------------------------------------------------------------
 # Each experiment should have a network which represents an Adaptive Charging Network. You are able to define your own
 # network, but for now we will use the predefined Caltech ACN.
-cn = CaltechACN()
+cn = CaltechACN(basic_evse=True)
 
 
 # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------
 # For this simple experiment we will use the predefined Uncontrolled Charging algorithm. We will cover more advanced
 # algorithms and how to define a custom algorithm in future tutorials.
-sch = UncontrolledCharging()
-
+# sch = UncontrolledCharging()
+sch = SortingAlgorithm(earliest_deadline_first)
 
 # -- Events ------------------------------------------------------------------------------------------------------------
 # Each simulation needs a queue of events. These events can be defined manually, or more commonly, are created from
