@@ -4,7 +4,7 @@ from collections import deque, defaultdict
 from copy import copy
 
 import numpy as np
-from algorithms.base_algorithm import BaseAlgorithm
+from algorithms import BaseAlgorithm
 
 
 def get_groupings():
@@ -212,7 +212,7 @@ class IndividualGreedyCostMin(NaiveWithFillUp):
 #         ev_queue = self.sort_fn(active_evs)
 #         schedule = {ev.station_id: [0] for ev in active_evs}
 #         for ev in ev_queue:
-#             charging_rate = self.binary_search(ev.station_id, 0, ev.max_rate, currents, eps=0.01)
+#             charging_rate = self.max_feasible_rate(ev.station_id, 0, ev.max_rate, currents, eps=0.01)
 #             currents, success = self.add_rate(ev, charging_rate, schedule, currents)
 #         return schedule
 #

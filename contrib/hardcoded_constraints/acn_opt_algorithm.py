@@ -3,7 +3,7 @@ from collections import defaultdict
 from copy import deepcopy
 
 import numpy as np
-from algorithms.base_algorithm import BaseAlgorithm
+from algorithms import BaseAlgorithm
 from contrib.hardcoded_constraints.gurobi_utils import OptimizationScheduler, OptimizationPostProcessor, \
     InfeasibilityException, PHASE_AWARE
 
