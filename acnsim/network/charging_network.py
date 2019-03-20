@@ -1,5 +1,6 @@
 from .constraint_set import ConstraintSet
 
+
 class ChargingNetwork:
     """
     The ChargingNetwork class describes the infrastructure of the charging network with
@@ -161,4 +162,5 @@ class ChargingNetwork:
 
 
 class StationOccupiedError(Exception):
+    """ Exception which is raised when trying to add an EV to an EVSE which is already occupied."""
     pass

@@ -1,4 +1,4 @@
-from .network import ChargingNetwork
+from . import ChargingNetwork
 from .constraint_set import ConstraintSet
 from .constraint_set import Current
 from acnsim.models.evse import get_EVSE_by_type
