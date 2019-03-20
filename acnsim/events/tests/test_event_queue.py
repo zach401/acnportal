@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from events import EventQueue, Event
+from acnsim.events import EventQueue, Event
 
 
 class TestEventQueue(TestCase):
@@ -14,11 +14,6 @@ class TestEventQueue(TestCase):
         self.events.add_event(Event(5))
         self.assertFalse(self.events.empty())
         self.assertEqual(len(self.events._queue), 1)
-
-    def test_add_event_in_past(self):
-        self.events.get_current_events(5)
-        with self.assertRaises(ValueError):
-            self.events.add_event(Event(4))
 
     def test_add_events(self):
         events = [Event(i) for i in range(1, 6)]
