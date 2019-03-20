@@ -1,7 +1,8 @@
 import copy
+from datetime import datetime
 
-from events import UnplugEvent
-from interface import Interface
+from .events import UnplugEvent
+from .interface import Interface
 
 
 class InvalidScheduleError(Exception):
@@ -72,22 +73,34 @@ class Simulator:
             current_events = self.event_queue.get_current_events(self._iteration)
             for e in current_events:
                 self.event_history.append(e)
-                self.process_event(e)
+                self._process_event(e)
             if self._resolve or \
                     self.max_recompute is not None and \
                     self._iteration - self._last_schedule_update >= self.max_recompute:
                 new_schedule = self.scheduler.run()
                 if self.schedule_history is not None:
                     self.schedule_history[self._iteration] = new_schedule
-                self.update_schedules(new_schedule)
+                self._update_schedules(new_schedule)
                 self._last_schedule_update = self._iteration
                 self._resolve = False
             self._expand_pilots()
             self.network.update_pilots(self.pilot_signals, self._iteration)
-            self.store_actual_charging_rates()
+            self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
 
-    def process_event(self, event):
+    def get_active_evs(self):
+        """ Return all EVs which are plugged in and not fully charged at the current time.
+
+        Wrapper for self.network.active_evs. See its documentation for more details.
+
+        Returns:
+            List[EV]: List of all EVs which are plugged in but not fully charged at the current time.
+
+        """
+        evs = copy.deepcopy(self.network.active_evs)
+        return evs
+
+    def _process_event(self, event):
         """ Process an event and take appropriate actions.
 
         Args:
@@ -112,7 +125,7 @@ class Simulator:
             print('Recompute Event...')
             self._resolve = True
 
-    def update_schedules(self, new_schedule):
+    def _update_schedules(self, new_schedule):
         """ Extend the current self.pilot_signals with the new pilot signal schedule.
 
         Args:
@@ -152,7 +165,7 @@ class Simulator:
             if len(signal) < self._iteration + 1:
                 signal.append(0)
 
-    def store_actual_charging_rates(self):
+    def _store_actual_charging_rates(self):
         """ Store actual charging rates from the network in the simulator for later analysis."""
         current_rates = self.network.current_charging_rates
         agg = 0
@@ -160,18 +173,6 @@ class Simulator:
             self.charging_rates[station_id].append(rate)
             agg += rate
         self.peak = max(self.peak, agg)
-
-    def get_active_evs(self):
-        """ Return all EVs which are plugged in and not fully charged at the current time.
-
-        Wrapper for self.network.active_evs. See its documentation for more details.
-
-        Returns:
-            List[EV]: List of all EVs which are plugged in but not fully charged at the current time.
-
-        """
-        evs = copy.deepcopy(self.network.active_evs)
-        return evs
 
 
 def _overwrite_at_index(i, prev_list, new_list):
