@@ -9,60 +9,60 @@ In this first lesson we will learn how to setup and run a simulation using a bui
 After running the simulation we will learn how to use the analysis subpackage to analyze the results of the simulation.
 """
 
-from datetime import datetime
 import pytz
-import numpy as np
-from matplotlib import pyplot as plt
+from datetime import datetime
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
-from algorithms import UncontrolledCharging
-from acnsim.events import EventQueue
-from acnsim.network.sites import CaltechACN
 from acnsim.simulator import Simulator
-from acnsim.utils.generate_events import generate_test_case_api
+from acnsim.network.sites import CaltechACN
+from acnsim.events import c2api
+from algorithms import UncontrolledCharging
 from acnsim.analysis import *
 
 # -- Experiment Parameters ---------------------------------------------------------------------------------------------
-# The timezone of the experiment should be the timezone of the ACN from which data is being used. If real data
-# is not used, then the timezone can be omitted.
+# Timezone of the ACN we are using.
 timezone = pytz.timezone('America/Los_Angeles')
 
 # Start and End times are used when collecting data.
 start = datetime(2018, 9, 5).astimezone(timezone)
 end = datetime(2018, 9, 6).astimezone(timezone)
 
-# The period of the simulation is how long each time interval will be.
-period = 5  # minute
+# How long each time discrete time interval in the simulation should be.
+period = 5  # minutes
 
-# We assume a set voltage for the entire network. This is used for converting units of power to current.
+# Voltage of the network.
 voltage = 220  # volts
 
+# Default maximum charging rate for each EV.
+max_rate = 32 # amps
+
+# Identifier of the site where data will be gathered.
+site = 'caltech'
 
 # -- Network -----------------------------------------------------------------------------------------------------------
-# Each experiment should have a network which represents an Adaptive Charging Network. You are able to define your own
-# network, but for now we will use the predefined Caltech ACN.
+# For this experiment we use the predefined CaltechACN network.
 cn = CaltechACN(basic_evse=True)
+
+
+# -- Events ------------------------------------------------------------------------------------------------------------
+#  In this case we will use the Caltech Charging Dataset API to download real events from the time period of our
+#  simulation.
+
+# For this tutorial we will use a demonstration token to access the API, but when using real simulations you will
+# want to register for your own free API token at ev.caltech.edu/dataset.html.
+API_KEY = 'DEMO_TOKEN'
+
+# An EventQueue is a special container which stores the events for the simulation. In this case we use the c2api utility
+# to pre-fill the event queue based on real events in the Caltech Charging Dataset.
+events = c2api.generate_events(API_KEY, site, start, end, period, voltage, max_rate)
 
 
 # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------
 # For this simple experiment we will use the predefined Uncontrolled Charging algorithm. We will cover more advanced
 # algorithms and how to define a custom algorithm in future tutorials.
 sch = UncontrolledCharging()
-
-
-# -- Events ------------------------------------------------------------------------------------------------------------
-# Each simulation needs a queue of events. These events can be defined manually, or more commonly, are created from
-# real data. In this case we will use the Caltech Charging Dataset API to download real events from the time period
-# of our simulation.
-
-# For this tutorial we will use a demonstration token to access the API, but when using real simulations you will
-# want to register for your own free API token at ev.caltech.edu/dataset.html.
-API_KEY = 'DEMO_TOKEN'
-
-# An EventQueue is a special container which stores the events for the simulation.
-events = EventQueue()
-
-# We use the generate_test_case_api() method to fill the EventQueue.
-events.add_events(generate_test_case_api(API_KEY, start, end))
 
 
 # -- Simulator ---------------------------------------------------------------------------------------------------------
@@ -76,7 +76,8 @@ sim.run()
 # After running the simulation, we can analyze the results using data stored in the simulator.
 
 # Find percentage of requested energy which was delivered.
-print('Proportion of requested energy delivered: {0}'.format(proportion_of_energy_delivered(sim)))
+total_energy_prop = proportion_of_energy_delivered(sim)
+print('Proportion of requested energy delivered: {0}'.format(total_energy_prop))
 
 # Find peak aggregate current during the simulation
 print('Peak aggregate current: {0} A'.format(sim.peak))

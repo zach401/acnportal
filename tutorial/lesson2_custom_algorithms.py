@@ -113,7 +113,7 @@ cn = CaltechACN(basic_evse=True)
 # -- Events ------------------------------------------------------------------------------------------------------------
 API_KEY = 'DEMO_TOKEN'
 events = EventQueue()
-events.add_events(generate_test_case_api(API_KEY, start, end))
+events.add_events(generate_test_case_api(API_KEY, start, end, period=period, voltage=voltage))
 
 # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------
 sch = EarliestDeadlineFirstAlgo(increment=1)
