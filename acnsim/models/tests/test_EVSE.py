@@ -1,8 +1,8 @@
 from unittest import TestCase
 from unittest.mock import create_autospec
 
-from ..ev import EV
-from ..evse import EVSE, FiniteRatesEVSE, InvalidRateError, Empty, StationOccupiedError
+from acnsim.models.ev import EV
+from acnsim.models.evse import EVSE, FiniteRatesEVSE, InvalidRateError, StationOccupiedError
 
 
 class TestEVSE(TestCase):
@@ -44,10 +44,6 @@ class TestEVSE(TestCase):
         self.evse.plugin(ev)
         with self.assertRaises(InvalidRateError):
             self.evse.set_pilot(-1)
-
-    def test_set_pilot_no_ev_valid_rate(self):
-        with self.assertRaises(Empty):
-            self.evse.set_pilot(16)
 
     def test_set_pilot_no_ev_negative_rate(self):
         with self.assertRaises(InvalidRateError):

@@ -30,10 +30,6 @@ class InvalidRateError(Exception):
     pass
 
 
-class Empty(Exception):
-    pass
-
-
 class StationOccupiedError(Exception):
     pass
 
@@ -47,12 +43,14 @@ class EVSE:
         station_id (str): Unique identifier of the EVSE.
         ev (EV): EV currently connected the the EVSE.
         max_rate (float): Maximum charging current allowed by the EVSE.
+        min_rate (float): Minimum charging current allowed by the EVSE.
         current_pilot (float): Pilot signal for the current time step. [acnsim units]
     """
-    def __init__(self, station_id, max_rate=float('inf')):
+    def __init__(self, station_id, max_rate=float('inf'), min_rate=0):
         self._station_id = station_id
         self._ev = None
         self._max_rate = max_rate
+        self._min_rate = min_rate
         self._current_pilot = 0
 
     @property
@@ -66,6 +64,10 @@ class EVSE:
     @property
     def max_rate(self):
         return self._max_rate
+
+    @property
+    def min_rate(self):
+        return self._min_rate
 
     @property
     def current_pilot(self):
@@ -104,7 +106,7 @@ class EVSE:
         Returns:
             bool: True if the proposed pilot signal is valid. False otherwise.
         """
-        return pilot <= self.max_rate
+        return self.min_rate <= pilot <= self.max_rate
 
     def plugin(self, ev):
         """ Method to attach an EV to the EVSE.
