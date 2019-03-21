@@ -14,21 +14,19 @@
 #
 import os
 import sys
-#sys.path.insert(0, os.path.abspath('../'))
-sys.path.append(os.path.join(os.path.dirname(__name__), '..'))
-sys.path.append(os.path.join(os.path.dirname(__name__), '../sim'))
+sys.path.insert(0, os.path.abspath('..'))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'ACN-portal'
-copyright = '2018, NetLab'
-author = 'NetLab'
+project = 'ACN-Sim'
+copyright = '2019, Caltech'
+author = 'Zachary Lee, Daniel Johansson'
 
 # The short X.Y version
-version = ''
+version = '0.1'
 # The full version, including alpha/beta/rc tags
-release = ''
+release = '0.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -41,7 +39,13 @@ release = ''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
+    'sphinx.ext.doctest',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.imgmath',
+    'sphinx.ext.githubpages',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -65,11 +69,11 @@ language = None
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path .
+# This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = None
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -77,7 +81,7 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'bizstyle'
+html_theme = 'sphinx_rtd_theme' # 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -104,7 +108,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'ACN-portaldoc'
+htmlhelp_basename = 'acnsimdoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -131,8 +135,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'ACN-portal.tex', 'ACN-portal Documentation',
-     'NetLab', 'manual'),
+    (master_doc, 'acnsim.tex', 'acnsim Documentation',
+     'Zachary Lee, Daniel Johansson', 'manual'),
 ]
 
 
@@ -141,7 +145,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'acn-portal', 'ACN-portal Documentation',
+    (master_doc, 'acnsim', 'acnsim Documentation',
      [author], 1)
 ]
 
@@ -152,10 +156,33 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'ACN-portal', 'ACN-portal Documentation',
-     author, 'ACN-portal', 'One line description of project.',
+    (master_doc, 'acnsim', 'acnsim Documentation',
+     author, 'acnsim', 'One line description of project.',
      'Miscellaneous'),
 ]
 
 
+# -- Options for Epub output -------------------------------------------------
+
+# Bibliographic Dublin Core info.
+epub_title = project
+
+# The unique identifier of the text. This can be a ISBN number
+# or the project homepage.
+#
+# epub_identifier = ''
+
+# A unique identification for the text.
+#
+# epub_uid = ''
+
+# A list of files that should not be packed into the epub file.
+epub_exclude_files = ['search.html']
+
+
 # -- Extension configuration -------------------------------------------------
+
+# -- Options for todo extension ----------------------------------------------
+
+# If true, `todo` and `todoList` produce output, else they produce nothing.
+todo_include_todos = True
