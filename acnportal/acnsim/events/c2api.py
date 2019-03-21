@@ -5,7 +5,7 @@ from ..models.ev import EV
 from ..models.battery import Battery
 from . import PluginEvent
 from .event_queue import EventQueue
-from c2client import C2Client
+from acnportal.c2client import C2Client
 
 
 def generate_events(token, site, start, end, period, voltage, max_rate, **kwargs):

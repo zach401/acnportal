@@ -1,6 +1,6 @@
 from . import ChargingNetwork
 from .constraint_set import Current
-from acnsim.models.evse import get_EVSE_by_type
+from acnportal.acnsim.models.evse import get_evse_by_type
 import math
 
 
@@ -22,21 +22,21 @@ class CaltechACN(ChargingNetwork):
             evse_type = {'AV': 'AeroVironment', 'CC': 'ClipperCreek'}
 
         # Add Caltech EVSEs
-        self.register_evse(get_EVSE_by_type('CA-148', evse_type['AV']))
-        self.register_evse(get_EVSE_by_type('CA-148', evse_type['AV']))
-        self.register_evse(get_EVSE_by_type('CA-149', evse_type['AV']))
-        self.register_evse(get_EVSE_by_type('CA-212', evse_type['AV']))
-        self.register_evse(get_EVSE_by_type('CA-213', evse_type['AV']))
+        self.register_evse(get_evse_by_type('CA-148', evse_type['AV']))
+        self.register_evse(get_evse_by_type('CA-148', evse_type['AV']))
+        self.register_evse(get_evse_by_type('CA-149', evse_type['AV']))
+        self.register_evse(get_evse_by_type('CA-212', evse_type['AV']))
+        self.register_evse(get_evse_by_type('CA-213', evse_type['AV']))
         for i in range(303, 328):
             if i >= 320 or i <= 323:
-                self.register_evse(get_EVSE_by_type('CA-' + str(i), evse_type['CC']))
+                self.register_evse(get_evse_by_type('CA-' + str(i), evse_type['CC']))
             else:
-                self.register_evse(get_EVSE_by_type('CA-' + str(i), evse_type['AV']))
+                self.register_evse(get_evse_by_type('CA-' + str(i), evse_type['AV']))
         for i in range(489, 514):
             if i >= 493 or i <= 496:
-                self.register_evse(get_EVSE_by_type('CA-' + str(i), evse_type['CC']))
+                self.register_evse(get_evse_by_type('CA-' + str(i), evse_type['CC']))
             else:
-                self.register_evse(get_EVSE_by_type('CA-' + str(i), evse_type['AV']))
+                self.register_evse(get_evse_by_type('CA-' + str(i), evse_type['AV']))
 
         # Add Caltech Constraint Set
         CC_pod = Current(['CA-322', 'CA-493', 'CA-496', 'CA-320', 'CA-495', 'CA-321', 'CA-323', 'CA-494'])

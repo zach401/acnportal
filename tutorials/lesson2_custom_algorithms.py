@@ -11,7 +11,7 @@ algorithms package, so we will compare the results of our implementation with th
 """
 
 # -- Custom Algorithm --------------------------------------------------------------------------------------------------
-from algorithms import BaseAlgorithm
+from acnportal.algorithms import BaseAlgorithm
 
 # All custom algorithms should inherit from the abstract class BaseAlgorithm. It is the responsibility of all derived
 # classes to implement the schedule method. This method takes as an input a list of EVs which are currently connected
@@ -90,12 +90,12 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from copy import deepcopy
 
-from algorithms import SortedSchedulingAlgo
-from algorithms import earliest_deadline_first
-from acnsim.events import c2api
-from acnsim.network.sites import CaltechACN
-from acnsim.simulator import Simulator
+from acnportal.algorithms import SortedSchedulingAlgo
+from acnportal.algorithms import earliest_deadline_first
+from acnportal.acnsim.events import c2api
+from acnportal.acnsim.network.sites import CaltechACN
 from acnsim.analysis import *
+from acnportal.acnsim import Simulator
 
 # Now that we have implemented our algorithm, we can try it out using the same experiment setup as in lesson 1.
 # The only difference will be which scheduling algorithm we use.
