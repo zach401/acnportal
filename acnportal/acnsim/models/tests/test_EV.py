@@ -1,8 +1,8 @@
 from unittest import TestCase
 from unittest.mock import Mock, create_autospec
 
-from acnsim.models.battery import Battery
-from acnsim.models.ev import EV
+from acnportal.acnsim.models import Battery
+from acnportal.acnsim.models import EV
 
 
 class TestEV(TestCase):

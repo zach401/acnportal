@@ -23,6 +23,8 @@ called each period. An alternative is to repeat the charging rate a number of ti
 
 As mentioned previously our new algorithm should inherit from BaseAlgorithm or a subclass of it. ::
 
+    from acnportal.algorithms import BaseAlgorithm
+
     class EarliestDeadlineFirstAlgo(BaseAlgorithm):
 
 We can override the __init__() method if we need to pass additional configuration information to the algorithm. In this
@@ -135,15 +137,17 @@ implementation of the earliest deadline first algorithm. ::
 
     from datetime import datetime
     import pytz
-    from matplotlib import pyplot as plt
+    import matplotlib
+    matplotlib.use('TkAgg')
+    import matplotlib.pyplot as plt
     from copy import deepcopy
 
-    from algorithms import SortedSchedulingAlgo
-    from algorithms import earliest_deadline_first
-    from acnsim.events import c2api
-    from acnsim.network.sites import CaltechACN
-    from acnsim.simulator import Simulator
+    from acnportal.algorithms import SortedSchedulingAlgo
+    from acnportal.algorithms import earliest_deadline_first
+    from acnportal.acnsim.events import c2api
+    from acnportal.acnsim.network.sites import CaltechACN
     from acnsim.analysis import *
+    from acnportal.acnsim import Simulator
 
 
     # -- Experiment Parameters ---------------------------------------------------------------------------------------------

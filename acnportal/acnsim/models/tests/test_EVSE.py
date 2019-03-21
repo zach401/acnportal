@@ -1,8 +1,8 @@
 from unittest import TestCase
 from unittest.mock import create_autospec
 
-from acnsim.models.ev import EV
-from acnsim.models.evse import EVSE, FiniteRatesEVSE, InvalidRateError, StationOccupiedError
+from acnportal.acnsim.models import EV
+from acnportal.acnsim.models import EVSE, FiniteRatesEVSE, InvalidRateError, StationOccupiedError
 
 
 class TestEVSE(TestCase):

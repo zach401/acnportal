@@ -10,14 +10,15 @@ We begin with the necessary package imports. ::
 
     import pytz
     from datetime import datetime
-    from matplotlib import pyplot as plt
+    import matplotlib
+    matplotlib.use('TkAgg')
+    import matplotlib.pyplot as plt
 
-    from acnsim.simulator import Simulator
-    from acnsim.network.sites import CaltechACN
-    from acnsim.events import EventQueue
-    from acnsim.utils.generate_events import generate_test_case_api
+    from acnportal.acnsim import Simulator
+    from acnportal.acnsim.network.sites import CaltechACN
+    from acnportal.acnsim.events import c2api
     from acnsim.analysis import *
-    from algorithms import UncontrolledCharging
+    from acnportal.algorithms import UncontrolledCharging
 
 Experiment Parameters
 *********************

@@ -2,7 +2,7 @@ import unittest
 from unittest import TestCase
 from unittest.mock import patch
 
-from acnsim.models.battery import Battery, NoisyBattery, Linear2StageBattery
+from acnportal.acnsim.models import Battery, NoisyBattery, Linear2StageBattery
 
 
 class TestBattery(TestCase):

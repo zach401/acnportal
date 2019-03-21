@@ -5,7 +5,7 @@ AV = 'AeroVironment'
 CC = 'ClipperCreek'
 
 
-def get_EVSE_by_type(station_id, evse_type):
+def get_evse_by_type(station_id, evse_type):
     """ Factory to produce EVSEs of a given type.
 
     Args:

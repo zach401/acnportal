@@ -15,11 +15,11 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-from acnsim.simulator import Simulator
-from acnsim.network.sites import CaltechACN
-from acnsim.events import c2api
-from algorithms import UncontrolledCharging
+from acnportal.acnsim import Simulator
+from acnportal.acnsim.network.sites import CaltechACN
+from acnportal.acnsim.events import c2api
 from acnsim.analysis import *
+from acnportal.algorithms import UncontrolledCharging
 
 # -- Experiment Parameters ---------------------------------------------------------------------------------------------
 # Timezone of the ACN we are using.

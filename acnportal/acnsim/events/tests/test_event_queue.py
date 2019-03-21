@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from acnsim.events import EventQueue, Event
+from acnportal.acnsim import EventQueue, Event
 
 
 class TestEventQueue(TestCase):

@@ -1,9 +1,9 @@
 from unittest import TestCase
 from unittest.mock import Mock, create_autospec
 
-from acnsim.models.ev import EV
-from acnsim.models.evse import EVSE
-from acnsim.network import ChargingNetwork
+from acnportal.acnsim.models import EV
+from acnportal.acnsim.models import EVSE
+from acnportal.acnsim import ChargingNetwork
 
 
 class TestChargingNetwork(TestCase):
