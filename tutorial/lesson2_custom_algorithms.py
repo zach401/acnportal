@@ -85,15 +85,16 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
 # -- Run Simulation ----------------------------------------------------------------------------------------------------
 from datetime import datetime
 import pytz
-from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 from copy import deepcopy
 
 from algorithms import SortedSchedulingAlgo
 from algorithms import earliest_deadline_first
-from acnsim.events import EventQueue
+from acnsim.events import c2api
 from acnsim.network.sites import CaltechACN
 from acnsim.simulator import Simulator
-from acnsim.utils.generate_events import generate_test_case_api
 from acnsim.analysis import *
 
 # Now that we have implemented our algorithm, we can try it out using the same experiment setup as in lesson 1.
@@ -106,14 +107,16 @@ start = datetime(2018, 9, 5).astimezone(timezone)
 end = datetime(2018, 9, 6).astimezone(timezone)
 period = 5  # minute
 voltage = 220  # volts
+max_rate = 32 # amps
+site = 'caltech'
 
 # -- Network -----------------------------------------------------------------------------------------------------------
 cn = CaltechACN(basic_evse=True)
 
 # -- Events ------------------------------------------------------------------------------------------------------------
 API_KEY = 'DEMO_TOKEN'
-events = EventQueue()
-events.add_events(generate_test_case_api(API_KEY, start, end, period=period, voltage=voltage))
+events = c2api.generate_events(API_KEY, site, start, end, period, voltage, max_rate)
+
 
 # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------
 sch = EarliestDeadlineFirstAlgo(increment=1)
