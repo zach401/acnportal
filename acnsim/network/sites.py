@@ -1,11 +1,18 @@
 from . import ChargingNetwork
-from .constraint_set import ConstraintSet
 from .constraint_set import Current
 from acnsim.models.evse import get_EVSE_by_type
 import math
 
 
 class CaltechACN(ChargingNetwork):
+    """ Predefined ChargingNetwork for the Caltech ACN.
+
+    Args:
+        basic_evse (bool): If True use BASIC EVSE type instead of actual AeroViroment and ClipperCreek types.
+
+    Attributes:
+        See ChargingNetwork for Attributes.
+    """
     def __init__(self, basic_evse=False):
         super().__init__()
 

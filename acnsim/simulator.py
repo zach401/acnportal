@@ -5,10 +5,6 @@ from .events import UnplugEvent
 from .interface import Interface
 
 
-class InvalidScheduleError(Exception):
-    pass
-
-
 class Simulator:
     """ Central class of the acnsim package.
 
@@ -173,6 +169,11 @@ class Simulator:
             self.charging_rates[station_id].append(rate)
             agg += rate
         self.peak = max(self.peak, agg)
+
+
+class InvalidScheduleError(Exception):
+    """ Raised when the schedule passed to the simulator is invalid. """
+    pass
 
 
 def _overwrite_at_index(i, prev_list, new_list):

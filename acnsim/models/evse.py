@@ -27,10 +27,12 @@ def get_EVSE_by_type(station_id, evse_type):
 
 
 class InvalidRateError(Exception):
+    """ Raised when an invalid pilot signal is passed to an EVSE. """
     pass
 
 
 class StationOccupiedError(Exception):
+    """ Raised when a plugin event is called for an EVSE that already has an EV attached. """
     pass
 
 
