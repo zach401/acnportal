@@ -20,7 +20,7 @@ class C2Client(object):
         self.token = api_token
         self.url = url
 
-    def get_sessions(self, site, cond=None):
+    def get_sessions(self, site, cond=None, project=None, sort=None):
         """ Generator to return sessions from the C2 dataset one at a time.
 
         Args:
@@ -39,9 +39,18 @@ class C2Client(object):
             raise ValueError("Invalid site name. Must be either 'caltech' or 'jpl'")
 
         endpoint = 'sessions/' + site
-        conditions = '?where={0}'.format(cond) if cond is not None else ''
-        sort = '&sort=connectionTime'
-        r = requests.get(self.url + endpoint + conditions + sort, auth=(self.token, ''))
+        args = []
+        if cond is not None:
+            args.append('where={0}'.format(cond))
+        if project is not None:
+            args.append('project={0}'.format(project))
+        if sort is not None:
+            args.append('sort={0}'.format(sort))
+        args.append('limit=100')
+        query_string = '?' + '&'.join(args) if len(args) > 0 else ''
+        # conditions = '?where={0}'.format(cond) if cond is not None else ''
+        # sort = '&sort=connectionTime'
+        r = requests.get(self.url + endpoint + query_string, auth=(self.token, ''))
         payload = r.json()
         while True:
             for s in payload['_items']:
@@ -53,10 +62,11 @@ class C2Client(object):
             else:
                 break
 
-    def get_sessions_by_time(self, site, start, end, min_energy=0):
+    def get_sessions_by_time(self, site, start=None, end=None, min_energy=None):
         """ Wrapper for get_sessions with condition based on start and end times and a minimum energy delivered.
 
         Args:
+            site (str): Site where data should be gathered.
             start (datetime): Only return sessions which began after start.
             end (datetime): Only return session which began before end.
             min_energy (float): Only return sessions where the kWhDelivered is greater than or equal to min_energy.
@@ -67,9 +77,14 @@ class C2Client(object):
         Raises:
             See get_sessions.
         """
-        start_str = http_date(start)
-        end_str = http_date(end)
-        cond = 'connectionTime >= "{0}" and connectionTime <= "{1}" and kWhDelivered > {2}'.format(start_str,
-                                                                                                   end_str,
-                                                                                                   min_energy)
-        return self.get_sessions(site, cond)
+        start_str = http_date(start) if start is not None else None
+        end_str = http_date(end) if end is not None else None
+        cond = []
+        if start is not None:
+            cond.append('connectionTime >= "{0}"'.format(http_date(start)))
+        if end is not None:
+            cond.append('connectionTime <= "{0}"'.format(http_date(end)))
+        if min_energy is not None:
+            cond.append('kWhDelivered > {0}'.format(min_energy))
+        condition = ' and '.join(cond)
+        return self.get_sessions(site, condition, sort='connectionTime')
