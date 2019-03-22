@@ -1,7 +1,7 @@
-ACN-Sim Tutorials
-=================
-ACN-Sim is a simulation environment for large-scale EV charging research.
+Tutorials
+=========
+Tutorials for getting started with the ACN Research Portal.
 
 .. toctree::
-    lesson1
-    lesson2
+    c2client/index
+    acnsim/index
