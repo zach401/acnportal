@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'ACN-Sim'
+project = 'ACN Research Portal'
 copyright = '2019, Caltech'
 author = 'Zachary Lee, Daniel Johansson'
 
