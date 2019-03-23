@@ -1,4 +1,4 @@
 Analysis
 ========
-.. automodule:: acnsim.analysis
+.. automodule:: acnportal.acnsim.analysis
         :members:
