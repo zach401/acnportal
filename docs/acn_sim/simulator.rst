@@ -1,6 +1,6 @@
 Simulator
 =========
-.. autoclass:: acnsim.simulator.Simulator
+.. autoclass:: acnportal.acnsim.simulator.Simulator
     :members:
 
-.. autoexception:: acnsim.simulator.InvalidScheduleError
+.. autoexception:: acnportal.acnsim.simulator.InvalidScheduleError

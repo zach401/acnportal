@@ -3,15 +3,15 @@ Models
 
 Battery
 -------
-.. automodule:: acnsim.models.battery
+.. automodule:: acnportal.acnsim.models.battery
         :members:
 
 EV
 --
-.. automodule:: acnsim.models.ev
+.. automodule:: acnportal.acnsim.models.ev
         :members:
 
 EVSE
 ----
-.. automodule:: acnsim.models.evse
+.. automodule:: acnportal.acnsim.models.evse
         :members:

@@ -5,5 +5,3 @@ and analysis. This tutorials will walk you through using the dataset API and the
 from this dataset.
 
 .. toctree::
-    lesson1
-    lesson2

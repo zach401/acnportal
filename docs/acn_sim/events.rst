@@ -1,13 +1,16 @@
 Events
 ======
-.. autoclass:: acnsim.events.EventQueue
+.. autoclass:: acnportal.acnsim.events.EventQueue
     :members:
 
-.. autoclass:: acnsim.events.Event
+.. autoclass:: acnportal.acnsim.events.Event
     :members:
 
-.. autoclass:: acnsim.events.PluginEvent
+.. autoclass:: acnportal.acnsim.events.PluginEvent
     :members:
 
-.. autoclass:: acnsim.events.RecomputeEvent
+.. autoclass:: acnportal.acnsim.events.UnplugEvent
+    :members:
+
+.. autoclass:: acnportal.acnsim.events.RecomputeEvent
     :members:

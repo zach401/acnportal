@@ -1,22 +1,22 @@
 Network
 =======
 
-.. autoclass:: acnsim.network.ChargingNetwork
+.. autoclass:: acnportal.acnsim.network.ChargingNetwork
     :members:
 
-.. autoclas:: acnsim.network.ConstraintSet
+.. autoclass:: acnportal.acnsim.network.ConstraintSet
     :members:
 
-.. autoclass:: acnsim.network.Constraint
+.. autoclass:: acnportal.acnsim.network.Constraint
     :members:
 
-.. autoclass:: acnsim.network.Current
+.. autoclass:: acnportal.acnsim.network.Current
     :members:
 
-.. autoexception:: acnsim.network.StationOccupiedError
+.. autoexception:: acnportal.acnsim.network.StationOccupiedError
+
 
 Sites
 *****
-.. autoclass:: acnsim.network.sites.CaltechACN
+.. autoclass:: acnportal.acnsim.network.sites.CaltechACN
     :members:
-
