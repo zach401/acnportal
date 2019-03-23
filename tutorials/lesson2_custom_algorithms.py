@@ -94,7 +94,7 @@ from acnportal.algorithms import SortedSchedulingAlgo
 from acnportal.algorithms import earliest_deadline_first
 from acnportal.acnsim.events import c2api
 from acnportal.acnsim.network.sites import CaltechACN
-from acnsim.analysis import *
+from acnportal.acnsim.analysis import *
 from acnportal.acnsim import Simulator
 
 # Now that we have implemented our algorithm, we can try it out using the same experiment setup as in lesson 1.
