@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from acnportal.acnsim import Simulator
 from acnportal.acnsim.network.sites import CaltechACN
 from acnportal.acnsim.events import c2api
-from acnsim.analysis import *
+from acnportal.acnsim.analysis import *
 from acnportal.algorithms import UncontrolledCharging
 
 # -- Experiment Parameters ---------------------------------------------------------------------------------------------
