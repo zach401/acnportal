@@ -128,7 +128,7 @@ class Linear2StageBattery(NoisyBattery):
             if self._noise_level > 0:
                 charge_rate -= abs(np.random.normal(0, self._noise_level))
         else:
-            charge_rate = min(pilot, ((1 - self._soc) / 0.2) * self.max_rate)
+            charge_rate = min(pilot, ((1 - self._soc) / (1 - self._transition_soc) * self.max_rate))
             if self._noise_level > 0:
                 charge_rate += np.random.normal(0, self._noise_level)
             charge_rate = min([charge_rate, pilot, self.max_rate])
