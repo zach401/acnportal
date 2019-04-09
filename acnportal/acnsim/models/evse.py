@@ -145,6 +145,30 @@ class EVSE:
         self._current_pilot = 0
 
 
+class DeadbandEVSE(EVSE):
+    """ Subclass of EVSE which enforces the J1772 deadband between 0 - 6 A.
+
+    Most functionality remains the same except for a new _valid_rate function.
+
+    """
+
+    def __init__(self, station_id, deadband_end=6, max_rate=float('inf'), min_rate=0):
+        super().__init__(station_id, max_rate, min_rate)
+        self._deadband_end = deadband_end
+
+    def _valid_rate(self, pilot, atol=1e-3):
+        """ Overrides super class method. Disallows rates between 0 - 6 A as per the J1772 standard.
+
+        Args:
+            pilot: Proposed pilot signal.
+            atol: Absolute tolerance used when determining if a pilot belongs to the allowable rates set.
+
+        Returns:
+            bool: True if the proposed pilot signal is valid. False otherwise.
+        """
+        return np.isclose(pilot, 0, atol) or pilot > self._deadband_end
+
+
 class FiniteRatesEVSE(EVSE):
     """ Subclass of EVSE which allows for finite allowed rate sets.
 

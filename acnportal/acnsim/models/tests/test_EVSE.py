@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import create_autospec
 
 from acnportal.acnsim.models import EV
-from acnportal.acnsim.models import EVSE, FiniteRatesEVSE, InvalidRateError, StationOccupiedError
+from acnportal.acnsim.models import EVSE, DeadbandEVSE, FiniteRatesEVSE, InvalidRateError, StationOccupiedError
 
 
 class TestEVSE(TestCase):
@@ -48,6 +48,21 @@ class TestEVSE(TestCase):
     def test_set_pilot_no_ev_negative_rate(self):
         with self.assertRaises(InvalidRateError):
             self.evse.set_pilot(-1)
+
+
+class TestDeadbandEVSE(TestEVSE):
+    def setUp(self):
+        self.evse = DeadbandEVSE('0001', 6, max_rate=8, min_rate=0)
+
+    def test_set_pilot_has_ev_invalid_rate(self):
+        ev = create_autospec(EV)
+        self.evse.plugin(ev)
+        with self.assertRaises(InvalidRateError):
+            self.evse.set_pilot(5)
+
+    def test_set_pilot_no_ev_invalid_rate(self):
+        with self.assertRaises(InvalidRateError):
+            self.evse.set_pilot(5)
 
 
 class TestFiniteRatesEVSE(TestEVSE):
