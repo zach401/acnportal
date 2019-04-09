@@ -41,7 +41,7 @@ class EVSE:
 
     This base class allows for charging in a continuous range from min_rate to max_rate.
 
-    Attributes;
+    Args:
         station_id (str): Unique identifier of the EVSE.
         ev (EV): EV currently connected the the EVSE.
         max_rate (float): Maximum charging current allowed by the EVSE.
@@ -57,22 +57,27 @@ class EVSE:
 
     @property
     def station_id(self):
+        """ Return unique identifier of the EVSE. (str) """
         return self._station_id
 
     @property
     def ev(self):
+        """ Return EV currently connected the the EVSE. (EV) """
         return self._ev
 
     @property
     def max_rate(self):
+        """ Return maximum charging current allowed by the EVSE. (float) """
         return self._max_rate
 
     @property
     def min_rate(self):
+        """ Return minimum charging current allowed by the EVSE. (float) """
         return self._min_rate
 
     @property
     def current_pilot(self):
+        """ Return pilot signal for the current time step. (float)"""
         return self._current_pilot
 
     def set_pilot(self, pilot):
