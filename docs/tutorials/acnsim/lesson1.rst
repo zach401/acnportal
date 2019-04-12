@@ -16,14 +16,14 @@ We begin with the necessary package imports. ::
 
     from acnportal.acnsim import Simulator
     from acnportal.acnsim.network.sites import CaltechACN
-    from acnportal.acnsim.events import c2api
+    from acnportal.acnsim.events import acndata_events
     from acnsim.analysis import *
     from acnportal.algorithms import UncontrolledCharging
 
 Experiment Parameters
 *********************
 
-Next we need to define some parameters of the experiment. We define these at the begining of the file so they can be
+Next we need to define some parameters of the experiment. We define these at the beginning of the file so they can be
 used consistently when setting up the simulation. ::
 
     # Timezone of the ACN we are using.
@@ -60,14 +60,14 @@ Events
 Events are what drive action in the simulator. Events are stored in an EventQueue. This queue can be built manually by
 creating an Event object and using the add_event() or add_events() methods, or can be generated automatically.
 
-In this case we will use c2api.generate_events() which is part of the events subpackage. c2api provides utilities for
+In this case we will use acndata_events.generate_events() which is part of the events subpackage. acndata_events provides utilities for
 generating events from the Caltech Charging Dataset. These events are based on real behavior of users charging actual
 EVs, so it is extremely valuable for running realistic simulations. In order to access the API we need a *token*. For
 now we can use the demo token, but it is *highly recomended* that you register for your own free token at
 ev.caltech.edu. ::
 
     API_KEY = 'DEMO_TOKEN'
-    events = c2api.generate_events(API_KEY, site, start, end, period, voltage, max_rate)
+    events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, max_rate)
 
 Scheduling Algorithm
 ********************

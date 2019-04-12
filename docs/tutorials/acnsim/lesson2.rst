@@ -144,7 +144,7 @@ implementation of the earliest deadline first algorithm. ::
 
     from acnportal.algorithms import SortedSchedulingAlgo
     from acnportal.algorithms import earliest_deadline_first
-    from acnportal.acnsim.events import c2api
+    from acnportal.acnsim.events import acndata_events
     from acnportal.acnsim.network.sites import CaltechACN
     from acnsim.analysis import *
     from acnportal.acnsim import Simulator
@@ -164,7 +164,7 @@ implementation of the earliest deadline first algorithm. ::
 
     # -- Events ------------------------------------------------------------------------------------------------------------
     API_KEY = 'DEMO_TOKEN'
-    events = c2api.generate_events(API_KEY, site, start, end, period, voltage, max_rate)
+    events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, max_rate)
 
 
     # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------
