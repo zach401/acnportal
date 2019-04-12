@@ -3,12 +3,12 @@ from datetime import datetime
 from .utils import parse_dates, http_date
 
 
-class C2Client(object):
-    """ API client for the Caltech Charging (C2) Dataset.
+class DataClient(object):
+    """ API client for acndata.
 
     Args:
-        api_token (str): API token needed to access the Caltech Charging (C2) API.
-        url (str): Base url for all API calls. Defaults to the standard C2 API url.
+        api_token (str): API token needed to access the acndata API.
+        url (str): Base url for all API calls. Defaults to the standard acndata API url.
 
     Attributes:
         token (str): See api_token in Args.
@@ -21,11 +21,11 @@ class C2Client(object):
         self.url = url
 
     def get_sessions(self, site, cond=None, project=None, sort=None):
-        """ Generator to return sessions from the C2 dataset one at a time.
+        """ Generator to return sessions from the acndata dataset one at a time.
 
         Args:
             site (str): ACN ID from which data should be gathered.
-            token (str): API token needed to access the Caltech Charging (C2) API.
+            token (str): API token needed to access the acndata API.
             cond (str): String of conditions. See API reference for the where parameter.
 
         Yields:
@@ -48,8 +48,6 @@ class C2Client(object):
             args.append('sort={0}'.format(sort))
         args.append('limit=100')
         query_string = '?' + '&'.join(args) if len(args) > 0 else ''
-        # conditions = '?where={0}'.format(cond) if cond is not None else ''
-        # sort = '&sort=connectionTime'
         r = requests.get(self.url + endpoint + query_string, auth=(self.token, ''))
         payload = r.json()
         while True:

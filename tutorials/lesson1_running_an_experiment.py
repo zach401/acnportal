@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 from acnportal.acnsim import Simulator
 from acnportal.acnsim.network.sites import CaltechACN
-from acnportal.acnsim.events import c2api
+from acnportal.acnsim.events import acndata_events
 from acnportal.acnsim.analysis import *
 from acnportal.algorithms import UncontrolledCharging
 
@@ -54,9 +54,9 @@ cn = CaltechACN(basic_evse=True)
 # want to register for your own free API token at ev.caltech.edu/dataset.html.
 API_KEY = 'DEMO_TOKEN'
 
-# An EventQueue is a special container which stores the events for the simulation. In this case we use the c2api utility
-# to pre-fill the event queue based on real events in the Caltech Charging Dataset.
-events = c2api.generate_events(API_KEY, site, start, end, period, voltage, max_rate)
+# An EventQueue is a special container which stores the events for the simulation. In this case we use the
+# acndata_events utility to pre-fill the event queue based on real events in the Caltech Charging Dataset.
+events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, max_rate)
 
 
 # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------
