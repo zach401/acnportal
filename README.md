@@ -2,7 +2,7 @@
 
 The ACN Portal is a suite research tools developed at Caltech to accelerate the pace of large-scale EV charging research. 
 
-### c2client
+### acndata
 The Caltech Charging (C2) Dataset is a collection of EV charging sessions collected at Caltech and NASA's Jet Propulsion Laboratory (JPL). This basic Python client simplifies the process of pulling data from his dataset via its public API.
 
 ### acnsim
