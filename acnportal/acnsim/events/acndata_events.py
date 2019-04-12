@@ -5,17 +5,17 @@ from ..models.ev import EV
 from ..models.battery import Battery
 from . import PluginEvent
 from .event_queue import EventQueue
-from acnportal.c2client import C2Client
+from acnportal.acndata import DataClient
 
 
 def generate_events(token, site, start, end, period, voltage, max_rate, **kwargs):
-    """ Return EventQueue filled using events gathered from the Caltech Charging (C2) API.
+    """ Return EventQueue filled using events gathered from the acndata API.
 
     Args:
         See get_evs().
 
     Returns:
-        EventQueue: An EventQueue filled with Events gathered through the C2 API.
+        EventQueue: An EventQueue filled with Events gathered through the acndata API.
 
     """
     evs = get_evs(token, site, start, end, period, voltage, max_rate, **kwargs)
@@ -25,10 +25,10 @@ def generate_events(token, site, start, end, period, voltage, max_rate, **kwargs
 
 def get_evs(token, site, start, end, period, voltage, max_rate, max_len=None, battery_params=None,
             force_feasible=False):
-    """ Return a list of EVs gathered from the Caltech Charging (C2) API.
+    """ Return a list of EVs gathered from the acndata API.
 
     Args:
-        token (str): API token needed to access the Caltech Charging (C2) API.
+        token (str): API token needed to access the acndata API.
         site (str): ACN id for the site where data should be gathered.
         start (datetime): Only return sessions which began after start.
         end (datetime): Only return session which began before end.
@@ -49,7 +49,7 @@ def get_evs(token, site, start, end, period, voltage, max_rate, max_len=None, ba
     Returns:
 
     """
-    client = C2Client(token)
+    client = DataClient(token)
     docs = client.get_sessions_by_time(site, start, end)
     evs = []
     offset = _datetime_to_timestamp(start, period)
@@ -59,15 +59,15 @@ def get_evs(token, site, start, end, period, voltage, max_rate, max_len=None, ba
 
 
 def _convert_to_ev(d, offset, period, voltage, max_rate, max_len=None, battery_params=None, force_feasible=False):
-    """ Convert a json document for a single charging session from C2 into an EV object.
+    """ Convert a json document for a single charging session from acndata into an EV object.
 
     Args:
-        d (dict): Session expressed as a dictionary. See C2 API for more details.
+        d (dict): Session expressed as a dictionary. See acndata API for more details.
         offset (int): Simulation timestamp of the beginning of the simulation.
         See get_evs() for additional args.
 
     Returns:
-        EV: EV object with data from the C2 session doc.
+        EV: EV object with data from the acndata session doc.
     """
     arrival = _datetime_to_timestamp(d['connectionTime'], period) - offset
     departure = _datetime_to_timestamp(d['disconnectTime'], period) - offset
