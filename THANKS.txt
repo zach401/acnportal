@@ -1,0 +1,8 @@
+The acnportal team would like to thank:
+
+The National Science Foundation (NSF) for support under:
+    - Graduate Research Fellowship Program (Grant No. 1745301)
+    - AIR-TT (Grant No. 1602119)
+    - CTT    (Grand No. 1637598)
+
+PowerFlex Systems for support of data collection, system level insights, and architecture modeling.
