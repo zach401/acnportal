@@ -42,6 +42,28 @@ class ConstraintSet:
             name = '_const_{0}'.format(len(self.constraints))
         self.constraints.append(Constraint(current, limit, name))
 
+    def constraint_current(self, constraint, load_currents, t=0, linear=False):
+        """ Return the current subject to the given constraint.
+
+        Args:
+            constraint (Constraint): Constraint object describing the current.
+            load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
+            t (int): Index into the charging rate schedule where feasibility should be checked.
+            linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
+                ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
+
+        Returns:
+            complex: Current subject to the given constraint.
+        """
+        acc = 0
+        for load_id in constraint.loads:
+            if load_id in load_currents:
+                if linear:
+                    acc += abs(constraint.loads[load_id]) * load_currents[load_id][t]
+                else:
+                    acc += cmath.rect(constraint.loads[load_id] * load_currents[load_id][t], self.angles[load_id])
+        return complex(acc)
+
     def is_feasible(self, load_currents, t=0, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.
 
@@ -55,14 +77,8 @@ class ConstraintSet:
             bool: If load_currents is feasible at time t according to this constraint set.
         """
         for constraint in self.constraints:
-            acc = 0
-            for load_id in constraint.loads:
-                if load_id in load_currents:
-                    if linear:
-                        acc += abs(constraint.loads[load_id]) * load_currents[load_id][t]
-                    else:
-                        acc += cmath.rect(constraint.loads[load_id] * load_currents[load_id][t], self.angles[load_id])
-            if abs(acc) > constraint.limit:
+            mag = self.constraint_current(constraint, load_currents, t, linear)
+            if abs(mag) > constraint.limit:
                 return False
         return True
 
