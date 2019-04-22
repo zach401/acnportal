@@ -42,10 +42,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.imgmath',
-    'sphinx.ext.githubpages'
+    'nbsphinx_link'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
