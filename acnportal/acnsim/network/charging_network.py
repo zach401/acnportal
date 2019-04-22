@@ -9,12 +9,12 @@ class ChargingNetwork:
 
     def __init__(self):
         self._EVSEs = {}
-        self._constraint_set = ConstraintSet()
+        self.constraint_set = ConstraintSet()
         pass
 
     @property
     def current_charging_rates(self):
-        """ Return the current actualy charging rate of all EVSEs in the network.
+        """ Return the current actual charging rate of all EVSEs in the network.
 
         Returns:
             Dict[str, number]: Dictionary mapping station_id to the current actual charging rate of the EV attached to
@@ -71,21 +71,21 @@ class ChargingNetwork:
 
         Wraps ConstraintSet add_constraint method, see its description for more info.
         """
-        self._constraint_set.add_constraint(current, limit, name)
+        self.constraint_set.add_constraint(current, limit, name)
 
     def is_feasible(self, load_currents, t=0, linear=False):
         """ Return if a set of current magnitudes for each load are feasible at the given time, t.
 
         Wraps ConstraintSet is_feasible method, see its description for more info.
         """
-        return self._constraint_set.is_feasible(load_currents, t, linear)
+        return self.constraint_set.is_feasible(load_currents, t, linear)
 
     def register_load(self, name, angle):
         """ Register load in the constraint set. If load already exists, overwrite the stored angle with new angle.
 
         Wraps ConstraintSet register_load, see its description for more info.
         """
-        self._constraint_set.register_load(name, angle)
+        self.constraint_set.register_load(name, angle)
 
     def plugin(self, ev, station_id):
         """ Attach EV to a specific EVSE.
