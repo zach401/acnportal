@@ -20,7 +20,7 @@ def parse_http_date(ds, tz):
     :return: datetime object.
     :rtype: datetime
     """
-    return datetime.strptime(ds, '%a, %d %b %Y %H:%M:%S GMT').astimezone(tz)
+    return tz.localize(datetime.strptime(ds, '%a, %d %b %Y %H:%M:%S GMT'))
 
 
 def parse_dates(doc):

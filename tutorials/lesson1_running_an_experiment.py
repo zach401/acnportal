@@ -26,8 +26,8 @@ from acnportal.algorithms import UncontrolledCharging
 timezone = pytz.timezone('America/Los_Angeles')
 
 # Start and End times are used when collecting data.
-start = datetime(2018, 9, 5).astimezone(timezone)
-end = datetime(2018, 9, 6).astimezone(timezone)
+start = timezone.localize(datetime(2018, 9, 5))
+end = timezone.localize(datetime(2018, 9, 6))
 
 # How long each time discrete time interval in the simulation should be.
 period = 5  # minutes
