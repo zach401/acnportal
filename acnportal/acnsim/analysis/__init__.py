@@ -42,7 +42,6 @@ def constraint_currents(sim, constraint_ids=None):
     return currents
 
 
-
 def proportion_of_energy_delivered(sim):
     """ Calculate the percentage of total energy delivered over total energy requested.
 
