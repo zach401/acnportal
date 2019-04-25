@@ -103,8 +103,8 @@ from acnportal.acnsim import Simulator
 
 # -- Experiment Parameters ---------------------------------------------------------------------------------------------
 timezone = pytz.timezone('America/Los_Angeles')
-start = datetime(2018, 9, 5).astimezone(timezone)
-end = datetime(2018, 9, 6).astimezone(timezone)
+start = timezone.localize(datetime(2018, 9, 5))
+end = timezone.localize(datetime(2018, 9, 6))
 period = 5  # minute
 voltage = 220  # volts
 max_rate = 32 # amps
