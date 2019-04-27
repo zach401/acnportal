@@ -39,10 +39,10 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Returns:
             Dict[str, List[float]]: see BaseAlgorithm
         """
-        ev_queue = self._sort_fn(active_evs)
+        ev_queue = self._sort_fn(active_evs, self.interface)
         schedule = {ev.station_id: [0] for ev in active_evs}
         for ev in ev_queue:
-            charging_rate = self.max_feasible_rate(ev.station_id, ev.max_rate, schedule, eps=0.01)
+            charging_rate = self.max_feasible_rate(ev.station_id, self.interface.max_pilot_signal(ev.station_id), schedule, eps=0.01)
             schedule[ev.station_id][0] = charging_rate
         return schedule
 
@@ -116,9 +116,9 @@ class RoundRobin(SortedSchedulingAlgo):
         inc = 1
         while len(ev_queue) > 0:
             ev = ev_queue.popleft()
-            if schedule[ev.station_id][0] < min(ev.remaining_demand, ev.max_rate):
+            if schedule[ev.station_id][0] < min(ev.remaining_demand, self.interface.max_pilot_signal(ev.station_id)):
                 prev_rate = schedule[ev.station_id][0]
-                charging_rate = min([schedule[ev.station_id][0] + inc, ev.remaining_demand, ev.max_rate])
+                charging_rate = min([schedule[ev.station_id][0] + inc, ev.remaining_demand, self.interface.max_pilot_signal(ev.station_id)])
                 schedule[ev.station_id][0] = charging_rate
                 if self.interface.constraints.is_feasible(schedule):
                     ev_queue.append(ev)
@@ -128,7 +128,7 @@ class RoundRobin(SortedSchedulingAlgo):
 
 
 # -------------------- Sorting Functions --------------------------
-def first_come_first_served(evs):
+def first_come_first_served(evs, interface):
     """ Sort EVs by arrival time.
 
     Args:
@@ -140,7 +140,7 @@ def first_come_first_served(evs):
     return sorted(evs, key=lambda x: x.arrival)
 
 
-def earliest_deadline_first(evs):
+def earliest_deadline_first(evs, interface):
     """ Sort EVs by departure time.
 
     Args:
@@ -152,7 +152,7 @@ def earliest_deadline_first(evs):
     return sorted(evs, key=lambda x: x.departure)
 
 
-def least_laxity_first(evs):
+def least_laxity_first(evs, interface):
     """ Sort EVs by laxity.
 
     Laxity is a measure of the charging flexibility of an EV. Here we define laxity as:
@@ -174,7 +174,7 @@ def least_laxity_first(evs):
         Returns:
             float: The laxity of the EV.
         """
-        return (ev.departure - ev.arrival) - (ev.remaining_demand / ev.max_rate)
+        return (ev.departure - ev.arrival) - (ev.remaining_demand / interface.max_pilot_signal(ev.station_id))
 
     return sorted(evs, key=lambda x: laxity(x))
 

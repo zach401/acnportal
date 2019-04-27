@@ -7,13 +7,13 @@ class EV:
     Args:
         arrival (int): Arrival time of the ev. [periods]
         departure (int): Departure time of the ev. [periods]
-        requested_energy (float): Energy requested by the ev on arrival. [acnsim units]
+        requested_energy (float): Energy requested by the ev on arrival. [kWh]
         station_id (str): Identifier of the station used by this ev.
         session_id (str): Identifier of the session belonging to this ev.
         battery (Battery-like): Battery object to be used by the EV.
-        energy_delivered (float): Amount of energy delivered to the ev so far. [acnsim units]
-        current_charging_rate (float): Charging rate at the current time step. [acnsim units]
-        remaining_demand (float): Energy which still needs to be delivered to meet requested_energy. [acnsim units]
+        energy_delivered (float): Amount of energy delivered to the ev so far. [kWh]
+        current_charging_rate (float): Charging rate at the current time step. [A]
+        remaining_demand (float): Energy which still needs to be delivered to meet requested_energy. [kWh]
         fully_charged (bool): If the ev is fully charged.
         percent_remaining (float): remaining_demand as a percent of requested_energy.
     """
@@ -33,6 +33,7 @@ class EV:
         # Internal State
         self._battery = battery
         self._energy_delivered = 0
+        self._current_charging_rate = 0
 
     @property
     def arrival(self):
@@ -70,11 +71,6 @@ class EV:
         return self._requested_energy
 
     @property
-    def max_rate(self):
-        """ Return the maximum charging rate of the battery used by this EV. (float) """
-        return self._battery.max_rate
-
-    @property
     def session_id(self):
         """ Return the unique session identifier for this charging session. (str) """
         return self._session_id
@@ -92,7 +88,7 @@ class EV:
     @property
     def current_charging_rate(self):
         """ Return the current charging rate of the EV. (float) """
-        return self._battery.current_charging_rate
+        return self._current_charging_rate
 
     @property
     def remaining_demand(self):
@@ -114,17 +110,25 @@ class EV:
         Defined as the ratio of remaining demand and requested energy. """
         return self.remaining_demand / self.requested_energy
 
-    def charge(self, pilot):
+    @property
+    def maximum_charging_power(self):
+        """ Return the maximum charging power of the battery."""
+        return self._battery.max_charging_power
+
+    def charge(self, pilot, voltage, period):
         """ Method to "charge" the ev.
 
         Args:
-            pilot (float): Pilot signal pass to the ev.
+            pilot (float): Pilot signal passed to the battery. [A]
+            voltage (float): AC voltage provided to the battery charger. [V]
+            period (float): Length of the charging period. [minutes]
 
         Returns:
-            float: Actual charging rate of the ev.
+            float: Actual charging rate of the ev. [A]
         """
-        charge_rate = self._battery.charge(pilot)
+        charge_rate = self._battery.charge(pilot, voltage, period)
         self._energy_delivered += charge_rate
+        self._current_charging_rate = charge_rate
         return charge_rate
 
     def reset(self):

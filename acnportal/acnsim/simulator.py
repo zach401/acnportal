@@ -80,7 +80,7 @@ class Simulator:
                 self._last_schedule_update = self._iteration
                 self._resolve = False
             self._expand_pilots()
-            self.network.update_pilots(self.pilot_signals, self._iteration)
+            self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
 
