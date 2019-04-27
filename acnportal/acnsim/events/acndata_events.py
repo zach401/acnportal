@@ -23,7 +23,7 @@ def generate_events(token, site, start, end, period, voltage, max_rate, **kwargs
     return EventQueue(events)
 
 
-def get_evs(token, site, start, end, period, voltage, max_rate, max_len=None, battery_params=None,
+def get_evs(token, site, start, end, period, voltage, max_battery_power, max_len=None, battery_params=None,
             force_feasible=False):
     """ Return a list of EVs gathered from the acndata API.
 
@@ -34,7 +34,7 @@ def get_evs(token, site, start, end, period, voltage, max_rate, max_len=None, ba
         end (datetime): Only return session which began before end.
         period (int): Length of each time interval. (minutes)
         voltage (float): Voltage of the network.
-        max_rate (float): Default maximum charging rate in the network. Usually the rating of the EVSEs in the network.
+        max_battery_power (float): Default maximum charging power for batteries.
         max_len (int): Maximum length of a session. (periods) Default None.
         battery_params (Dict[str, object]): Dictionary containing parameters for the EV's battery. Three keys are
             supported. If none, Battery type is used with default configuration. Default None.
@@ -54,11 +54,12 @@ def get_evs(token, site, start, end, period, voltage, max_rate, max_len=None, ba
     evs = []
     offset = _datetime_to_timestamp(start, period)
     for d in docs:
-        evs.append(_convert_to_ev(d, offset, period, voltage, max_rate, max_len, battery_params, force_feasible))
+        evs.append(_convert_to_ev(d, offset, period, voltage, max_battery_power, max_len, battery_params, force_feasible))
     return evs
 
 
-def _convert_to_ev(d, offset, period, voltage, max_rate, max_len=None, battery_params=None, force_feasible=False):
+def _convert_to_ev(d, offset, period, voltage, max_battery_power, max_len=None, battery_params=None,
+                   force_feasible=False):
     """ Convert a json document for a single charging session from acndata into an EV object.
 
     Args:
@@ -74,10 +75,14 @@ def _convert_to_ev(d, offset, period, voltage, max_rate, max_len=None, battery_p
 
     if max_len is not None and departure - arrival > max_len:
         departure = arrival + max_len
-    requested_energy = d['kWhDelivered'] * 1000 * (60 / period) / voltage  # A*periods
+
+    # requested_energy = d['kWhDelivered'] * 1000 * (60 / period) / voltage  # A*periods
 
     if force_feasible:
-        requested_energy = min(requested_energy, max_rate * (departure - arrival))
+        delivered_energy = min(d['kWhDelivered'], max_battery_power * (departure - arrival) * (60 / period))
+    else:
+        delivered_energy = d['kWhDelivered']
+
     session_id = d['sessionID']
     station_id = d['spaceID']
 
@@ -85,13 +90,14 @@ def _convert_to_ev(d, offset, period, voltage, max_rate, max_len=None, battery_p
         battery_params = {'type': Battery}
     batt_kwargs = battery_params['kwargs'] if 'kwargs' in battery_params else {}
     if 'capacity_fn' in battery_params:
-        cap, init = battery_params['capacity_fn'](requested_energy, departure - arrival, voltage, period)
+        cap, init = battery_params['capacity_fn'](delivered_energy, departure - arrival, voltage, period)
     else:
-        cap = requested_energy
+        cap = delivered_energy
         init = 0
-    batt = battery_params['type'](cap, init, max_rate, **batt_kwargs)
+    batt = battery_params['type'](d['kWhDelivered'], init, max_battery_power, **batt_kwargs)
 
-    return EV(arrival, departure, requested_energy, station_id, session_id, batt)
+    delivered_energy_amp_periods = delivered_energy * 1000 * (60 / period) / voltage
+    return EV(arrival, departure, delivered_energy_amp_periods, station_id, session_id, batt)
 
 
 def _datetime_to_timestamp(dt, period, round_up=False):

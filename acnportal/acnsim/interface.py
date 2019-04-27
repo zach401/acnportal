@@ -2,6 +2,7 @@
 This module contains methods for directly interacting with the _simulator.
 """
 
+from collections import namedtuple
 
 class Interface:
     """ Interface between algorithms and the ACN Simulation Environment."""
@@ -62,16 +63,46 @@ class Interface:
         """
         return self._simulator.max_recompute
 
-    def get_allowable_pilot_signals(self, station_id):
+    def allowable_pilot_signals(self, station_id):
         """ Returns the allowable pilot signal levels for the specified EVSE.
 
         Args:
             station_id (str): The ID of the station for which the allowable rates should be returned.
 
         Returns:
-            List[number]: A list of the allowable pilot signal levels. Values are sorted in increasing order.
+            bool: If the range is continuous or not
+            list[float]: The sorted set of acceptable pilot signals. If continuous this range will have 2 values
+                the min and the max acceptable values.
         """
-        return self._simulator.network.EVSEs[station_id].allowable_rates
+        evse = self._simulator.network._EVSEs[station_id]
+        if evse.is_continuous:
+            rate_set = [evse.min_rate, evse.max_rate]
+        else:
+            rate_set = evse.allowable_rates
+        return evse.is_continuous, rate_set
+
+    def max_pilot_signal(self, station_id):
+        """ Returns the maximum allowable pilot signal level for the specified EVSE.
+
+        Args:
+            station_id (str): The ID of the station for which the allowable rates should be returned.
+
+        Returns:
+            float: the maximum pilot signal supported by this EVSE.
+        """
+        return self._simulator.network._EVSEs[station_id].max_rate
+
+
+    def min_pilot_signal(self, station_id):
+        """ Returns the minimum allowable pilot signal level for the specified EVSE.
+
+        Args:
+            station_id (str): The ID of the station for which the allowable rates should be returned.
+
+        Returns:
+            float: the minimum pilot signal supported by this EVSE.
+        """
+        return self._simulator.network._EVSEs[station_id].min_rate
 
     def is_feasible(self, load_currents, t=0, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.

@@ -11,14 +11,14 @@ class TestChargingNetwork(TestCase):
         self.network = ChargingNetwork()
 
     def test_register_evse(self):
-        evse = EVSE('PS-001')
+        evse = EVSE('PS-001', voltage=240)
         self.network.register_evse(evse)
         self.assertIn('PS-001', self.network._EVSEs)
         self.assertIs(self.network._EVSEs['PS-001'], evse)
 
     # noinspection PyUnresolvedReferences
     def test_plugin_station_exists(self):
-        evse = EVSE('PS-001')
+        evse = EVSE('PS-001', voltage=240)
         evse.plugin = Mock(evse.plugin)
         self.network.register_evse(evse)
         ev = create_autospec(EV)
@@ -32,7 +32,7 @@ class TestChargingNetwork(TestCase):
             self.network.plugin(ev, 'PS-001')
 
     def test_unplug_station_exists(self):
-        evse = EVSE('PS-001')
+        evse = EVSE('PS-001', voltage=240)
         evse.unplug = Mock(evse.unplug)
         self.network.register_evse(evse)
         self.network.unplug('PS-001')
@@ -43,7 +43,7 @@ class TestChargingNetwork(TestCase):
             self.network.unplug('PS-001')
 
     def test_get_ev_station_exists(self):
-        evse = EVSE('PS-001')
+        evse = EVSE('PS-001', voltage=240)
         ev = Mock(EV)
         evse.plugin(ev)
         self.network.register_evse(evse)

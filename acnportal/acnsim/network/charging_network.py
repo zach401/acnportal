@@ -137,7 +137,7 @@ class ChargingNetwork:
         else:
             raise KeyError('Station {0} not found.'.format(station_id))
 
-    def update_pilots(self, pilots, i):
+    def update_pilots(self, pilots, i, period):
         """ Update the pilot signal sent to each EV. Also triggers the EVs to charge at the specified rate.
 
         Note that if a pilot is not sent to an EVSE the associated EV WILL NOT charge during that period.
@@ -147,8 +147,9 @@ class ChargingNetwork:
 
         Args:
             pilots (Dict[str, List[number]]): Dictionary mapping station_ids to lists of pilot signals. Each index in
-                the array corresponds to an a period of the simulation.
+                the array corresponds to an a period of the simulation. [A]
             i (int): Current time index of the simulation.
+            period (float): Length of the charging period. [minutes]
 
         Returns:
             None
@@ -158,7 +159,7 @@ class ChargingNetwork:
                 new_rate = pilots[station_id][i]
             else:
                 new_rate = 0
-            self._EVSEs[station_id].set_pilot(new_rate)
+            self._EVSEs[station_id].set_pilot(new_rate, period)
 
 
 class StationOccupiedError(Exception):
