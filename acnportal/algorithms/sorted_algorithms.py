@@ -156,7 +156,7 @@ def least_laxity_first(evs, interface):
     """ Sort EVs by laxity.
 
     Laxity is a measure of the charging flexibility of an EV. Here we define laxity as:
-        LAX_i = (departure_i - arrival_i) - (remaining_demand_i / max_rate_i)
+        LAX_i(t) = (departure_i - t) - (remaining_demand_i(t) / max_rate_i)
 
     Args:
         evs (List[EV]): List of EVs to be sorted.
@@ -174,7 +174,8 @@ def least_laxity_first(evs, interface):
         Returns:
             float: The laxity of the EV.
         """
-        return (ev.departure - ev.arrival) - (ev.remaining_demand / interface.max_pilot_signal(ev.station_id))
+        return (ev.departure - interface.current_time()) - \
+               (ev.remaining_demand / interface.max_pilot_signal(ev.station_id))
 
     return sorted(evs, key=lambda x: laxity(x))
 
