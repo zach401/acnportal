@@ -52,6 +52,10 @@ class Simulator:
         self._resolve = False
         self._last_schedule_update = 0
 
+    @property
+    def iteration(self):
+        return self._iteration
+
     def run(self):
         """ Run the simulation until the event queue is empty.
 

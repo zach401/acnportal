@@ -2,7 +2,6 @@
 This module contains methods for directly interacting with the _simulator.
 """
 
-from collections import namedtuple
 
 class Interface:
     """ Interface between algorithms and the ACN Simulation Environment."""
@@ -91,7 +90,6 @@ class Interface:
             float: the maximum pilot signal supported by this EVSE.
         """
         return self._simulator.network._EVSEs[station_id].max_rate
-
 
     def min_pilot_signal(self, station_id):
         """ Returns the minimum allowable pilot signal level for the specified EVSE.
