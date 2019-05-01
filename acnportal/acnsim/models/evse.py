@@ -5,19 +5,18 @@ AV = 'AeroVironment'
 CC = 'ClipperCreek'
 
 
-def get_evse_by_type(station_id, evse_type, voltage):
+def get_evse_by_type(station_id, evse_type):
     """ Factory to produce EVSEs of a given type.
 
     Args:
         station_id (str): Unique identifier of the EVSE.
         evse_type (str): Type of the EVSE. Currently supports 'BASIC', 'AeroVironment', and 'ClipperCreek'.
-        voltage (float): Voltage at the EVSE.
 
     Returns:
         EVSE: an EVSE of the specified type and with the specified id.
     """
     if evse_type == BASIC:
-        return EVSE(station_id, voltage, max_rate=32)
+        return EVSE(station_id, max_rate=32)
     elif evse_type == AV:
         allowable_rates = [0]
         allowable_rates.extend(i for i in range(6, 33))
@@ -49,10 +48,9 @@ class EVSE:
         min_rate (float): Minimum charging current allowed by the EVSE.
         current_pilot (float): Pilot signal for the current time step. [acnsim units]
     """
-    def __init__(self, station_id, voltage, max_rate=float('inf'), min_rate=0):
+    def __init__(self, station_id, max_rate=float('inf'), min_rate=0):
         self._station_id = station_id
         self._ev = None
-        self._voltage = voltage
         self._max_rate = max_rate
         self._min_rate = min_rate
         self._current_pilot = 0
@@ -69,16 +67,6 @@ class EVSE:
         return self._ev
 
     @property
-    def voltage(self):
-        """ Return voltage at the EVSE."""
-        return self._voltage
-
-    @voltage.setter
-    def voltage(self, val):
-        """ Set voltage at the EVSE."""
-        self._voltage = val
-
-    @property
     def max_rate(self):
         """ Return maximum charging current allowed by the EVSE. (float) """
         return self._max_rate
@@ -93,7 +81,7 @@ class EVSE:
         """ Return pilot signal for the current time step. (float)"""
         return self._current_pilot
 
-    def set_pilot(self, pilot, period):
+    def set_pilot(self, pilot, voltage, period):
         """ Apply a new pilot signal to the EVSE.
 
         Before applying the new pilot, this method first checks if the pilot is allowed. If it is not, an
@@ -115,7 +103,7 @@ class EVSE:
         if self._valid_rate(pilot):
             self._current_pilot = pilot
             if self._ev is not None:
-                self._ev.charge(pilot, self.voltage, period)
+                self._ev.charge(pilot, voltage, period)
         else:
             raise InvalidRateError('Pilot {0} A is not valid for for station {1}'.format(pilot, self.station_id))
 

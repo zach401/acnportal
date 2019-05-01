@@ -10,6 +10,8 @@ class ChargingNetwork:
     def __init__(self):
         self._EVSEs = {}
         self.constraint_set = ConstraintSet()
+        self._voltages = {}
+        self._phase_angles = {}
         pass
 
     @property
@@ -55,16 +57,20 @@ class ChargingNetwork:
         """
         return [evse.station_id for evse in self._EVSEs.values() if evse.ev is not None and not evse.ev.fully_charged]
 
-    def register_evse(self, evse):
+    def register_evse(self, evse, voltage, phase_angle):
         """ Register an EVSE with the network so it will be accessible to the rest of the simulation.
 
         Args:
             evse (EVSE): An EVSE object.
+            voltage (float): Voltage feeding the EVSE (V).
+            phase_angle (float): Phase angle of the voltage/current feeding the EVSE (degrees).
 
         Returns:
             None
         """
         self._EVSEs[evse.station_id] = evse
+        self._voltages[evse.station_id] = voltage
+        self._phase_angles[evse.station_id] = phase_angle
 
     def add_constraint(self, current, limit, name=None):
         """ Add constraint to the network's constraint set.
@@ -78,14 +84,7 @@ class ChargingNetwork:
 
         Wraps ConstraintSet is_feasible method, see its description for more info.
         """
-        return self.constraint_set.is_feasible(load_currents, t, linear)
-
-    def register_load(self, name, angle):
-        """ Register load in the constraint set. If load already exists, overwrite the stored angle with new angle.
-
-        Wraps ConstraintSet register_load, see its description for more info.
-        """
-        self.constraint_set.register_load(name, angle)
+        return self.constraint_set.is_feasible(load_currents, self._phase_angles, t, linear)
 
     def plugin(self, ev, station_id):
         """ Attach EV to a specific EVSE.
@@ -159,7 +158,7 @@ class ChargingNetwork:
                 new_rate = pilots[station_id][i]
             else:
                 new_rate = 0
-            self._EVSEs[station_id].set_pilot(new_rate, period)
+            self._EVSEs[station_id].set_pilot(new_rate, self._voltages[station_id], period)
 
 
 class StationOccupiedError(Exception):
