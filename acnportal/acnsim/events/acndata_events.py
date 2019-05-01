@@ -96,8 +96,8 @@ def _convert_to_ev(d, offset, period, voltage, max_battery_power, max_len=None, 
         init = 0
     batt = battery_params['type'](d['kWhDelivered'], init, max_battery_power, **batt_kwargs)
 
-    delivered_energy_amp_periods = delivered_energy * 1000 * (60 / period) / voltage
-    return EV(arrival, departure, delivered_energy_amp_periods, station_id, session_id, batt)
+    # delivered_energy_amp_periods = delivered_energy * 1000 * (60 / period) / voltage
+    return EV(arrival, departure, delivered_energy, station_id, session_id, batt)
 
 
 def _datetime_to_timestamp(dt, period, round_up=False):

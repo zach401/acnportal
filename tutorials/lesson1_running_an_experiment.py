@@ -36,7 +36,7 @@ period = 5  # minutes
 voltage = 220  # volts
 
 # Default maximum charging rate for each EV battery.
-default_battery_power = 32 * voltage  # kW
+default_battery_power = 32 * voltage / 1000 # kW
 
 # Identifier of the site where data will be gathered.
 site = 'caltech'

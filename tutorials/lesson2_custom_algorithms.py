@@ -107,7 +107,7 @@ start = timezone.localize(datetime(2018, 9, 5))
 end = timezone.localize(datetime(2018, 9, 6))
 period = 5  # minute
 voltage = 220  # volts
-default_battery_power = 32 * voltage  # kW
+default_battery_power = 32 * voltage / 1000 # kW
 site = 'caltech'
 
 # -- Network -----------------------------------------------------------------------------------------------------------
