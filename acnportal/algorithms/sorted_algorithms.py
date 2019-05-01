@@ -47,7 +47,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         return schedule
 
     def max_feasible_rate(self, station_id, ub, schedule, time=0, eps=0.01):
-        """ Return the maximum feasible rate between lb and ub subject to the environment's constraints.
+        """ Return the maximum feasible rate less than ub subject to the environment's constraints.
 
         If schedule contains non-zero elements at the given time, these are treated as fixed allocations and this
         function will include them when determining the maximum feasible rate for the given EVSE.
@@ -128,11 +128,12 @@ class RoundRobin(SortedSchedulingAlgo):
 
 
 # -------------------- Sorting Functions --------------------------
-def first_come_first_served(evs, interface):
+def first_come_first_served(evs, iface):
     """ Sort EVs by arrival time.
 
     Args:
         evs (List[EV]): List of EVs to be sorted.
+        iface (Interface): Interface object.
 
     Returns:
         List[EV]: List of EVs sorted by arrival time.
@@ -140,11 +141,12 @@ def first_come_first_served(evs, interface):
     return sorted(evs, key=lambda x: x.arrival)
 
 
-def earliest_deadline_first(evs, interface):
+def earliest_deadline_first(evs, iface):
     """ Sort EVs by departure time.
 
     Args:
         evs (List[EV]): List of EVs to be sorted.
+        iface (Interface): Interface object.
 
     Returns:
         List[EV]: List of EVs sorted by departure time.
@@ -152,7 +154,7 @@ def earliest_deadline_first(evs, interface):
     return sorted(evs, key=lambda x: x.departure)
 
 
-def least_laxity_first(evs, interface):
+def least_laxity_first(evs, iface):
     """ Sort EVs by laxity.
 
     Laxity is a measure of the charging flexibility of an EV. Here we define laxity as:
@@ -160,6 +162,7 @@ def least_laxity_first(evs, interface):
 
     Args:
         evs (List[EV]): List of EVs to be sorted.
+        iface (Interface): Interface object.
 
     Returns:
         List[EV]: List of EVs sorted by laxity.
@@ -174,8 +177,9 @@ def least_laxity_first(evs, interface):
         Returns:
             float: The laxity of the EV.
         """
-        return (ev.departure - interface.current_time()) - \
-               (ev.remaining_demand / interface.max_pilot_signal(ev.station_id))
+        lax = (ev.departure - iface.current_time) - \
+              (iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id))
+        return lax
 
     return sorted(evs, key=lambda x: laxity(x))
 
