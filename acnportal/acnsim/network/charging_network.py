@@ -57,6 +57,14 @@ class ChargingNetwork:
         """
         return [evse.station_id for evse in self._EVSEs.values() if evse.ev is not None and not evse.ev.fully_charged]
 
+    @property
+    def voltages(self):
+        """ Return dictionary of voltages for all EVSEs in the network.
+
+        Returns:
+            Dict[str, float]: Dictionary mapping EVSE ids their input voltage. [V]
+        """
+        return self._voltages
     def register_evse(self, evse, voltage, phase_angle):
         """ Register an EVSE with the network so it will be accessible to the rest of the simulation.
 
