@@ -11,11 +11,6 @@ class EV:
         station_id (str): Identifier of the station used by this ev.
         session_id (str): Identifier of the session belonging to this ev.
         battery (Battery-like): Battery object to be used by the EV.
-        energy_delivered (float): Amount of energy delivered to the ev so far. [kWh]
-        current_charging_rate (float): Charging rate at the current time step. [A]
-        remaining_demand (float): Energy which still needs to be delivered to meet requested_energy. [kWh]
-        fully_charged (bool): If the ev is fully charged.
-        percent_remaining (float): remaining_demand as a percent of requested_energy.
     """
 
     def __init__(self, arrival, departure, requested_energy, station_id, session_id, battery, estimated_departure=None):
@@ -105,7 +100,7 @@ class EV:
 
     @property
     def percent_remaining(self):
-        """ Return the percent of demand which still needs to be furfilled. (float)
+        """ Return the percent of demand which still needs to be fulfilled. (float)
 
         Defined as the ratio of remaining demand and requested energy. """
         return self.remaining_demand / self.requested_energy
@@ -127,7 +122,7 @@ class EV:
             float: Actual charging rate of the ev. [A]
         """
         charge_rate = self._battery.charge(pilot, voltage, period)
-        self._energy_delivered += charge_rate
+        self._energy_delivered += (charge_rate * voltage) / 1000 * (period / 60)
         self._current_charging_rate = charge_rate
         return charge_rate
 
