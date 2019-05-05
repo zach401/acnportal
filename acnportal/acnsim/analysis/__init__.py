@@ -37,7 +37,7 @@ def constraint_currents(sim, constraint_ids=None):
         if constraint.name in constraint_ids:
             c = np.zeros(sim_length)
             for t in range(sim_length):
-                c[t] = abs(cs.constraint_current(constraint, sim.charging_rates, t))
+                c[t] = abs(cs.constraint_current(constraint, sim.charging_rates, sim.network.phase_angles, t))
             currents[constraint.name] = c
     return currents
 

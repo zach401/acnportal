@@ -65,6 +65,16 @@ class ChargingNetwork:
             Dict[str, float]: Dictionary mapping EVSE ids their input voltage. [V]
         """
         return self._voltages
+
+    @property
+    def phase_angles(self):
+        """ Return dictionary of phase angles for all EVSEs in the network.
+
+        Returns:
+            Dict[str, float]: Dictionary mapping EVSE ids their input phase angle. [degrees]
+        """
+        return self._phase_angles
+
     def register_evse(self, evse, voltage, phase_angle):
         """ Register an EVSE with the network so it will be accessible to the rest of the simulation.
 
