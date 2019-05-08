@@ -16,7 +16,7 @@ def get_evse_by_type(station_id, evse_type):
         EVSE: an EVSE of the specified type and with the specified id.
     """
     if evse_type == BASIC:
-        return EVSE(station_id)
+        return EVSE(station_id, max_rate=32)
     elif evse_type == AV:
         allowable_rates = [0]
         allowable_rates.extend(i for i in range(6, 33))
@@ -54,6 +54,7 @@ class EVSE:
         self._max_rate = max_rate
         self._min_rate = min_rate
         self._current_pilot = 0
+        self.is_continuous = True
 
     @property
     def station_id(self):
@@ -80,7 +81,7 @@ class EVSE:
         """ Return pilot signal for the current time step. (float)"""
         return self._current_pilot
 
-    def set_pilot(self, pilot):
+    def set_pilot(self, pilot, voltage, period):
         """ Apply a new pilot signal to the EVSE.
 
         Before applying the new pilot, this method first checks if the pilot is allowed. If it is not, an
@@ -89,7 +90,9 @@ class EVSE:
         attached EV should receive charge.
 
         Args:
-            pilot (float): New pilot (control signal) to be sent to the attached EV.
+            pilot (float): New pilot (control signal) to be sent to the attached EV. [A]
+            voltage (float): AC voltage provided to the battery charger. [V]
+            period (float): Length of the charging period. [minutes]
 
         Returns:
             None.
@@ -100,7 +103,7 @@ class EVSE:
         if self._valid_rate(pilot):
             self._current_pilot = pilot
             if self._ev is not None:
-                self._ev.charge(pilot)
+                self._ev.charge(pilot, voltage, period)
         else:
             raise InvalidRateError('Pilot {0} A is not valid for for station {1}'.format(pilot, self.station_id))
 
@@ -181,6 +184,7 @@ class FiniteRatesEVSE(EVSE):
     def __init__(self, station_id, allowable_rates):
         super().__init__(station_id, max(allowable_rates))
         self.allowable_rates = allowable_rates
+        self.is_continuous = False
 
     def _valid_rate(self, pilot, atol=1e-3):
         """ Overrides super class method. Checks if pilot is close to being in the allowable set.

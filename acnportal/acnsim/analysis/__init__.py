@@ -37,10 +37,9 @@ def constraint_currents(sim, constraint_ids=None):
         if constraint.name in constraint_ids:
             c = np.zeros(sim_length)
             for t in range(sim_length):
-                c[t] = abs(cs.constraint_current(constraint, sim.charging_rates, t))
+                c[t] = abs(cs.constraint_current(constraint, sim.charging_rates, sim.network.phase_angles, t))
             currents[constraint.name] = c
     return currents
-
 
 
 def proportion_of_energy_delivered(sim):
@@ -55,3 +54,17 @@ def proportion_of_energy_delivered(sim):
     total_requested = sum(ev.requested_energy for ev in sim.ev_history.values())
     total_delivered = sum(ev.energy_delivered for ev in sim.ev_history.values())
     return total_delivered / total_requested
+
+
+def proportion_of_demands_met(sim, threshold=0.1):
+    """ Calculate the percentage of charging sessions where the energy request was met.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+        threshold (float): Close to finished a session should be to be considered finished. Default: 0.1. [kW]
+
+    Returns:
+        float: Proportion of sessions where the energy demand was fully met.
+    """
+    finished = sum(1 for ev in sim.ev_history.values() if ev.remaining_demand < threshold)
+    return finished / len(sim.ev_history)

@@ -35,7 +35,7 @@ class TestEVSE(TestCase):
     def test_set_pilot_has_ev_valid_rate(self):
         ev = create_autospec(EV)
         self.evse.plugin(ev)
-        self.evse.set_pilot(16)
+        self.evse.set_pilot(16, 240, 5)
         self.assertEqual(self.evse.current_pilot, 16)
         self.evse.ev.charge.assert_called_once()
 
@@ -43,11 +43,11 @@ class TestEVSE(TestCase):
         ev = create_autospec(EV)
         self.evse.plugin(ev)
         with self.assertRaises(InvalidRateError):
-            self.evse.set_pilot(-1)
+            self.evse.set_pilot(-1, 240, 5)
 
     def test_set_pilot_no_ev_negative_rate(self):
         with self.assertRaises(InvalidRateError):
-            self.evse.set_pilot(-1)
+            self.evse.set_pilot(-1, 240, 5)
 
 
 class TestDeadbandEVSE(TestEVSE):
@@ -58,11 +58,11 @@ class TestDeadbandEVSE(TestEVSE):
         ev = create_autospec(EV)
         self.evse.plugin(ev)
         with self.assertRaises(InvalidRateError):
-            self.evse.set_pilot(5)
+            self.evse.set_pilot(5, 240, 5)
 
     def test_set_pilot_no_ev_invalid_rate(self):
         with self.assertRaises(InvalidRateError):
-            self.evse.set_pilot(5)
+            self.evse.set_pilot(5, 240, 5)
 
 
 class TestFiniteRatesEVSE(TestEVSE):
@@ -73,8 +73,8 @@ class TestFiniteRatesEVSE(TestEVSE):
         ev = create_autospec(EV)
         self.evse.plugin(ev)
         with self.assertRaises(InvalidRateError):
-            self.evse.set_pilot(17.2)
+            self.evse.set_pilot(17.2, 240, 5)
 
     def test_set_pilot_no_ev_invalid_rate(self):
         with self.assertRaises(InvalidRateError):
-            self.evse.set_pilot(17.2)
+            self.evse.set_pilot(17.2, 240, 5)

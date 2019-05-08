@@ -54,11 +54,21 @@ class Interface:
         return self._simulator.iteration
 
     @property
+    def period(self):
+        """ Return the length of each timestep in the simulation.
+
+        Returns:
+            int: Length of each time interval in the simulation. [minutes]
+        """
+        return self._simulator.period
+
+
+    @property
     def max_recompute_time(self):
         """ Return the maximum recompute time of the simulator.
 
         Returns:
-            int: Maximum recompute time of the simulator in number of periods.
+            int: Maximum recompute time of the simulator in number of periods. [periods]
         """
         return self._simulator.max_recompute
 
@@ -71,7 +81,7 @@ class Interface:
         Returns:
             bool: If the range is continuous or not
             list[float]: The sorted set of acceptable pilot signals. If continuous this range will have 2 values
-                the min and the max acceptable values.
+                the min and the max acceptable values. [A]
         """
         evse = self._simulator.network._EVSEs[station_id]
         if evse.is_continuous:
@@ -87,7 +97,7 @@ class Interface:
             station_id (str): The ID of the station for which the allowable rates should be returned.
 
         Returns:
-            float: the maximum pilot signal supported by this EVSE.
+            float: the maximum pilot signal supported by this EVSE. [A]
         """
         return self._simulator.network._EVSEs[station_id].max_rate
 
@@ -98,9 +108,37 @@ class Interface:
             station_id (str): The ID of the station for which the allowable rates should be returned.
 
         Returns:
-            float: the minimum pilot signal supported by this EVSE.
+            float: the minimum pilot signal supported by this EVSE. [A]
         """
         return self._simulator.network._EVSEs[station_id].min_rate
+
+    def evse_voltage(self, station_id):
+        """ Returns the voltage of the EVSE.
+
+        Args:
+            station_id (str): The ID of the station for which the allowable rates should be returned.
+
+        Returns:
+            float: voltage of the EVSE. [V]
+        """
+        return self._simulator.network.voltages[station_id]
+
+    def remaining_amp_periods(self, ev):
+        """ Return the EV's remaining demand in A*periods.
+
+        Returns:
+            float: the EV's remaining demand in A*periods.
+        """
+        return self._convert_to_amp_periods(ev.remaining_demand, ev.station_id)
+
+    def _convert_to_amp_periods(self, kwh, station_id):
+        """ Convert the given energy in kWh to A*periods based on the voltage at EVSE station_id.
+
+        Returns:
+            float: kwh in A*periods.
+
+        """
+        return kwh * 1000 / self.evse_voltage(station_id) * 60 / self.period
 
     def is_feasible(self, load_currents, t=0, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.

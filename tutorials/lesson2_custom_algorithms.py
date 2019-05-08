@@ -65,7 +65,7 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
         for ev in sorted_evs:
             # First try to charge the EV at its maximum rate. Remember that each schedule value must be a list, even
             #   if it only has one element.
-            schedule[ev.station_id] = [ev.max_rate]
+            schedule[ev.station_id] = [self.interface.max_pilot_signal(ev.station_id)]
 
             # If this is not feasible, we will reduce the rate.
             #   interface.is_feasible() is one way to interact with the constraint set of the network. We will explore
@@ -107,15 +107,15 @@ start = timezone.localize(datetime(2018, 9, 5))
 end = timezone.localize(datetime(2018, 9, 6))
 period = 5  # minute
 voltage = 220  # volts
-max_rate = 32 # amps
+default_battery_power = 32 * voltage / 1000 # kW
 site = 'caltech'
 
 # -- Network -----------------------------------------------------------------------------------------------------------
-cn = CaltechACN(basic_evse=True)
+cn = CaltechACN(basic_evse=True, voltage=voltage)
 
 # -- Events ------------------------------------------------------------------------------------------------------------
 API_KEY = 'DEMO_TOKEN'
-events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, max_rate)
+events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
 
 
 # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------

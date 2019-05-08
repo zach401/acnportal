@@ -43,7 +43,8 @@ class GreedyCostMinimization(SortedSchedulingAlgo):
             for i in preferences:
                 if e_del >= ev.remaining_demand:
                     break
-                charging_rate = self.max_feasible_rate(ev.station_id, ev.max_rate, schedule, i, eps=0.01)
+                charging_rate = self.max_feasible_rate(ev.station_id, self.interface.max_pilot_signal(ev.station_id),
+                                                       schedule, i, eps=0.01)
                 schedule[ev.station_id][i] = charging_rate
                 e_del += charging_rate
         return schedule

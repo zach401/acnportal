@@ -16,11 +16,11 @@ class DataClient(object):
 
     """
 
-    def __init__(self, api_token, url='http://131.215.140.211/c2data/v1/'):
+    def __init__(self, api_token, url='http://ev.caltech.edu/c2data/v1/'):
         self.token = api_token
         self.url = url
 
-    def get_sessions(self, site, cond=None, project=None, sort=None):
+    def get_sessions(self, site, cond=None, project=None, sort=None, timeseries=False):
         """ Generator to return sessions from the acndata dataset one at a time.
 
         Args:
@@ -38,7 +38,11 @@ class DataClient(object):
         if site not in {'caltech', 'jpl'}:
             raise ValueError("Invalid site name. Must be either 'caltech' or 'jpl'")
 
+        limit = 100
         endpoint = 'sessions/' + site
+        if timeseries:
+            endpoint += '/ts/'
+            limit = 1
         args = []
         if cond is not None:
             args.append('where={0}'.format(cond))
@@ -46,7 +50,7 @@ class DataClient(object):
             args.append('project={0}'.format(project))
         if sort is not None:
             args.append('sort={0}'.format(sort))
-        args.append('limit=100')
+        args.append('max_results={0}'.format(limit))
         query_string = '?' + '&'.join(args) if len(args) > 0 else ''
         r = requests.get(self.url + endpoint + query_string, auth=(self.token, ''))
         payload = r.json()
@@ -60,7 +64,7 @@ class DataClient(object):
             else:
                 break
 
-    def get_sessions_by_time(self, site, start=None, end=None, min_energy=None):
+    def get_sessions_by_time(self, site, start=None, end=None, min_energy=None, timeseries=False):
         """ Wrapper for get_sessions with condition based on start and end times and a minimum energy delivered.
 
         Args:
@@ -85,4 +89,4 @@ class DataClient(object):
         if min_energy is not None:
             cond.append('kWhDelivered > {0}'.format(min_energy))
         condition = ' and '.join(cond)
-        return self.get_sessions(site, condition, sort='connectionTime')
+        return self.get_sessions(site, condition, sort='connectionTime', timeseries=timeseries)
