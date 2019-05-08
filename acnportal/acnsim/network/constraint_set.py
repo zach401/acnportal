@@ -8,26 +8,12 @@ class ConstraintSet:
 
     Args:
         constraints (List[Constraint]): A list of constraints which make up the constraint set.
-        angles (Dict[str, number]): A dictionary mapping load_ids to current phase angles. (rads)
 
     Attributes:
         See Args.
     """
-    def __init__(self, constraints=None, angles=None):
+    def __init__(self, constraints=None):
         self.constraints = constraints if constraints is not None else []
-        self.angles = angles if angles is not None else {}
-
-    def register_load(self, name, angle=0):
-        """ Register load in the constraint set. If load already exists, overwrite the stored angle with new angle.
-
-        Args:
-            name (str): ID of the load.
-            angle (number): Phase angle of the load in rads.
-
-        Returns:
-            None
-        """
-        self.angles[name] = angle
 
     def add_constraint(self, current, limit, name=None):
         """ Add an additional constraint to the constraint set.
@@ -42,12 +28,13 @@ class ConstraintSet:
             name = '_const_{0}'.format(len(self.constraints))
         self.constraints.append(Constraint(current, limit, name))
 
-    def constraint_current(self, constraint, load_currents, t=0, linear=False):
+    def constraint_current(self, constraint, load_currents, angles, t=0, linear=False):
         """ Return the current subject to the given constraint.
 
         Args:
             constraint (Constraint): Constraint object describing the current.
             load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
+            angles (Dict[str, float]): Dictionary mapping load_ids to the phase angle of the voltage feeding them.
             t (int): Index into the charging rate schedule where feasibility should be checked.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
@@ -61,14 +48,16 @@ class ConstraintSet:
                 if linear:
                     acc += abs(constraint.loads[load_id]) * load_currents[load_id][t]
                 else:
-                    acc += cmath.rect(constraint.loads[load_id] * load_currents[load_id][t], self.angles[load_id])
+                    acc += cmath.rect(constraint.loads[load_id] * load_currents[load_id][t],
+                                      math.radians(angles[load_id]))
         return complex(acc)
 
-    def is_feasible(self, load_currents, t=0, linear=False):
+    def is_feasible(self, load_currents, angles, t=0, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.
 
         Args:
             load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
+            angles (Dict[str, float]): Dictionary mapping load_ids to the phase angle of the voltage feeding them.
             t (int): Index into the charging rate schedule where feasibility should be checked.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
@@ -77,7 +66,7 @@ class ConstraintSet:
             bool: If load_currents is feasible at time t according to this constraint set.
         """
         for constraint in self.constraints:
-            mag = self.constraint_current(constraint, load_currents, t, linear)
+            mag = self.constraint_current(constraint, load_currents, angles, t, linear)
             if abs(mag) > constraint.limit:
                 return False
         return True

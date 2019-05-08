@@ -26,7 +26,7 @@ class Simulator:
     """
 
     def __init__(self, network, scheduler, events, start, period=1, max_recomp=None, signals=None,
-                 store_schedule_history=False):
+                 store_schedule_history=False, verbose=True):
         self.network = network
         self.scheduler = scheduler
         self.scheduler.register_interface(Interface(self))
@@ -35,6 +35,7 @@ class Simulator:
         self.period = period
         self.max_recompute = max_recomp
         self.signals = signals
+        self.verbose = verbose
 
         # Information storage
         self.pilot_signals = {station_id: [] for station_id in self.network.space_ids}
@@ -84,7 +85,7 @@ class Simulator:
                 self._last_schedule_update = self._iteration
                 self._resolve = False
             self._expand_pilots()
-            self.network.update_pilots(self.pilot_signals, self._iteration)
+            self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
 
@@ -110,19 +111,19 @@ class Simulator:
             None
         """
         if event.type == 'Plugin':
-            print('Plugin Event...')
+            self._print('Plugin Event...')
             self.network.plugin(event.ev, event.ev.station_id)
             self.ev_history[event.ev.session_id] = event.ev
             self.event_queue.add_event(UnplugEvent(event.ev.departure, event.ev.station_id, event.ev.session_id))
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.type == 'Unplug':
-            print('Unplug Event...')
+            self._print('Unplug Event...')
             self.network.unplug(event.station_id)
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.type == 'Recompute':
-            print('Recompute Event...')
+            self._print('Recompute Event...')
             self._resolve = True
 
     def _update_schedules(self, new_schedule):
@@ -173,6 +174,10 @@ class Simulator:
             self.charging_rates[station_id].append(rate)
             agg += rate
         self.peak = max(self.peak, agg)
+
+    def _print(self, s):
+        if self.verbose:
+            print(s)
 
 
 class InvalidScheduleError(Exception):

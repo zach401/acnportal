@@ -28,5 +28,5 @@ class UncontrolledCharging(BaseAlgorithm):
         """
         schedule = {}
         for ev in active_evs:
-            schedule[ev.station_id] = [ev.max_rate]
+            schedule[ev.station_id] = [self.interface.max_pilot_signal(ev.station_id)]
         return schedule
