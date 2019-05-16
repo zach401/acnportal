@@ -41,9 +41,9 @@ class CaltechACN(ChargingNetwork):
             else:
                 self.register_evse(get_evse_by_type(evse_id, evse_type['CC']), voltage, 30)
         for evse_id in BC_ids:
-            self.register_evse(get_evse_by_type(evse_id, evse_type['AV']), voltage, 150)
-        for evse_id in CA_ids:
             self.register_evse(get_evse_by_type(evse_id, evse_type['AV']), voltage, -90)
+        for evse_id in CA_ids:
+            self.register_evse(get_evse_by_type(evse_id, evse_type['AV']), voltage, 150)
 
         # Add Caltech Constraint Set
         CC_pod = Current(CC_pod_ids)
