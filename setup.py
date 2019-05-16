@@ -23,6 +23,11 @@ setuptools.setup(
         'numpy',
         'matplotlib',
         'requests',
-        'pytz'
+        'pytz',
+        'nbsphinx',
+        'nbsphinx-link',
+        'sphinx_rtd_theme',
+        'jupyter_client',
+        'ipykernel'
     ]
 )
