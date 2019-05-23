@@ -35,7 +35,7 @@ class DataClient(object):
             ValueError: Raised if the site name is not valid.
         """
         # TODO: (zach) Use API to autodetect if a new site is added.
-        if site not in {'caltech', 'jpl'}:
+        if site not in {'caltech', 'jpl', 'office001'}:
             raise ValueError("Invalid site name. Must be either 'caltech' or 'jpl'")
 
         limit = 100
