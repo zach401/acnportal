@@ -20,7 +20,8 @@ def parse_http_date(ds, tz):
     :return: datetime object.
     :rtype: datetime
     """
-    return tz.localize(datetime.strptime(ds, '%a, %d %b %Y %H:%M:%S GMT'))
+    dt = pytz.UTC.localize(datetime.strptime(ds, '%a, %d %b %Y %H:%M:%S GMT'))
+    return dt.astimezone(tz)
 
 
 def parse_dates(doc):
@@ -38,3 +39,5 @@ def parse_dates(doc):
                 doc[field] = dt
             except ValueError:
                 pass
+        if isinstance(doc[field], dict) and 'timestamps' in doc[field]:
+            doc[field]['timestamps'] = [parse_http_date(ds, tz) for ds in doc[field]['timestamps']]
