@@ -15,7 +15,7 @@ class DataClient(object):
         url (str): See url in Args.
 
     """
-    def __init__(self, api_token, url='http://ev.caltech.edu/c2data/v1/'):
+    def __init__(self, api_token, url='https://ev.caltech.edu/api/v1/'):
         self.token = api_token
         self.url = url
 
