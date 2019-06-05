@@ -21,13 +21,9 @@ setuptools.setup(
     ],
     install_requires=[
         'numpy',
+        'pandas',
         'matplotlib',
         'requests',
-        'pytz',
-        'nbsphinx',
-        'nbsphinx-link',
-        'sphinx_rtd_theme',
-        'jupyter_client',
-        'ipykernel'
+        'pytz'
     ]
 )
