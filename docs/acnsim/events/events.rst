@@ -1,8 +1,5 @@
 Events
 ======
-.. autoclass:: acnportal.acnsim.events.EventQueue
-    :members:
-
 .. autoclass:: acnportal.acnsim.events.Event
     :members:
 
