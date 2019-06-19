@@ -79,7 +79,7 @@ def _convert_to_ev(d, offset, period, voltage, max_battery_power, max_len=None, 
     # requested_energy = d['kWhDelivered'] * 1000 * (60 / period) / voltage  # A*periods
 
     if force_feasible:
-        delivered_energy = min(d['kWhDelivered'], max_battery_power * (departure - arrival) * (60 / period))
+        delivered_energy = min(d['kWhDelivered'], max_battery_power * (departure - arrival) * (period / 60))
     else:
         delivered_energy = d['kWhDelivered']
 
