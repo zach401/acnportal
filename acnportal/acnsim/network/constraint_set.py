@@ -1,6 +1,7 @@
 import cmath
 import math
 from copy import deepcopy
+import numpy as np
 
 
 class ConstraintSet:
@@ -42,15 +43,23 @@ class ConstraintSet:
         Returns:
             complex: Current subject to the given constraint.
         """
-        acc = 0
-        for load_id in constraint.loads:
-            if load_id in load_currents:
-                if linear:
-                    acc += abs(constraint.loads[load_id]) * load_currents[load_id][t]
-                else:
-                    acc += cmath.rect(constraint.loads[load_id] * load_currents[load_id][t],
-                                      math.radians(angles[load_id]))
-        return complex(acc)
+        load_ids = [load_id for load_id in constraint.loads if load_id in load_currents]
+        load_coeff = np.array([constraint.loads[load_id] for load_id in load_ids])
+        currents = np.array([load_currents[load_id][t] for load_id in load_ids])
+        if linear:
+            return complex(np.abs(load_coeff).dot(currents))
+        else:
+            angles_array = np.array([angles[load_id] for load_id in load_ids])
+            return load_coeff.dot(currents* np.exp(1j*np.deg2rad(angles_array)))
+        # acc = 0
+        # for load_id in constraint.loads:
+        #     if load_id in load_currents:
+        #         if linear:
+        #             acc += abs(constraint.loads[load_id]) * load_currents[load_id][t]
+        #         else:
+        #             acc += cmath.rect(constraint.loads[load_id] * load_currents[load_id][t],
+        #                               math.radians(angles[load_id]))
+        # return complex(acc)
 
     def is_feasible(self, load_currents, angles, t=0, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.

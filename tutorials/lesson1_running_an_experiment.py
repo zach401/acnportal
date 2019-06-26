@@ -11,15 +11,11 @@ After running the simulation we will learn how to use the analysis subpackage to
 
 import pytz
 from datetime import datetime
-import matplotlib
-matplotlib.use('TkAgg')
+
 import matplotlib.pyplot as plt
 
-from acnportal.acnsim import Simulator
-from acnportal.acnsim.network.sites import CaltechACN
-from acnportal.acnsim.events import acndata_events
-from acnportal.acnsim.analysis import *
-from acnportal.algorithms import UncontrolledCharging
+from acnportal import acnsim
+from acnportal import algorithms
 
 # -- Experiment Parameters ---------------------------------------------------------------------------------------------
 # Timezone of the ACN we are using.
@@ -43,7 +39,7 @@ site = 'caltech'
 
 # -- Network -----------------------------------------------------------------------------------------------------------
 # For this experiment we use the predefined CaltechACN network.
-cn = CaltechACN(basic_evse=True, voltage=voltage)
+cn = acnsim.sites.CaltechACN(basic_evse=True, voltage=voltage)
 
 
 # -- Events ------------------------------------------------------------------------------------------------------------
@@ -56,18 +52,18 @@ API_KEY = 'DEMO_TOKEN'
 
 # An EventQueue is a special container which stores the events for the simulation. In this case we use the
 # acndata_events utility to pre-fill the event queue based on real events in the Caltech Charging Dataset.
-events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
+events = acnsim.acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
 
 
 # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------
 # For this simple experiment we will use the predefined Uncontrolled Charging algorithm. We will cover more advanced
 # algorithms and how to define a custom algorithm in future tutorials.
-sch = UncontrolledCharging()
+sch = algorithms.UncontrolledCharging()
 
 
 # -- Simulator ---------------------------------------------------------------------------------------------------------
 # We can now load the simulator enviroment with the network, scheduler, and events we have already defined.
-sim = Simulator(cn, sch, events, start, period=period, max_recomp=1)
+sim = acnsim.Simulator(cn, sch, events, start, period=period, max_recomp=1)
 
 # To execute the simulation we simply call the run() function.
 sim.run()
@@ -76,14 +72,14 @@ sim.run()
 # After running the simulation, we can analyze the results using data stored in the simulator.
 
 # Find percentage of requested energy which was delivered.
-total_energy_prop = proportion_of_energy_delivered(sim)
+total_energy_prop = acnsim.proportion_of_energy_delivered(sim)
 print('Proportion of requested energy delivered: {0}'.format(total_energy_prop))
 
 # Find peak aggregate current during the simulation
 print('Peak aggregate current: {0} A'.format(sim.peak))
 
 # Plotting aggregate current
-agg_current = aggregate_current(sim)
+agg_current = acnsim.aggregate_current(sim)
 plt.plot(agg_current)
 plt.xlabel('Time (periods)')
 plt.ylabel('Current (A)')
