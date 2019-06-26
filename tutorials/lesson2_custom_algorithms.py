@@ -85,17 +85,11 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
 # -- Run Simulation ----------------------------------------------------------------------------------------------------
 from datetime import datetime
 import pytz
-import matplotlib
-matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from copy import deepcopy
 
-from acnportal.algorithms import SortedSchedulingAlgo
-from acnportal.algorithms import earliest_deadline_first
-from acnportal.acnsim.events import acndata_events
-from acnportal.acnsim.network.sites import CaltechACN
-from acnportal.acnsim.analysis import *
-from acnportal.acnsim import Simulator
+from acnportal import acnsim
+from acnportal import algorithms
 
 # Now that we have implemented our algorithm, we can try it out using the same experiment setup as in lesson 1.
 # The only difference will be which scheduling algorithm we use.
@@ -111,23 +105,23 @@ default_battery_power = 32 * voltage / 1000 # kW
 site = 'caltech'
 
 # -- Network -----------------------------------------------------------------------------------------------------------
-cn = CaltechACN(basic_evse=True, voltage=voltage)
+cn = acnsim.sites.CaltechACN(basic_evse=True, voltage=voltage)
 
 # -- Events ------------------------------------------------------------------------------------------------------------
 API_KEY = 'DEMO_TOKEN'
-events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
+events = acnsim.acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
 
 
 # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------
 sch = EarliestDeadlineFirstAlgo(increment=1)
-sch2 = SortedSchedulingAlgo(earliest_deadline_first)
+sch2 = algorithms.SortedSchedulingAlgo(algorithms.earliest_deadline_first)
 
 # -- Simulator ---------------------------------------------------------------------------------------------------------
-sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1)
+sim = acnsim.Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1, verbose=True)
 sim.run()
 
 # For comparison we will also run the builtin earliest deadline first algorithm
-sim2 = Simulator(deepcopy(cn), sch2, deepcopy(events), start, period=period, max_recomp=1)
+sim2 = acnsim.Simulator(deepcopy(cn), sch2, deepcopy(events), start, period=period, max_recomp=1)
 sim2.run()
 
 # -- Analysis ----------------------------------------------------------------------------------------------------------
@@ -135,10 +129,12 @@ sim2.run()
 # We see from these plots that our implementation matches th included one quite well. If we look closely however, we
 # might see a small difference. This is because the included algorithm uses a more efficient bisection based method
 # instead of our simpler linear search to find a feasible rate.
-plt.plot(aggregate_current(sim), label='Our EDF')
-plt.plot(aggregate_current(sim2), label='Included EDF')
-plt.legend()
-plt.xlabel('Time (periods)')
-plt.ylabel('Current (A)')
-plt.title('Total Aggregate Current')
+fig, ax = plt.subplots(1, 2, sharey=True, sharex=True)
+ax[0].plot(acnsim.aggregate_current(sim), label='Our EDF')
+ax[1].plot(acnsim.aggregate_current(sim2), label='Included EDF')
+ax[1].set_xlabel('Time (periods)')
+ax[0].set_ylabel('Current (A)')
+ax[1].set_ylabel('Current (A)')
+ax[0].set_title('Our EDF')
+ax[1].set_title('Included EDF')
 plt.show()

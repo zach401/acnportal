@@ -7,7 +7,6 @@ Welcome to ACN-Sim
     :caption: ACN-Data:
 
     acndata/index
-    tutorials/acndata/index
 
 .. toctree::
     :maxdepth: 2
