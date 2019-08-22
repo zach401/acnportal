@@ -1,4 +1,6 @@
 from .constraint_set import ConstraintSet
+import pandas as pd
+import numpy as np
 
 
 class ChargingNetwork:
@@ -22,6 +24,7 @@ class ChargingNetwork:
             Dict[str, number]: Dictionary mapping station_id to the current actual charging rate of the EV attached to
                 that EVSE.
         """
+        # TODO: Update to df
         current_rates = {}
         for station_id, evse in self._EVSEs.items():
             if evse.ev is not None:
@@ -32,6 +35,7 @@ class ChargingNetwork:
 
     @property
     def space_ids(self):
+        #TODO: Change to station_ids?
         """ Return the IDs of all registered EVSEs.
 
         Returns:
@@ -172,7 +176,7 @@ class ChargingNetwork:
             None
         """
         for station_id in self._EVSEs:
-            if station_id in pilots and i < len(pilots[station_id]):
+            if station_id in pilots.columns and i < len(pilots[station_id]):
                 new_rate = pilots[station_id][i]
             else:
                 new_rate = 0

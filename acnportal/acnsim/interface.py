@@ -30,8 +30,9 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
+            # TODO: Why are we using session id and not station id here as the keys?
             return {ev.session_id: self._simulator.pilot_signals[ev.station_id][i] for ev in self.active_evs if
-                    ev.arrival <= i}
+                ev.arrival <= i}
         else:
             return {}
 
