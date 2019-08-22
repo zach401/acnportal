@@ -1,6 +1,8 @@
 """
 This module contains methods for directly interacting with the _simulator.
 """
+from datetime import timedelta
+import numpy as np
 
 
 class Interface:
@@ -61,7 +63,6 @@ class Interface:
             int: Length of each time interval in the simulation. [minutes]
         """
         return self._simulator.period
-
 
     @property
     def max_recompute_time(self):
@@ -156,30 +157,36 @@ class Interface:
         """
         return self._simulator.network.is_feasible(load_currents, t, linear)
 
-    # def get_prices(self, start, length):
-    #     """
-    #     Get a vector of prices beginning at time start and continuing for length periods.
-    #
-    #     :param int start: Time step of the simulation where price vector should begin.
-    #     :param int length: Number of elements in the prices vector. One entry per period.
-    #     :return: vector of floats of length length where each entry is a price which is valid for one period.
-    #     """
-    #     if self._simulator.prices is not None:
-    #         return self._simulator.prices.get_prices(start, length)
-    #     else:
-    #         raise ValueError('No pricing method is specified.')
-    #
-    # def get_demand_charge(self, schedule_len):
-    #     """
-    #     Get the demand charge scaled according to the length of the scheduling period.
-    #
-    #     :param int schedule_len: length of the schedule in number of periods.
-    #     :return: float Demand charge scaled for the scheduling period.
-    #     """
-    #     if self._simulator.prices is not None:
-    #         return self._simulator.prices.get_normalized_demand_charge(self._simulator.period, schedule_len)
-    #     else:
-    #         raise ValueError('No pricing method is specified.')
+    def get_prices(self, length, start=None):
+        """
+        Get a vector of prices beginning at time start and continuing for length periods.
+
+        :param int start: Time step of the simulation where price vector should begin.
+        :param int length: Number of elements in the prices vector. One entry per period.
+        :return: vector of floats of length length where each entry is a price which is valid for one period.
+        """
+        if 'tariff' in self._simulator.signals:
+            if start is None:
+                start = self.current_time
+            price_start = self._simulator.start + timedelta(minutes=self.period)*start
+            return np.array(self._simulator.signals['tariff'].get_tariffs(price_start, length, self.period))
+        else:
+            raise ValueError('No pricing method is specified.')
+
+    def get_demand_charge(self, start=None):
+        """
+        Get the demand charge scaled according to the length of the scheduling period.
+
+        :param int start: Time step of the simulation where price vector should begin.
+        :return: float Demand charge for the scheduling period.
+        """
+        if 'tariff' in self._simulator.signals:
+            if start is None:
+                start = self.current_time
+            price_start = self._simulator.start + timedelta(minutes=self.period) * start
+            return self._simulator.signals['tariff'].get_demand_charge(price_start)
+        else:
+            raise ValueError('No pricing method is specified.')
     #
     # def get_revenue(self):
     #     """
@@ -191,15 +198,15 @@ class Interface:
     #         return self._simulator.prices.revenue
     #     else:
     #         raise ValueError('No pricing method is specified.')
-    #
-    # def get_prev_peak(self):
-    #     """
-    #     Get the highest aggregate peak demand so far in the simulation.
-    #
-    #     :return: peak demand so far in the simulation.
-    #     :rtype: float
-    #     """
-    #     return self._simulator.peak
+
+    def get_prev_peak(self):
+        """
+        Get the highest aggregate peak demand so far in the simulation.
+
+        :return: peak demand so far in the simulation.
+        :rtype: float
+        """
+        return self._simulator.peak
     #
     # def get_max_recompute_period(self):
     #     return self._simulator.max_recompute

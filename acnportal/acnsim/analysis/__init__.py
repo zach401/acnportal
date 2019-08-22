@@ -1,5 +1,6 @@
 import numpy as np
 import cmath
+from ..interface import Interface
 
 
 def aggregate_current(sim):
@@ -12,6 +13,19 @@ def aggregate_current(sim):
         np.Array: A numpy array of the aggregate current at each time.
     """
     return sum(np.array(rates) for rates in sim.charging_rates.values())
+
+
+def aggregate_power(sim):
+    """ Calculate the time series of aggregate power of all EVSEs within a simulation.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+
+    Returns:
+        np.Array: A numpy array of the aggregate power at each time.
+    """
+    iface = Interface(sim)
+    return sum(np.array(rates) * iface.evse_voltage(evse_id) / 1000 for evse_id, rates in sim.charging_rates.items())
 
 
 def constraint_currents(sim, complex=False, constraint_ids=None):
@@ -149,3 +163,25 @@ def _sym_comp_current_unbalance(sim, phase_ids):
                                   out=np.full_like(np.abs(sym_comp[2]), np.nan),
                                   where=np.abs(sym_comp[1]) != 0)
     return current_unbalance
+
+
+def energy_cost(sim, tariff=None):
+    if tariff is None:
+        if 'tariff' in sim.signals:
+            tariff = sim.signals['tariff']
+        else:
+            raise ValueError('No pricing method is specified.')
+    agg = aggregate_power(sim)
+    energy_costs = tariff.get_tariffs(sim.start, len(agg), sim.period)
+    return np.array(energy_costs).dot(agg) * (sim.period / 60)
+
+
+def demand_charge(sim, tariff=None):
+    if tariff is None:
+        if 'tariff' in sim.signals:
+            tariff = sim.signals['tariff']
+        else:
+            raise ValueError('No pricing method is specified.')
+    agg_curr = aggregate_power(sim)
+    dc = tariff.get_demand_charge(sim.start)
+    return dc * np.max(agg_curr)
