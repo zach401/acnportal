@@ -2,6 +2,7 @@ import cmath
 import math
 from copy import deepcopy
 import numpy as np
+import pandas as pd
 
 
 class ConstraintSet:
@@ -13,8 +14,9 @@ class ConstraintSet:
     Attributes:
         See Args.
     """
-    def __init__(self, constraints=None):
-        self.constraints = constraints if constraints is not None else []
+    def __init__(self, constraints=None, magnitudes=None):
+        self.constraints = constraints if constraints is not None else pd.DataFrame()
+        self.magnitudes = magnitudes if magnitudes is not None else pd.Series()
 
     def add_constraint(self, current, limit, name=None):
         """ Add an additional constraint to the constraint set.
@@ -27,7 +29,9 @@ class ConstraintSet:
         """
         if name is None:
             name = '_const_{0}'.format(len(self.constraints))
-        self.constraints.append(Constraint(current, limit, name))
+        current.loads.name = name
+        self.magnitudes[name] = limit
+        self.constraints.append(current.loads)
 
     def constraint_current(self, constraint, load_currents, angles, t=0, linear=False):
         """ Return the current subject to the given constraint.
@@ -43,14 +47,12 @@ class ConstraintSet:
         Returns:
             complex: Current subject to the given constraint.
         """
-        load_ids = [load_id for load_id in constraint.loads if load_id in load_currents]
-        load_coeff = np.array([constraint.loads[load_id] for load_id in load_ids])
         currents = np.array([load_currents[load_id][t] for load_id in load_ids])
         if linear:
-            return complex(np.abs(load_coeff).dot(currents))
+            return complex(np.abs(constraint.to_numpy).dot(currents))
         else:
             angles_array = np.array([angles[load_id] for load_id in load_ids])
-            return load_coeff.dot(currents* np.exp(1j*np.deg2rad(angles_array)))
+            return constraint.to_numpy.dot(currents* np.exp(1j*np.deg2rad(angles_array)))
         # acc = 0
         # for load_id in constraint.loads:
         #     if load_id in load_currents:
@@ -74,40 +76,42 @@ class ConstraintSet:
         Returns:
             bool: If load_currents is feasible at time t according to this constraint set.
         """
-        for constraint in self.constraints:
-            mag = self.constraint_current(constraint, load_currents, angles, t, linear)
-            if abs(mag) > constraint.limit:
+        for constraint in self.constraints.index:
+            mag = self.constraint_current(self.constraints[constraint], load_currents, angles, t, linear)
+            if abs(mag) > self.magnitudes[constraint]:
                 return False
         return True
 
 
-class Constraint:
-    """ A simple representation of a current constraint.
+# TODO: make constraint the current class
+# class Constraint:
+#     """ A simple representation of a current constraint.
 
-    Args:
-        current (Current): Current whose magnitude is bound by this constraint.
-        limit (number): Limit on the magnitude of the current.
-        name (str): Identifier of the constraint.
+#     Args:
+#         current (Current): Current whose magnitude is bound by this constraint.
+#         limit (number): Limit on the magnitude of the current.
+#         name (str): Identifier of the constraint.
 
-    Attributes:
-        See Args.
-    """
-    def __init__(self, curr, limit, name):
-        self.current = curr
-        self.limit = limit
-        self.name = name
+#     Attributes:
+#         See Args.
+#     """
+#     def __init__(self, curr, limit, name):
+#         self.current = curr
+#         self.limit = limit
+#         self.name = name
 
-    @property
-    def loads(self):
-        """ Returns the loads of the underlying current object.
+#     @property
+#     def loads(self):
+#         """ Returns the loads of the underlying current object.
 
-        Returns:
-            See Current for description of loads dict.
-        """
-        return self.current.loads
+#         Returns:
+#             See Current for description of loads dict.
+#         """
+#         return self.current.loads
 
 
 class Current:
+    # TODO: fix docs here
     """ A simple representation of currents include addition, subtraction, and multiplication operators.
 
     Attributes:
@@ -118,14 +122,15 @@ class Current:
             load_id. If list, a list of load_ids. Default None. If None, loads will begin as an empty dict.
     """
     def __init__(self, loads=None):
+        # TODO: Convert to Series
         if isinstance(loads, dict):
-            self.loads = loads
+            self.loads = pd.Series(loads)
         elif isinstance(loads, str):
-            self.loads = {loads: 1}
+            self.loads = pd.Series({loads : 1})
         elif loads is None:
-            self.loads = {}
+            self.loads = pd.Series()
         else:
-            self.loads = {load_id: 1 for load_id in loads}
+            self.loads = pd.Series({load_id: 1 for load_id in loads})
 
     def add_current(self, curr):
         """ Add Current object to self in place.
@@ -136,9 +141,9 @@ class Current:
         Returns:
             None
         """
-        for load_id in curr.loads:
-            if load_id in self.loads:
-                self.loads[load_id] += curr.loads[load_id]
+        for load_id in curr.loads.index:
+            if load_id in self.loads.index:
+                self.loads[load_id] = self.loads[load_id] + curr.loads[load_id]
             else:
                 self.loads[load_id] = curr.loads[load_id]
 
@@ -151,8 +156,7 @@ class Current:
         Returns:
             None
         """
-        for val in self.loads.values():
-            val *= const
+        self.loads = const * self.loads
 
     def __add__(self, other):
         """ Return new Current which is the sum of self and other.
@@ -184,8 +188,7 @@ class Current:
             Current: other * self
         """
         new_current = deepcopy(self)
-        for load_id in new_current.loads:
-            new_current.loads[load_id] *= float(other)
+        new_current.multiply_by_const(other)
         return new_current
 
     # Allow for right multiply.

@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import cmath
 
 
@@ -9,9 +10,9 @@ def aggregate_current(sim):
         sim (Simulator): A Simulator object which has been run.
 
     Returns:
-        np.Array: A numpy array of the aggregate current at each time.
+        pandas.Series: A pandas Series of the aggregate current at each time.
     """
-    return sum(np.array(rates) for rates in sim.charging_rates.values())
+    return sim.charging_rates.sum(axis=1)
 
 
 def constraint_currents(sim, complex=False, constraint_ids=None):

@@ -1,5 +1,7 @@
 import copy
 from datetime import datetime
+import pandas as pd
+import numpy as np
 
 from .events import UnplugEvent
 from .interface import Interface
@@ -38,8 +40,13 @@ class Simulator:
         self.verbose = verbose
 
         # Information storage
-        self.pilot_signals = {station_id: [] for station_id in self.network.space_ids}
-        self.charging_rates = {station_id: [] for station_id in self.network.space_ids}
+        # TODO: decide if station_ids as field or index in DFs?
+        self.pilot_signals = pd.DataFrame.from_dict(
+            {station_id: np.array([]) for station_id in self.network.space_ids}
+        )
+        self.charging_rates = pd.DataFrame.from_dict(
+            {station_id: np.array([]) for station_id in self.network.space_ids}
+        )
         self.peak = 0
         self.ev_history = {}
         self.event_history = []
@@ -150,29 +157,38 @@ class Simulator:
             if station_id not in self.network.space_ids:
                 raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
 
+        # TODO: Is making all spaces have the same new_schedule length bad in any way?
         for station_id in self.network.space_ids:
-            if station_id in new_schedule:
-                self.pilot_signals[station_id] = _overwrite_at_index(self._iteration, self.pilot_signals[station_id],
-                                                                     new_schedule[station_id])
-            else:
-                # If a station is not in the new schedule, it shouldn't be charging.
-                # Extends the pilot signal for all station_schedule so that they all have the same length.
-                self.pilot_signals[station_id] = _overwrite_at_index(self._iteration, self.pilot_signals[station_id],
-                                                                     [0] * schedule_length)
+            if station_id not in new_schedule:
+                new_schedule[station_id] = [0] * schedule_length
+
+        self.pilot_signals = _overwrite_at_index(self._iteration, self.pilot_signals, pd.DataFrame.from_dict(new_schedule))
+        # for station_id in self.network.space_ids:
+        #     # TODO: This loop can be vectorized assuming all pilot signals have the same length
+        #     if station_id in new_schedule:
+        #         self.pilot_signals[station_id] = _overwrite_at_index(self._iteration, self.pilot_signals[station_id].to_numpy(),
+        #                                                              np.array(new_schedule[station_id]))
+        #     else:
+        #         # If a station is not in the new schedule, it shouldn't be charging.
+        #         # Extends the pilot signal for all station_schedule so that they all have the same length.
+        #         self.pilot_signals[station_id] = _overwrite_at_index(self._iteration, self.pilot_signals[station_id].to_numpy(),
+        #                                                              np.zeros(schedule_length))
 
     def _expand_pilots(self):
         """ Extends all pilot signals by appending 0's so they at least last past the next time step."""
-        for signal in self.pilot_signals.values():
-            if len(signal) < self._iteration + 1:
-                signal.append(0)
+        for station_id in self.pilot_signals.columns:
+            # TODO: This loop can be vectorized assuming all pilot signals have the same length
+            if len(self.pilot_signals[station_id]) < self._iteration + 1:
+                addend = pd.Series(np.zeros(len(self.pilot_signals.columns)), index = self.pilot_signals.columns)
+                self.pilot_signals = self.pilot_signals.append(addend, ignore_index = True)
+                break
 
     def _store_actual_charging_rates(self):
         """ Store actual charging rates from the network in the simulator for later analysis."""
-        current_rates = self.network.current_charging_rates
-        agg = 0
-        for station_id, rate in current_rates.items():
-            self.charging_rates[station_id].append(rate)
-            agg += rate
+        current_rates = pd.Series(self.network.current_charging_rates)
+        # TODO: Is it correct to sum rates for agg? Isn't there a phase consideration?
+        agg = np.sum(current_rates)
+        self.charging_rates = self.charging_rates.append(current_rates, ignore_index=True)
         self.peak = max(self.peak, agg)
 
     def _print(self, s):
@@ -185,20 +201,27 @@ class InvalidScheduleError(Exception):
     pass
 
 
-def _overwrite_at_index(i, prev_list, new_list):
-    """ Returns a new list with the contents of prev_list up to index i and of new_list afterward.
+def _overwrite_at_index(i, prev_frame, new_frame):
+    """ Returns a new DataFrame with the contents of prev_frame up to index i and of new_frame afterward.
 
     Args:
         i (int): Index of the transition between prev_list and new_list. i is exclusive.
-        prev_list (List[]): List which will make up the first part of the new list.
-        new_list (List[]): List which will make up the second part of the new list.
+        prev_frame (pandas.DataFrame): pandas DataFrame which will make up the first part of the new DataFrame.
+        new_frame (pandas.DataFrame): pandas DataFrame which will make up the second part of the new DataFrame.
 
     Returns:
-        List[]
+        pandas.DataFrame
     """
-    if len(prev_list) < i:
-        return prev_list + [0] * (i - len(prev_list)) + list(new_list)
-    if len(prev_list) == i:
-        return prev_list + list(new_list)
+    if len(prev_frame.index) < i:
+        space_ids = prev_frame.columns
+        interim = pd.concat(
+            [prev_frame,
+            pd.DataFrame(np.tile(np.array([0] * (i - len(prev_list))), (len(space_ids), 1)).T),
+            new_frame],
+            ignore_index = True
+        )
+        return interim
+    if len(prev_frame) == i:
+        return pd.concat([prev_frame, new_frame], ignore_index=True, sort=False)
     else:
-        return prev_list[:i] + list(new_list)
+        return pd.concat([prev_list[:i], new_list], ignore_index=True, sort=False)

@@ -51,6 +51,7 @@ class CaltechACN(ChargingNetwork):
         BC = Current(BC_ids)
         CA = Current(CA_ids)
 
+
         # Define intermediate currents
         I3a = AB - CA
         I3b = BC - AB
@@ -59,6 +60,7 @@ class CaltechACN(ChargingNetwork):
         I2b = (1 / 4) * (I3b - I3a)
         I2c = (1 / 4) * (I3c - I3b)
 
+        # print(I3a.loads, I3b.loads, I3c.loads, I2a.loads, I2b.loads, I2c.loads)
         # Build constraint set
         primary_side_constr = transformer_cap * 1000 / 3 / 277
         secondary_side_constr = transformer_cap * 1000 / 3 / 120
