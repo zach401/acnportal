@@ -15,6 +15,7 @@ class ConstraintSet:
         See Args.
     """
     def __init__(self, constraints=None, magnitudes=None):
+
         self.constraints = constraints if constraints is not None else pd.DataFrame()
         self.magnitudes = magnitudes if magnitudes is not None else pd.Series()
 
@@ -27,11 +28,12 @@ class ConstraintSet:
         Returns:
             None
         """
+        # TODO: Directly use Series for current
         if name is None:
-            name = '_const_{0}'.format(len(self.constraints))
+            name = '_const_{0}'.format(len(self.constraints.index))
         current.loads.name = name
         self.magnitudes[name] = limit
-        self.constraints.append(current.loads)
+        self.constraints = self.constraints.append(current.loads).sort_index(axis=1).fillna(0)
 
     def constraint_current(self, constraint, load_currents, angles, t=0, linear=False):
         """ Return the current subject to the given constraint.
@@ -47,12 +49,14 @@ class ConstraintSet:
         Returns:
             complex: Current subject to the given constraint.
         """
-        currents = np.array([load_currents[load_id][t] for load_id in load_ids])
+        # TODO: pass constraint ids, return currents that are passed (or all if None passed)
+        currents = load_currents.loc[t]
         if linear:
-            return complex(np.abs(constraint.to_numpy).dot(currents))
+            return complex(np.abs(constraint[currents.index].to_numpy()).dot(currents.to_numpy()))
         else:
-            angles_array = np.array([angles[load_id] for load_id in load_ids])
-            return constraint.to_numpy.dot(currents* np.exp(1j*np.deg2rad(angles_array)))
+            angles_series = angles[currents.index].sort_index()
+            ret = constraint[currents.index].to_numpy().dot(currents.to_numpy() * np.exp(1j*np.deg2rad(angles_series.to_numpy())))
+            return ret
         # acc = 0
         # for load_id in constraint.loads:
         #     if load_id in load_currents:
@@ -77,7 +81,7 @@ class ConstraintSet:
             bool: If load_currents is feasible at time t according to this constraint set.
         """
         for constraint in self.constraints.index:
-            mag = self.constraint_current(self.constraints[constraint], load_currents, angles, t, linear)
+            mag = self.constraint_current(self.constraints.loc[constraint], load_currents, angles, t, linear)
             if abs(mag) > self.magnitudes[constraint]:
                 return False
         return True
@@ -146,6 +150,7 @@ class Current:
                 self.loads[load_id] = self.loads[load_id] + curr.loads[load_id]
             else:
                 self.loads[load_id] = curr.loads[load_id]
+        self.loads = self.loads.sort_index()
 
     def multiply_by_const(self, const):
         """ Multiply self by a constant.
@@ -157,6 +162,7 @@ class Current:
             None
         """
         self.loads = const * self.loads
+        self.loads = self.loads.sort_index()
 
     def __add__(self, other):
         """ Return new Current which is the sum of self and other.

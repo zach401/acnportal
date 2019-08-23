@@ -13,7 +13,7 @@ class ChargingNetwork:
         self._EVSEs = {}
         self.constraint_set = ConstraintSet()
         self._voltages = {}
-        self._phase_angles = {}
+        self._phase_angles = pd.Series()
         pass
 
     @property
