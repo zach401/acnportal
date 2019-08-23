@@ -180,7 +180,7 @@ class Simulator:
             # TODO: This loop can be vectorized assuming all pilot signals have the same length
             if len(self.pilot_signals[station_id]) < self._iteration + 1:
                 addend = pd.Series(np.zeros(len(self.pilot_signals.columns)), index = self.pilot_signals.columns)
-                self.pilot_signals = self.pilot_signals.append(addend, ignore_index = True)
+                self.pilot_signals = self.pilot_signals.append(addend, ignore_index = True).fillna(0)
                 break
 
     def _store_actual_charging_rates(self):
@@ -188,7 +188,7 @@ class Simulator:
         current_rates = pd.Series(self.network.current_charging_rates)
         # TODO: Is it correct to sum rates for agg? Isn't there a phase consideration?
         agg = np.sum(current_rates)
-        self.charging_rates = self.charging_rates.append(current_rates, ignore_index=True)
+        self.charging_rates = self.charging_rates.append(current_rates, ignore_index=True).fillna(0)
         self.peak = max(self.peak, agg)
 
     def _print(self, s):

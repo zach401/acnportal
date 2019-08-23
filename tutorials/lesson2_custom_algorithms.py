@@ -12,6 +12,7 @@ algorithms package, so we will compare the results of our implementation with th
 
 # -- Custom Algorithm --------------------------------------------------------------------------------------------------
 from acnportal.algorithms import BaseAlgorithm
+import pandas as pd
 
 # All custom algorithms should inherit from the abstract class BaseAlgorithm. It is the responsibility of all derived
 # classes to implement the schedule method. This method takes as an input a list of EVs which are currently connected
@@ -56,7 +57,7 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         # First we define a schedule, this will be the output of our function
-        schedule = {ev.station_id: [0] for ev in active_evs}
+        schedule = pd.DataFrame({ev.station_id: [0] for ev in active_evs})
 
         # Next, we sort the active_evs by their departure time.
         sorted_evs = sorted(active_evs, key=lambda x: x.departure)
@@ -73,13 +74,13 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
             while not self.interface.is_feasible(schedule):
 
                 # Since the maximum rate was not feasible, we should try a lower rate.
-                schedule[ev.station_id][0] -= self._increment
+                schedule[ev.station_id] = [schedule[ev.station_id][0] - self._increment]
 
                 # EVs should never charge below 0 (i.e. discharge) so we will clip the value at 0.
                 if schedule[ev.station_id][0] < 0:
                     schedule[ev.station_id] = [0]
                     break
-        return schedule
+        return {ev.station_id: schedule[ev.station_id] for ev in active_evs}
 
 
 # -- Run Simulation ----------------------------------------------------------------------------------------------------

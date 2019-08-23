@@ -3,6 +3,7 @@ from collections import deque
 from copy import copy
 
 import numpy as np
+import pandas as pd
 from .base_algorithm import BaseAlgorithm
 
 
@@ -40,7 +41,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         ev_queue = self._sort_fn(active_evs, self.interface)
-        schedule = {ev.station_id: [0] for ev in active_evs}
+        schedule = pd.DataFrame({ev.station_id: [0] for ev in active_evs})
         for ev in ev_queue:
             continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
             if continuous:
@@ -48,7 +49,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             else:
                 charging_rate = self.discrete_max_feasible_rate(ev.station_id, allowable_rates, schedule)
             schedule[ev.station_id][0] = charging_rate
-        return schedule
+        return {ev.station_id: schedule[ev.station_id] for ev in active_evs}
 
     def max_feasible_rate(self, station_id, ub, schedule, time=0, eps=0.01):
         """ Return the maximum feasible rate less than ub subject to the environment's constraints.
