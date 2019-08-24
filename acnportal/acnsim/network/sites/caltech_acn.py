@@ -13,8 +13,8 @@ def caltech_acn(basic_evse=False, voltage=208, transformer_cap=150, network_type
         transformer_cap (float): Capacity of the transformer in the CaltechACN. Default: 150. [kW]
         network_type (ChargingNetwork like): Type to be returned. Should be ChargingNetwork or a subclass. 
 
-    Attributes:
-        See ChargingNetwork for Attributes.
+    Returns:
+        ChargingNetwork: A ChargingNetwork-like object configured with the EVSEs and constraints of the Caltech ACN.
     """
     network = network_type()
 
