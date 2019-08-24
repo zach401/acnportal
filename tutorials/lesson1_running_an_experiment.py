@@ -39,7 +39,7 @@ site = 'caltech'
 
 # -- Network -----------------------------------------------------------------------------------------------------------
 # For this experiment we use the predefined CaltechACN network.
-cn = acnsim.sites.CaltechACN(basic_evse=True, voltage=voltage)
+cn = acnsim.sites.caltech_acn(basic_evse=True, voltage=voltage)
 
 
 # -- Events ------------------------------------------------------------------------------------------------------------

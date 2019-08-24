@@ -105,7 +105,7 @@ default_battery_power = 32 * voltage / 1000 # kW
 site = 'caltech'
 
 # -- Network -----------------------------------------------------------------------------------------------------------
-cn = acnsim.sites.CaltechACN(basic_evse=True, voltage=voltage)
+cn = acnsim.sites.caltech_acn(basic_evse=True, voltage=voltage)
 
 # -- Events ------------------------------------------------------------------------------------------------------------
 API_KEY = 'DEMO_TOKEN'
