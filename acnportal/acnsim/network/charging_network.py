@@ -18,6 +18,8 @@ class ChargingNetwork:
         self.constraint_matrix = None
         # Vector of limiting magnitudes
         self.magnitude_vector = None
+        # Dict of constraint_id to row index in constraint matrix
+        self.constraint_index = {}
         self._voltages = {}
         self._phase_angles = pd.Series()
         self.angles_vector = None
@@ -103,20 +105,16 @@ class ChargingNetwork:
         self._EVSEs[evse.station_id] = evse
         self._voltages[evse.station_id] = voltage
         self._phase_angles[evse.station_id] = phase_angle
+        # Update the numpy vector of angles by reconstructing it.
         self.angles_vector = np.array([angle for _, angle in sorted(self._phase_angles.items())])
-
-    # def add_constraint(self, current, limit, name=None):
-    #     """ Add constraint to the network's constraint set.
-
-    #     Wraps ConstraintSet add_constraint method, see its description for more info.
-    #     """
-    #     self.constraint_set.add_constraint(current, limit, name)
 
     def add_constraint(self, current, limit, name=None):
         """ Add an additional constraint to the constraint DataFrame.
 
         Args:
-            See Constraint.
+            current (Current): Aggregate current which is constrained. See Current for more info.
+            limit (float): Upper limit on the aggregate current.
+            name (str): Name of this constraint.
 
         Returns:
             None
@@ -126,16 +124,13 @@ class ChargingNetwork:
             name = '_const_{0}'.format(len(self.constraints.index))
         current.name = name
         self.magnitudes[name] = limit
+        # Update numpy vector of magnitudes (limits on aggregate currents) by reconstructing it.
         self.magnitude_vector = self.magnitudes.sort_index().to_numpy()
         self.constraints = self.constraints.append(current).sort_index(axis=1).fillna(0)
+        # Update the numpy matrix of constraints by reconstructing it.
         self.constraint_matrix = self.constraints.sort_index(axis=0).to_numpy()
-
-    # def is_feasible(self, load_currents, t=0, linear=False):
-    #     """ Return if a set of current magnitudes for each load are feasible at the given time, t.
-
-    #     Wraps ConstraintSet is_feasible method, see its description for more info.
-    #     """
-    #     return self.constraint_set.is_feasible(load_currents, self._phase_angles, t, linear)
+        # Maintain a dictoinary mapping constraints to row indices in the constraint_matrix, for use with constraint_current method
+        self.constraint_index = {constraints.index.to_list()[i] : i for i in range(len(constraints.index))}
 
     def plugin(self, ev, station_id):
         """ Attach EV to a specific EVSE.
@@ -196,8 +191,9 @@ class ChargingNetwork:
         Station IDs not registered in the network are silently ignored.
 
         Args:
-            pilots (Dict[str, List[number]]): Dictionary mapping station_ids to lists of pilot signals. Each index in
-                the array corresponds to an a period of the simulation. [A]
+            pilots (pd.DataFrame): pandas DataFrame with columns as station_ids
+                and time as the index. Each entry in the DataFrame corresponds to
+                a charging rate (in A) at a station given by the column at a time given by the index.
             i (int): Current time index of the simulation.
             period (float): Length of the charging period. [minutes]
 
@@ -211,62 +207,50 @@ class ChargingNetwork:
                 new_rate = 0
             self._EVSEs[station_id].set_pilot(new_rate, self._voltages[station_id], period)
 
-    # def add_constraint(self, current, limit, name=None):
-    #     """ Add an additional constraint to the constraint set.
-
-    #     Args:
-    #         See Constraint.
-
-    #     Returns:
-    #         None
-    #     """
-    #     # TODO: Directly use Series for current
-    #     if name is None:
-    #         name = '_const_{0}'.format(len(self.constraints.index))
-    #     current.name = name
-    #     self.magnitudes[name] = limit
-    #     self.constraints = self.constraints.append(current).sort_index(axis=1).fillna(0)
-
-    # TODO: Fix this function
-    def constraint_current(self, constraint, load_currents, angles, t=0, linear=False):
-        # TODO: refactor as input set of constraint ids, or None, and calculate accordingly
-        """ Return the current subject to the given constraint.
+    def constraint_current(self, load_currents, constraints=None, t=None, linear=False):
+        """ Return the aggregate currents subject to the given constraints. If constraints=None,
+        return all aggregate currents.
 
         Args:
-            constraint (Constraint): Constraint object describing the current.
             load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
-            angles (Dict[str, float]): Dictionary mapping load_ids to the phase angle of the voltage feeding them.
-            t (int): Index into the charging rate schedule where feasibility should be checked.
+            constraints (List[str]): List of constraint id's for which to calculate aggregate current. If
+                None, calculates aggregate currents for all constraints.
+            t (List[int]): List of time indices for which to calculate aggregate current. If None, 
+                calculates aggregate currents for all timesteps.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 
         Returns:
-            complex: Current subject to the given constraint.
+            List[complex]: Aggregate currents subject to the given constraints.
         """
-        # TODO: pass constraint ids, return currents that are passed (or all if None passed)
-        currents = pd.Series({elt : load_currents[elt][t] for elt in load_currents.keys()}).sort_index()
-        if linear:
-            return complex(np.abs(constraint[currents.index].to_numpy()).dot(currents.to_numpy()))
+        # Convert list of constraint id's to list of indices in constraint matrix
+        if constraints:
+            constraint_indices = [self.constraint_index[constraint_id] for constraint_id in constraints]
         else:
-            angles_series = angles[currents.index].sort_index()
-            ret = constraint[currents.index].to_numpy().dot(currents.to_numpy() * np.exp(1j*np.deg2rad(angles_series.to_numpy())))
-            return ret
-        # acc = 0
-        # for load_id in constraint.loads:
-        #     if load_id in load_currents:
-        #         if linear:
-        #             acc += abs(constraint.loads[load_id]) * load_currents[load_id][t]
-        #         else:
-        #             acc += cmath.rect(constraint.loads[load_id] * load_currents[load_id][t],
-        #                               math.radians(angles[load_id]))
-        # return complex(acc)
+            constraint_indices = self.constraint_index.values()
+        if t:
+            schedule_length = len(t)
+            schedule_matrix = np.array([[load_currents[evse_id][i] for i in t] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
+        else:
+            schedule_length = len(next(iter(load_currents.values())))
+            schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
+        if linear:
+            return complex(np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix))
+        else:
+            # build vector of phase angles on EVSE
+            angle_coeffs = np.exp(1j*np.deg2rad(self.angles_vector))
+
+            # multiply schedule by angles matrix element-wise
+            shifted_schedule = (schedule_matrix.T * angle_coeffs).T
+
+            # multiply constraint matrix by current schedule, shifted by the phases
+            return self.constraint_matrix[constraint_indices]@shifted_schedule
 
     def is_feasible(self, load_currents, t=0, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.
 
         Args:
             load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
-            angles (Dict[str, float]): Dictionary mapping load_ids to the phase angle of the voltage feeding them.
             t (int): Index into the charging rate schedule where feasibility should be checked.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
