@@ -3,7 +3,7 @@ from datetime import datetime
 
 from ..models.ev import EV
 from ..models.battery import Battery
-from . import PluginEvent
+from . import Arrival
 from .event_queue import EventQueue
 from acnportal.acndata import DataClient
 
@@ -19,7 +19,7 @@ def generate_events(token, site, start, end, period, voltage, max_rate, **kwargs
 
     """
     evs = get_evs(token, site, start, end, period, voltage, max_rate, **kwargs)
-    events = [PluginEvent(sess.arrival, sess) for sess in evs]
+    events = [Arrival(sess.arrival, sess) for sess in evs]
     return EventQueue(events)
 
 

@@ -1,7 +1,6 @@
 import copy
 from datetime import datetime
 
-from .events import UnplugEvent
 from .interface import Interface
 
 
@@ -74,7 +73,7 @@ class Simulator:
             current_events = self.event_queue.get_current_events(self._iteration)
             for e in current_events:
                 self.event_history.append(e)
-                self._process_event(e)
+                e.execute(self)
             if self._resolve or \
                     self.max_recompute is not None and \
                     self._iteration - self._last_schedule_update >= self.max_recompute:
@@ -100,31 +99,6 @@ class Simulator:
         """
         evs = copy.deepcopy(self.network.active_evs)
         return evs
-
-    def _process_event(self, event):
-        """ Process an event and take appropriate actions.
-
-        Args:
-            event (Event): Event to be processed.
-
-        Returns:
-            None
-        """
-        if event.type == 'Plugin':
-            self._print('Plugin Event...')
-            self.network.plugin(event.ev, event.ev.station_id)
-            self.ev_history[event.ev.session_id] = event.ev
-            self.event_queue.add_event(UnplugEvent(event.ev.departure, event.ev.station_id, event.ev.session_id))
-            self._resolve = True
-            self._last_schedule_update = event.timestamp
-        elif event.type == 'Unplug':
-            self._print('Unplug Event...')
-            self.network.unplug(event.station_id)
-            self._resolve = True
-            self._last_schedule_update = event.timestamp
-        elif event.type == 'Recompute':
-            self._print('Recompute Event...')
-            self._resolve = True
 
     def _update_schedules(self, new_schedule):
         """ Extend the current self.pilot_signals with the new pilot signal schedule.
@@ -175,7 +149,7 @@ class Simulator:
             agg += rate
         self.peak = max(self.peak, agg)
 
-    def _print(self, s):
+    def print(self, s):
         if self.verbose:
             print(s)
 
