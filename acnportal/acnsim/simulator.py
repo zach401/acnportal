@@ -40,7 +40,6 @@ class Simulator:
         self.verbose = verbose
 
         # Information storage
-        # TODO: decide if station_ids as field or index in DFs?
         self.pilot_signals = pd.DataFrame.from_dict(
             {station_id: np.array([]) for station_id in self.network.space_ids}
         )
@@ -179,6 +178,7 @@ class Simulator:
         """ Extends all pilot signals by appending 0's so they at least last past the next time step."""
         for station_id in self.pilot_signals.columns:
             # TODO: This loop can be vectorized assuming all pilot signals have the same length
+            # or assuming a constant schecdule length
             if len(self.pilot_signals[station_id]) < self._iteration + 1:
                 addend = pd.Series(np.zeros(len(self.pilot_signals.columns)), index = self.pilot_signals.columns)
                 self.pilot_signals = self.pilot_signals.append(addend, ignore_index = True).fillna(0)
