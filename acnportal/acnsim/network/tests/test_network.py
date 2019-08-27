@@ -4,6 +4,7 @@ from unittest.mock import Mock, create_autospec
 from acnportal.acnsim.models import EV
 from acnportal.acnsim.models import EVSE, InvalidRateError
 from acnportal.acnsim import ChargingNetwork
+from acnportal.acnsim import Current
 
 import pandas as pd
 import numpy as np
@@ -12,6 +13,13 @@ import numpy as np
 class TestChargingNetwork(TestCase):
     def setUp(self):
         self.network = ChargingNetwork()
+
+    def test_init_empty(self):
+        self.assertEqual(self.network._EVSEs, {})
+        pd.testing.assert_series_equal(self.network.magnitudes, pd.Series())
+        pd.testing.assert_frame_equal(self.network.constraints, pd.DataFrame())
+        self.assertEqual(self.network._voltages, {})
+        pd.testing.assert_series_equal(self.network._phase_angles, pd.Series())
 
     def test_register_evse(self):
         evse = EVSE('PS-001')
@@ -76,3 +84,21 @@ class TestChargingNetwork(TestCase):
         evse1.set_pilot.assert_any_call(24, 240, 5)
         evse2.set_pilot.assert_any_call(16, 240, 5)
         evse3.set_pilot.assert_any_call(0, 240, 5)
+
+    def test_add_constraint(self):
+        curr_dict1 = {'PS-001' : 0.25, 'PS-002' : 0.50, 'PS-003' : -0.25}
+        current1 = Current(curr_dict1)
+        curr_dict2 = {'PS-006' : 0.30, 'PS-004' : -0.60, 'PS-002' : 0.50}
+        current2 = Current(curr_dict2)
+        self.network.add_constraint(current1, 50)
+        self.network.add_constraint(current2, 10)
+        pd.testing.assert_series_equal(
+            self.network.magnitudes, pd.Series(
+                [50, 10], index=['_const_0', '_const_1']))
+        pd.testing.assert_frame_equal(
+            self.network.constraints, pd.DataFrame(
+                np.array([[0.25, 0.50, -0.25, 0.00, 0.00],
+                    [0.00, 0.50, 0.00, -0.60, 0.30]]),
+                columns=['PS-001', 'PS-002', 'PS-003', 'PS-004', 'PS-006'],
+                index=['_const_0', '_const_1']))
+    # TODO: Test constraint current, more thorough tests for is feasible

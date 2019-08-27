@@ -14,7 +14,7 @@ def aggregate_current(sim):
     """
     return sim.charging_rates.sum(axis=1)
 
-
+# TODO: Fix this function
 def constraint_currents(sim, complex=False, constraint_ids=None):
     """ Calculate the time series of current for each constraint in the ChargingNetwork for a simulation.
 
@@ -106,7 +106,7 @@ def current_unbalance(sim, phase_ids, type='NEMA'):
     else:
         raise ValueError('type must be NEMA or SYM_COMP, not {0}'.format(type))
 
-
+# TODO: Fix this function
 def _nema_current_unbalance(sim, phase_ids):
     """ Calculate the current unbalance using the NEMA definition.
 
