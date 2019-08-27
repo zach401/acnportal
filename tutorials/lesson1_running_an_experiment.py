@@ -8,7 +8,7 @@ Last updated: 03/19/2019
 In this first lesson we will learn how to setup and run a simulation using a built-in scheduling algorithm.
 After running the simulation we will learn how to use the analysis subpackage to analyze the results of the simulation.
 """
-
+# TODO: Update ipynb with new verbage about constraint currents
 import pytz
 from datetime import datetime
 

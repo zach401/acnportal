@@ -48,6 +48,7 @@ class Simulator:
             {station_id: np.array([]) for station_id in self.network.space_ids}
         )
         self.peak = 0
+        # TODO: Do we want constant length event history, decided at start of sim?
         self.ev_history = {}
         self.event_history = []
         if store_schedule_history:

@@ -153,7 +153,7 @@ class Interface:
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 
         Returns:
-            bool: If load_currents is feasible at time t according to this constraint set.
+            bool: If load_currents is feasible at time t according to this set of constraints.
         """
         return self._simulator.network.is_feasible(load_currents, t, linear)
 

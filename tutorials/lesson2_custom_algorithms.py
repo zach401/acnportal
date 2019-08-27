@@ -13,7 +13,7 @@ algorithms package, so we will compare the results of our implementation with th
 # -- Custom Algorithm --------------------------------------------------------------------------------------------------
 from acnportal.algorithms import BaseAlgorithm
 import pandas as pd
-
+# TODO: update ipynb with constraint current code
 # All custom algorithms should inherit from the abstract class BaseAlgorithm. It is the responsibility of all derived
 # classes to implement the schedule method. This method takes as an input a list of EVs which are currently connected
 # to the system but have not yet finished charging. Its output is a dictionary which maps a station_id to a list of
@@ -57,7 +57,7 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         # First we define a schedule, this will be the output of our function
-        schedule = pd.DataFrame({ev.station_id: [0] for ev in active_evs})
+        schedule = {ev.station_id: [0] for ev in active_evs}
 
         # Next, we sort the active_evs by their departure time.
         sorted_evs = sorted(active_evs, key=lambda x: x.departure)
@@ -72,7 +72,6 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
             #   interface.is_feasible() is one way to interact with the constraint set of the network. We will explore
             #   another more direct method in lesson 3.
             while not self.interface.is_feasible(schedule):
-
                 # Since the maximum rate was not feasible, we should try a lower rate.
                 schedule[ev.station_id] = [schedule[ev.station_id][0] - self._increment]
 
@@ -80,7 +79,7 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
                 if schedule[ev.station_id][0] < 0:
                     schedule[ev.station_id] = [0]
                     break
-        return {ev.station_id: schedule[ev.station_id] for ev in active_evs}
+        return schedule
 
 
 # -- Run Simulation ----------------------------------------------------------------------------------------------------

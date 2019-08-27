@@ -1,5 +1,5 @@
 from .. import ChargingNetwork
-from .. constraint_set import Current
+from .. current import Current
 from ...models.evse import get_evse_by_type
 
 
@@ -44,7 +44,7 @@ class CaltechACN(ChargingNetwork):
         for evse_id in CA_ids:
             self.register_evse(get_evse_by_type(evse_id, evse_type['AV']), voltage, 150)
 
-        # Add Caltech Constraint Set
+        # Construct Caltech Constraint Currents
         CC_pod = Current(CC_pod_ids)
         AV_pod = Current(AV_pod_ids)
         AB = Current(AB_ids)
@@ -60,7 +60,7 @@ class CaltechACN(ChargingNetwork):
         I2b = (1 / 4) * (I3b - I3a)
         I2c = (1 / 4) * (I3c - I3b)
 
-        # Build constraint set
+        # Add constraints to Caltech Network
         primary_side_constr = transformer_cap * 1000 / 3 / 277
         secondary_side_constr = transformer_cap * 1000 / 3 / 120
         self.add_constraint(CC_pod, 80, name='CC Pod')
