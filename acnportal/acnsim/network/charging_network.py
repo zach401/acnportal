@@ -1,4 +1,5 @@
-from .constraint_set import ConstraintSet
+from acnportal.acnsim.network.constraint_set import ConstraintSet
+import warnings
 
 
 class ChargingNetwork:
@@ -104,7 +105,7 @@ class ChargingNetwork:
         """
         return self.constraint_set.is_feasible(load_currents, self._phase_angles, t, linear)
 
-    def plugin(self, ev, station_id):
+    def arrive(self, ev):
         """ Attach EV to a specific EVSE.
 
         Args:
@@ -116,17 +117,18 @@ class ChargingNetwork:
 
         Raises:
             KeyError: Raised when the station id has not yet been registered.
+            StationOccupiedError: Raised when a station is already occupied.
         """
-        if station_id in self._EVSEs:
-            self._EVSEs[station_id].plugin(ev)
+        if ev.station_id in self._EVSEs:
+            self._EVSEs[ev.station_id].plugin(ev)
         else:
-            raise KeyError('Station {0} not found.'.format(station_id))
+            raise KeyError('Station {0} not found.'.format(ev.station_id))
 
-    def unplug(self, station_id):
+    def depart(self, ev):
         """ Detach EV from a specific EVSE.
 
         Args:
-            station_id (str): ID of the EVSE.
+            ev (EV): EV object which will be detached from the EVSE.
 
         Returns:
             None
@@ -134,10 +136,19 @@ class ChargingNetwork:
         Raises:
             KeyError: Raised when the station id has not yet been registered.
         """
-        if station_id in self._EVSEs:
-            self._EVSEs[station_id].unplug()
+        if ev.station_id in self._EVSEs:
+            if self._EVSEs[ev.station_id].ev is not None:
+                if self._EVSEs[ev.station_id].ev.session_id == ev.session_id:
+                    self._EVSEs[ev.station_id].unplug()
+                else:
+                    warnings.warn('EV at {0} has session_id {1} expected {2}. '
+                                  'EV will not be removed.'.format(ev.station_id,
+                                                                   self._EVSEs[ev.station_id].ev.session_id,
+                                                                   ev.session_id))
+            else:
+                warnings.warn('{0} does not currently have an EV to unplug.'.format(ev.station_id))
         else:
-            raise KeyError('Station {0} not found.'.format(station_id))
+            raise KeyError('Station {0} not found.'.format(ev.station_id))
 
     def get_ev(self, station_id):
         """ Return the EV attached to the specified EVSE.

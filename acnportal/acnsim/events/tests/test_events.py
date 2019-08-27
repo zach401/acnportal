@@ -25,8 +25,8 @@ class TestArrival(TestCase):
         self.a = Arrival(self.ev.arrival, self.ev)
         self.a.execute(self.sim)
 
-    def test_execute_calls_plugin(self):
-        self.sim.network.plugin.assert_called_once_with(self.ev, self.ev.station_id)
+    def test_execute_calls_arrive(self):
+        self.sim.network.arrive.assert_called_once_with(self.ev)
 
     def test_execute_adds_ev_to_history(self):
         self.assertIn(self.ev.session_id, self.sim.ev_history)
@@ -36,8 +36,7 @@ class TestArrival(TestCase):
         event_added = self.sim.event_queue.add_event.call_args[0][0]
         self.assertIsInstance(event_added, Departure)
         self.assertEqual(event_added.timestamp, self.ev.departure)
-        self.assertEqual(event_added.session_id, self.ev.session_id)
-        self.assertEqual(event_added.station_id, self.ev.station_id)
+        self.assertEqual(event_added.ev, self.ev)
 
     def test_recompute_flag_set(self):
         self.assertTrue(self.sim._resolve)
@@ -47,11 +46,13 @@ class TestDeparture(TestCase):
     def setUp(self):
         self.sim = create_autospec(Simulator)
         self.sim.network = create_autospec(ChargingNetwork)
-        self.d = Departure(10, 'station_id', 'session_id')
+        self.ev = create_autospec(EV)
+        self.ev.departure = 10
+        self.d = Departure(self.ev.departure, self.ev)
         self.d.execute(self.sim)
 
-    def test_execute_calls_unplug(self):
-        self.sim.network.unplug.assert_called_once_with('station_id')
+    def test_execute_calls_depart(self):
+        self.sim.network.depart.assert_called_once_with(self.ev)
 
     def test_recompute_flag_set(self):
         self.assertTrue(self.sim._resolve)
