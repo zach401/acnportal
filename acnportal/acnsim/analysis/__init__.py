@@ -28,9 +28,9 @@ def constraint_currents(sim, complex=False, constraint_ids=None):
     """
     cs = sim.network.constraint_index
     if constraint_ids is None:
-        constraint_ids = set(c for c in cs.keys())
+        constraint_ids = sorted(list(set(c for c in cs.keys())))
     else:
-        constraint_ids = set(constraint_ids)
+        constraint_ids = sorted(list(set(constraint_ids)))
 
     currents = {}
     sim_length = len(sim.charging_rates.columns) # max(len(cr) for cr in sim.charging_rates.values())
