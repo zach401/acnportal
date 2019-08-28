@@ -23,10 +23,13 @@ class Current(pd.Series):
             super().__init__(loads)
         elif isinstance(loads, str):
             super().__init__({loads : 1})
+        elif isinstance(loads, pd.Series):
+            super().__init__(loads)
         elif loads is None:
             super().__init__()
         else:
             super().__init__({load_id: 1 for load_id in loads})
+
 
     def __add__(self, other):
         """ Return new Current which is the sum of self and other.
@@ -39,7 +42,7 @@ class Current(pd.Series):
             TypeError: Raised if other is not of type Current.
         """
         if isinstance(other, Current):
-            return self.add(other, fill_value=0)
+            return Current(self.add(other, fill_value=0))
         else:
             TypeError("Must be of type Current.")
 
@@ -56,4 +59,4 @@ class Current(pd.Series):
         """
         # TODO: Bug: for some reason the line below doesn't work
         # return self + ((-1 * other))
-        return self.add(-1 * other, fill_value=0)
+        return Current(self.add(-1 * other, fill_value=0))
