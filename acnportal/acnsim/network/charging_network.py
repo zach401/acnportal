@@ -130,7 +130,7 @@ class ChargingNetwork:
         # Update the numpy matrix of constraints by reconstructing it.
         self.constraint_matrix = self.constraints.sort_index(axis=0).to_numpy()
         # Maintain a dictoinary mapping constraints to row indices in the constraint_matrix, for use with constraint_current method
-        self.constraint_index = {constraints.index.to_list()[i] : i for i in range(len(constraints.index))}
+        self.constraint_index = {self.constraints.index.to_list()[i] : i for i in range(len(self.constraints.index))}
 
     def plugin(self, ev, station_id):
         """ Attach EV to a specific EVSE.
