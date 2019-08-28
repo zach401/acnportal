@@ -35,7 +35,10 @@ def constraint_currents(sim, complex=False, constraint_ids=None):
     currents = {}
     sim_length = len(sim.charging_rates.columns) # max(len(cr) for cr in sim.charging_rates.values())
     dict_charging_rates = {key: value.to_numpy() for key, value in sim.charging_rates.to_dict('series').items()}
-    currents_list = sim.network.constraint_current(dict_charging_rates)
+    if complex:
+        currents_list = sim.network.constraint_current(dict_charging_rates)
+    else:
+        currents_list = np.abs(sim.network.constraint_current(dict_charging_rates))
     # for constraint in cs.keys():
     #     if constraint in constraint_ids:
     #         if complex:
