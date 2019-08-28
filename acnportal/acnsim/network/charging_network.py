@@ -227,7 +227,7 @@ class ChargingNetwork:
         if constraints:
             constraint_indices = [self.constraint_index[constraint_id] for constraint_id in constraints]
         else:
-            constraint_indices = self.constraint_index.values()
+            constraint_indices = list(self.constraint_index.values())
         if t:
             schedule_length = len(t)
             schedule_matrix = np.array([[load_currents[evse_id][i] for i in t] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
