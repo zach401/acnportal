@@ -50,7 +50,6 @@ class Simulator:
         # )
         # Map from evse station_id to row index in pilot_signals and charging_rates
         self.peak = 0
-        # TODO: Do we want constant length event history, decided at start of sim?
         self.ev_history = {}
         self.event_history = []
         if store_schedule_history:
@@ -164,11 +163,11 @@ class Simulator:
         if self._iteration + schedule_length <= len(self.pilot_signals[0]):
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
         else:
-            # TODO move this into helper func?
             # We've reached the end of pilot_signals, so double pilot_signal array width
-            new_pilot_signals = np.zeros((len(self.pilot_signals), (self._iteration + schedule_length) * 2))
-            new_pilot_signals[:, 0:len(self.pilot_signals[0])] = self.pilot_signals
-            self.pilot_signals = new_pilot_signals
+            # new_pilot_signals = np.zeros((len(self.pilot_signals), (self._iteration + schedule_length) * 2))
+            # new_pilot_signals[:, 0:len(self.pilot_signals[0])] = self.pilot_signals
+            # self.pilot_signals = new_pilot_signals
+            self.pilot_signals = _increase_width(self.pilot_signals, (self._iteration + schedule_length) * 2)
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
         # for station_id in self.network.station_ids:
         #     if station_id not in new_schedule:
@@ -176,7 +175,7 @@ class Simulator:
 
         # self.pilot_signals = _overwrite_at_index(self._iteration, self.pilot_signals, pd.DataFrame.from_dict(new_schedule))
         # for station_id in self.network.station_ids:
-        #     # TODO: This loop can be vectorized assuming all pilot signals have the same length
+        #     # : This loop can be vectorized assuming all pilot signals have the same length
         #     if station_id in new_schedule:
         #         self.pilot_signals[station_id] = _overwrite_at_index(self._iteration, self.pilot_signals[station_id].to_numpy(),
         #                                                              np.array(new_schedule[station_id]))
@@ -189,11 +188,12 @@ class Simulator:
     def _expand_pilots(self):
         """ Extends all pilot signals by appending 0's so they at least last past the next time step."""
         if len(self.pilot_signals[0]) < self._iteration + 1:
-            new_pilot_signals = np.zeros((len(self.pilot_signals), (self._iteration + 1) * 2))
-            new_pilot_signals[:, 0:len(self.pilot_signals[0])] = self.pilot_signals
-            self.pilot_signals = new_pilot_signals
+            self.pilot_signals = _increase_width(self.pilot_signals, (self._iteration + 1) * 2)
+            # new_pilot_signals = np.zeros((len(self.pilot_signals), (self._iteration + 1) * 2))
+            # new_pilot_signals[:, 0:len(self.pilot_signals[0])] = self.pilot_signals
+            # self.pilot_signals = new_pilot_signals
     #     for station_id in self.pilot_signals.columns:
-    #         # TODO: This loop can be vectorized assuming all pilot signals have the same length
+    #         #: This loop can be vectorized assuming all pilot signals have the same length
     #         # or assuming a constant schecdule length
     #         if len(self.pilot_signals[station_id]) < self._iteration + 1:
     #             addend = pd.Series(np.zeros(len(self.pilot_signals.columns)), index = self.pilot_signals.columns)
@@ -202,16 +202,15 @@ class Simulator:
 
     def _store_actual_charging_rates(self):
         """ Store actual charging rates from the network in the simulator for later analysis."""
-        current_rates_dict = self.network.current_charging_rates
-        current_rates = np.array([current_rates_dict[evse_id] for evse_id in sorted(current_rates_dict.keys())])
-        # TODO: Is it correct to sum rates for agg? Isn't there a phase consideration?
+        current_rates = self.network.current_charging_rates
         agg = np.sum(current_rates)
         if self.iteration < len(self.charging_rates[0]):
             self.charging_rates[:, self.iteration] = current_rates.T
         else:
-            new_charging_rates = np.zeros((len(self.charging_rates), (self._iteration * 2)))
-            new_charging_rates[:, 0:len(self.charging_rates[0])] = self.charging_rates
-            self.charging_rates = new_charging_rates
+            self.charging_rates = _increase_width(self.charging_rates, self._iteration * 2)
+            # new_charging_rates = np.zeros((len(self.charging_rates), (self._iteration * 2)))
+            # new_charging_rates[:, 0:len(self.charging_rates[0])] = self.charging_rates
+            # self.charging_rates = new_charging_rates
             self.charging_rates[:, self._iteration] = current_rates.T
         self.peak = max(self.peak, agg)
 
@@ -224,6 +223,19 @@ class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """
     pass
 
+def _increase_width(a, target_width):
+    """ Returns a new 2-D numpy array with target_width number of columns, with the contents
+    of a up to the first len(a[0]) columns and 0's thereafter.
+
+    Args:
+        a (numpy.ndarray): 2-D numpy array to be expanded.
+        target_width (int): desired number of columns; must be greater than number of columns in a
+    Returns:
+        numpy.ndarray
+    """
+    new_matrix = np.zeros((len(a), target_width))
+    new_matrix[:, :len(a[0])] = a
+    return new_matrix
 
 # def _overwrite_at_index(i, prev_frame, new_frame):
 #     """ Returns a new DataFrame with the contents of prev_frame up to index i and of new_frame afterward.

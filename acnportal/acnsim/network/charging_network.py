@@ -2,7 +2,6 @@ from .current import Current
 import pandas as pd
 import numpy as np
 
-# TODO: Fix docs here
 class ChargingNetwork:
     """
     The ChargingNetwork class describes the infrastructure of the charging network with
@@ -23,9 +22,6 @@ class ChargingNetwork:
         self._voltages = {}
         self._phase_angles = pd.Series()
         self.angles_vector = None
-        # TODO: Instead of updating both constraints and constraint_matrix every time anything
-        # is added, have a flag that's read or write: writing updates constraints, switching from
-        # write to read generates matrix. Switching from read to write deletes matrix.
         pass
 
     @property
@@ -36,13 +32,12 @@ class ChargingNetwork:
             Dict[str, number]: Dictionary mapping station_id to the current actual charging rate of the EV attached to
                 that EVSE.
         """
-        # TODO: Update to numpy arrays?
-        current_rates = {}
-        for station_id, evse in self._EVSEs.items():
+        current_rates = np.zeros(len(self._EVSEs))
+        i = 0
+        for station_id, evse in sorted(self._EVSEs.items()):
             if evse.ev is not None:
-                current_rates[station_id] = evse.ev.current_charging_rate
-            else:
-                current_rates[station_id] = 0
+                current_rates[i] = evse.ev.current_charging_rate
+            i += 1
         return current_rates
 
     @property
@@ -118,9 +113,11 @@ class ChargingNetwork:
         Returns:
             None
         """
-        # TODO: Check if each EVSE in current is already registered
         if name is None:
             name = '_const_{0}'.format(len(self.constraints.index))
+        for station_id in current.index:
+            if station_id not in self._EVSEs:
+                raise KeyError('Station {0} not found. Register station {0} to add constraint {1} to network.'.format(station_id, name))
         current.name = name
         self.magnitudes[name] = limit
         # Update numpy vector of magnitudes (limits on aggregate currents) by reconstructing it.
@@ -258,6 +255,7 @@ class ChargingNetwork:
         # build schedule matrix, ensuring rows in order of EVSE list
         schedule_lengths = set(len(x) for x in load_currents.values())
         if len(schedule_lengths) > 1:
+            # TODO: test case for this
             raise InvalidScheduleError('All schedules should have the same length.')
         schedule_length = schedule_lengths.pop()
         schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
