@@ -49,8 +49,6 @@ class Simulator:
         #     {station_id: np.array([]) for station_id in self.network.station_ids}
         # )
         # Map from evse station_id to row index in pilot_signals and charging_rates
-        self.evse_index = {self.network.station_ids[i] : i
-            for i in range(len(sorted(self.network.station_ids)))}
         self.peak = 0
         # TODO: Do we want constant length event history, decided at start of sim?
         self.ev_history = {}
@@ -204,7 +202,8 @@ class Simulator:
 
     def _store_actual_charging_rates(self):
         """ Store actual charging rates from the network in the simulator for later analysis."""
-        current_rates = np.array(list(sorted(self.network.current_charging_rates.values())))
+        current_rates_dict = self.network.current_charging_rates
+        current_rates = np.array([current_rates_dict[evse_id] for evse_id in sorted(current_rates_dict.keys())])
         # TODO: Is it correct to sum rates for agg? Isn't there a phase consideration?
         agg = np.sum(current_rates)
         if self.iteration < len(self.charging_rates[0]):

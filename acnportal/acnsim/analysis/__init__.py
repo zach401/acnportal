@@ -12,7 +12,7 @@ def aggregate_current(sim):
     Returns:
         pandas.Series: A pandas Series of the aggregate current at each time.
     """
-    return sim.charging_rates.sum(axis=1)
+    return sim.charging_rates.sum(axis=0)
 
 def constraint_currents(sim, complex=False, constraint_ids=None):
     """ Calculate the time series of current for each constraint in the ChargingNetwork for a simulation.
