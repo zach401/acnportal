@@ -30,7 +30,7 @@ class TestSimulator(TestCase):
         self.simulator = Simulator(network, scheduler, events, start)
 
     def test_correct_on_init_pilot_signals(self):
-        EVSEs = self.simulator.network.space_ids
+        EVSEs = self.simulator.network.station_ids
         ps_station_ids = self.simulator.pilot_signals.columns
         for station_id in EVSEs:
             self.assertTrue(not self.simulator.pilot_signals[station_id].to_numpy())
@@ -38,7 +38,7 @@ class TestSimulator(TestCase):
         self.assertEqual(len(self.simulator.pilot_signals.columns), len(EVSEs))
     
     def test_correct_on_init_charging_rates(self):
-        EVSEs = self.simulator.network.space_ids
+        EVSEs = self.simulator.network.station_ids
         cr_station_ids = self.simulator.charging_rates.columns
         for station_id in EVSEs:
             self.assertTrue(not self.simulator.charging_rates[station_id].to_numpy())

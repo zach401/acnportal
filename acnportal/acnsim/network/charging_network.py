@@ -36,7 +36,7 @@ class ChargingNetwork:
             Dict[str, number]: Dictionary mapping station_id to the current actual charging rate of the EV attached to
                 that EVSE.
         """
-        # TODO: Update to df
+        # TODO: Update to numpy arrays?
         current_rates = {}
         for station_id, evse in self._EVSEs.items():
             if evse.ev is not None:
@@ -46,8 +46,7 @@ class ChargingNetwork:
         return current_rates
 
     @property
-    def space_ids(self):
-        #TODO: Change to station_ids?
+    def station_ids(self):
         """ Return the IDs of all registered EVSEs.
 
         Returns:
@@ -200,12 +199,10 @@ class ChargingNetwork:
         Returns:
             None
         """
-        for station_id in self._EVSEs:
-            if station_id in pilots.columns and i < len(pilots[station_id]):
-                new_rate = pilots[station_id][i]
-            else:
-                new_rate = 0
-            self._EVSEs[station_id].set_pilot(new_rate, self._voltages[station_id], period)
+        ids = sorted(self.station_ids)
+        for station_number in range(len(ids)):
+            new_rate = pilots[station_number, i]
+            self._EVSEs[ids[station_number]].set_pilot(new_rate, self._voltages[ids[station_number]], period)
 
     def constraint_current(self, load_currents, constraints=None, t=None, linear=False):
         """ Return the aggregate currents subject to the given constraints. If constraints=None,
@@ -259,7 +256,10 @@ class ChargingNetwork:
             bool: If load_currents is feasible at time t according to this set of constraints.
         """
         # build schedule matrix, ensuring rows in order of EVSE list
-        schedule_length = len(next(iter(load_currents.values())))
+        schedule_lengths = set(len(x) for x in load_currents.values())
+        if len(schedule_lengths) > 1:
+            raise InvalidScheduleError('All schedules should have the same length.')
+        schedule_length = schedule_lengths.pop()
         schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
         if linear:
             return np.all(np.tile(self.magnitude_vector) - np.abs(self.constraint_matrix@schedule_matrix) >= 0)
