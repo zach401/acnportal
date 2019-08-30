@@ -41,14 +41,7 @@ class Simulator:
 
         # Information storage
         self.pilot_signals = np.zeros((len(self.network.station_ids), len(self.event_queue)))
-        # pd.DataFrame.from_dict(
-        #     {station_id: np.array([]) for station_id in self.network.station_ids}
-        # )
         self.charging_rates = np.zeros((len(self.network.station_ids), len(self.event_queue)))
-        # pd.DataFrame.from_dict(
-        #     {station_id: np.array([]) for station_id in self.network.station_ids}
-        # )
-        # Map from evse station_id to row index in pilot_signals and charging_rates
         self.peak = 0
         self.ev_history = {}
         self.event_history = []
@@ -164,41 +157,13 @@ class Simulator:
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
         else:
             # We've reached the end of pilot_signals, so double pilot_signal array width
-            # new_pilot_signals = np.zeros((len(self.pilot_signals), (self._iteration + schedule_length) * 2))
-            # new_pilot_signals[:, 0:len(self.pilot_signals[0])] = self.pilot_signals
-            # self.pilot_signals = new_pilot_signals
             self.pilot_signals = _increase_width(self.pilot_signals, (self._iteration + schedule_length) * 2)
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
-        # for station_id in self.network.station_ids:
-        #     if station_id not in new_schedule:
-        #         new_schedule[station_id] = [0] * schedule_length
-
-        # self.pilot_signals = _overwrite_at_index(self._iteration, self.pilot_signals, pd.DataFrame.from_dict(new_schedule))
-        # for station_id in self.network.station_ids:
-        #     # : This loop can be vectorized assuming all pilot signals have the same length
-        #     if station_id in new_schedule:
-        #         self.pilot_signals[station_id] = _overwrite_at_index(self._iteration, self.pilot_signals[station_id].to_numpy(),
-        #                                                              np.array(new_schedule[station_id]))
-        #     else:
-        #         # If a station is not in the new schedule, it shouldn't be charging.
-        #         # Extends the pilot signal for all station_schedule so that they all have the same length.
-        #         self.pilot_signals[station_id] = _overwrite_at_index(self._iteration, self.pilot_signals[station_id].to_numpy(),
-        #                                                              np.zeros(schedule_length))
 
     def _expand_pilots(self):
         """ Extends all pilot signals by appending 0's so they at least last past the next time step."""
         if len(self.pilot_signals[0]) < self._iteration + 1:
             self.pilot_signals = _increase_width(self.pilot_signals, (self._iteration + 1) * 2)
-            # new_pilot_signals = np.zeros((len(self.pilot_signals), (self._iteration + 1) * 2))
-            # new_pilot_signals[:, 0:len(self.pilot_signals[0])] = self.pilot_signals
-            # self.pilot_signals = new_pilot_signals
-    #     for station_id in self.pilot_signals.columns:
-    #         #: This loop can be vectorized assuming all pilot signals have the same length
-    #         # or assuming a constant schecdule length
-    #         if len(self.pilot_signals[station_id]) < self._iteration + 1:
-    #             addend = pd.Series(np.zeros(len(self.pilot_signals.columns)), index = self.pilot_signals.columns)
-    #             self.pilot_signals = self.pilot_signals.append(addend, ignore_index = True).fillna(0)
-    #             break
 
     def _store_actual_charging_rates(self):
         """ Store actual charging rates from the network in the simulator for later analysis."""
@@ -208,9 +173,6 @@ class Simulator:
             self.charging_rates[:, self.iteration] = current_rates.T
         else:
             self.charging_rates = _increase_width(self.charging_rates, self._iteration * 2)
-            # new_charging_rates = np.zeros((len(self.charging_rates), (self._iteration * 2)))
-            # new_charging_rates[:, 0:len(self.charging_rates[0])] = self.charging_rates
-            # self.charging_rates = new_charging_rates
             self.charging_rates[:, self._iteration] = current_rates.T
         self.peak = max(self.peak, agg)
 
@@ -218,6 +180,17 @@ class Simulator:
         if self.verbose:
             print(s)
 
+    def charging_rates_as_df(self):
+        """ Return the charging rates as a pandas DataFrame, with EVSE id as columns
+        and iteration as index.
+        """
+        return pd.DataFrame(data=self.charging_rates, columns=sorted(self.network.station_ids))
+        pass
+
+    def pilot_signals_as_df(self):
+        """ Return the pilot signals as a pandas DataFrame """
+        return pd.DataFrame(data=self.pilot_signals, columns=sorted(self.network.station_ids))
+        pass
 
 class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """
@@ -228,36 +201,11 @@ def _increase_width(a, target_width):
     of a up to the first len(a[0]) columns and 0's thereafter.
 
     Args:
-        a (numpy.ndarray): 2-D numpy array to be expanded.
+        a (numpy.Array): 2-D numpy array to be expanded.
         target_width (int): desired number of columns; must be greater than number of columns in a
     Returns:
-        numpy.ndarray
+        numpy.Array
     """
     new_matrix = np.zeros((len(a), target_width))
     new_matrix[:, :len(a[0])] = a
     return new_matrix
-
-# def _overwrite_at_index(i, prev_frame, new_frame):
-#     """ Returns a new DataFrame with the contents of prev_frame up to index i and of new_frame afterward.
-
-#     Args:
-#         i (int): Index of the transition between prev_list and new_list. i is exclusive.
-#         prev_frame (pandas.DataFrame): pandas DataFrame which will make up the first part of the new DataFrame.
-#         new_frame (pandas.DataFrame): pandas DataFrame which will make up the second part of the new DataFrame.
-
-#     Returns:
-#         pandas.DataFrame
-#     """
-#     if len(prev_frame.index) < i:
-#         space_ids = prev_frame.columns
-#         interim = pd.concat(
-#             [prev_frame,
-#             pd.DataFrame(np.tile(np.array([0] * (i - len(prev_list))), (len(space_ids), 1)).T),
-#             new_frame],
-#             ignore_index = True
-#         )
-#         return interim
-#     if len(prev_frame) == i:
-#         return pd.concat([prev_frame, new_frame], ignore_index=True, sort=False)
-#     else:
-#         return pd.concat([prev_list[:i], new_list], ignore_index=True, sort=False)
