@@ -186,9 +186,9 @@ class ChargingNetwork:
         Station IDs not registered in the network are silently ignored.
 
         Args:
-            pilots (pd.DataFrame): pandas DataFrame with columns as station_ids
-                and time as the index. Each entry in the DataFrame corresponds to
-                a charging rate (in A) at a station given by the column at a time given by the index.
+            pilots (np.Array): numpy array with a row for each station_id
+                and a column for each time. Each entry in the Array corresponds to
+                a charging rate (in A) at the staion given by the row at a time given by the column.
             i (int): Current time index of the simulation.
             period (float): Length of the charging period. [minutes]
 
@@ -253,8 +253,6 @@ class ChargingNetwork:
         """
         # build schedule matrix, ensuring rows in order of EVSE list
         schedule_lengths = set(len(x) for x in load_currents.values())
-        if len(schedule_lengths) > 1:
-            raise InvalidScheduleError('All schedules should have the same length.')
         schedule_length = schedule_lengths.pop()
         schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
         if linear:
