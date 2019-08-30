@@ -15,6 +15,14 @@ class EventQueue:
             self.add_events(events)
         self._timestep = 0
 
+    def __len__(self):
+        """ Return the length of this queue.
+
+        Returns:
+            int: Length of the queue.
+        """
+        return len(self._queue)
+
     def empty(self):
         """ Return if the queue is empty.
 

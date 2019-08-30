@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import cmath
 
 
@@ -9,10 +10,9 @@ def aggregate_current(sim):
         sim (Simulator): A Simulator object which has been run.
 
     Returns:
-        np.Array: A numpy array of the aggregate current at each time.
+        np.Array: A numpy ndarray of the aggregate current at each time.
     """
-    return sum(np.array(rates) for rates in sim.charging_rates.values())
-
+    return sim.charging_rates.sum(axis=0)
 
 def constraint_currents(sim, complex=False, constraint_ids=None):
     """ Calculate the time series of current for each constraint in the ChargingNetwork for a simulation.
@@ -26,27 +26,20 @@ def constraint_currents(sim, complex=False, constraint_ids=None):
         Dict (str, np.Array): A dictionary mapping the name of a constraint to a numpy array of the current subject to
             that constraint at each time.
     """
-    cs = sim.network.constraint_set
+    cs = sim.network.constraint_index
     if constraint_ids is None:
-        constraint_ids = set(c.name for c in cs.constraints)
+        constraint_ids = sorted(list(set(c for c in cs.keys())))
     else:
-        constraint_ids = set(constraint_ids)
+        constraint_ids = sorted(list(set(constraint_ids)))
 
     currents = {}
-    sim_length = max(len(cr) for cr in sim.charging_rates.values())
-    for constraint in cs.constraints:
-        if constraint.name in constraint_ids:
-            if complex:
-                c = np.zeros(sim_length, dtype=np.csingle)
-            else:
-                c = np.zeros(sim_length)
-            for t in range(sim_length):
-                if complex:
-                    c[t] = cs.constraint_current(constraint, sim.charging_rates, sim.network.phase_angles, t)
-                else:
-                    c[t] = np.abs(cs.constraint_current(constraint, sim.charging_rates, sim.network.phase_angles, t))
-            currents[constraint.name] = c
-    return currents
+    sim_length = len(sim.charging_rates.columns) # max(len(cr) for cr in sim.charging_rates.values())
+    dict_charging_rates = {key: value.to_numpy() for key, value in sim.charging_rates.to_dict('series').items()}
+    if complex:
+        currents_list = sim.network.constraint_current(dict_charging_rates)
+    else:
+        currents_list = np.abs(sim.network.constraint_current(dict_charging_rates))
+    return {constraint_ids[i] : currents_list[i] for i in range(len(constraint_ids))}
 
 
 def proportion_of_energy_delivered(sim):
@@ -104,7 +97,6 @@ def current_unbalance(sim, phase_ids, type='NEMA'):
         return _sym_comp_current_unbalance(sim, phase_ids)
     else:
         raise ValueError('type must be NEMA or SYM_COMP, not {0}'.format(type))
-
 
 def _nema_current_unbalance(sim, phase_ids):
     """ Calculate the current unbalance using the NEMA definition.
