@@ -74,25 +74,24 @@ class TestChargingNetwork(TestCase):
         evse1.set_pilot = create_autospec(evse1.set_pilot)
         evse2.set_pilot = create_autospec(evse2.set_pilot)
         evse3.set_pilot = create_autospec(evse3.set_pilot)
-        self.network.update_pilots(
-            pd.DataFrame.from_dict(
-                {'PS-001' : [24, 16], 'PS-002' : [16, 24]}
-            ),
-            0,
-            5
-        )
+        self.network.update_pilots(np.array([[24, 16], [16, 24], [0, 0]]), 0, 5)
         evse1.set_pilot.assert_any_call(24, 240, 5)
         evse2.set_pilot.assert_any_call(16, 240, 5)
         evse3.set_pilot.assert_any_call(0, 240, 5)
 
     def test_add_constraint(self):
+        self.network.register_evse(EVSE('PS-001'), 240, 0)
+        self.network.register_evse(EVSE('PS-002'), 240, 0)
+        self.network.register_evse(EVSE('PS-003'), 240, 0)
+        self.network.register_evse(EVSE('PS-004'), 240, 0)
+        self.network.register_evse(EVSE('PS-006'), 240, 0)
         curr_dict1 = {'PS-001' : 0.25, 'PS-002' : 0.50, 'PS-003' : -0.25}
         current1 = Current(curr_dict1)
         curr_dict2 = {'PS-006' : 0.30, 'PS-004' : -0.60, 'PS-002' : 0.50}
         current2 = Current(curr_dict2)
         self.network.add_constraint(current1, 50)
         self.network.add_constraint(current2, 10)
-        pd.testing.assert_series_equal(
+        np.testing.assert_allclose(
             self.network.magnitudes, pd.Series(
                 [50, 10], index=['_const_0', '_const_1']))
         pd.testing.assert_frame_equal(
@@ -101,7 +100,44 @@ class TestChargingNetwork(TestCase):
                     [0.00, 0.50, 0.00, -0.60, 0.30]]),
                 columns=['PS-001', 'PS-002', 'PS-003', 'PS-004', 'PS-006'],
                 index=['_const_0', '_const_1']))
-    
-    def test_is_feasible_uneven_schedules(self):
-        with self.assertRaises(InvalidScheduleError):
-            self.network.is_feasible({'PS-001': [1, 3], 'PS-002': [2]})
+
+    def test_is_feasible(self):
+        self.network.register_evse(EVSE('PS-001'), 240, 0)
+        self.network.register_evse(EVSE('PS-002'), 240, 0)
+        self.network.register_evse(EVSE('PS-003'), 240, 0)
+        self.network.register_evse(EVSE('PS-004'), 240, 0)
+        self.network.register_evse(EVSE('PS-006'), 240, 0)
+        curr_dict1 = {'PS-001' : 0.25, 'PS-002' : 0.50, 'PS-003' : -0.25}
+        current1 = Current(curr_dict1)
+        curr_dict2 = {'PS-006' : 0.30, 'PS-004' : -0.60, 'PS-002' : 0.50}
+        current2 = Current(curr_dict2)
+        self.network.add_constraint(current1, 50)
+        self.network.add_constraint(current2, 10)
+        good_loads = {'PS-002' : [150, 120], 'PS-004' : [150, 120], 'PS-006' : [60, 9], 'PS-003' : [100, 40]}
+        bad_loads = {'PS-002' : [150, 800], 'PS-004' : [150, 20], 'PS-006' : [60, 9], 'PS-003' : [100, 0]}
+        
+        self.assertTrue(self.network.is_feasible(good_loads))
+        self.assertFalse(self.network.is_feasible(bad_loads))
+
+    def test_constraint_current(self):
+        self.network.register_evse(EVSE('PS-001'), 240, 0)
+        self.network.register_evse(EVSE('PS-002'), 240, 0)
+        self.network.register_evse(EVSE('PS-003'), 240, 0)
+        self.network.register_evse(EVSE('PS-004'), 240, 0)
+        self.network.register_evse(EVSE('PS-006'), 240, 0)
+        curr_dict1 = {'PS-001' : 0.25, 'PS-002' : 0.50, 'PS-003' : -0.25}
+        current1 = Current(curr_dict1)
+        curr_dict2 = {'PS-006' : 0.30, 'PS-004' : -0.60, 'PS-002' : 0.50}
+        current2 = Current(curr_dict2)
+        self.network.add_constraint(current1, 50)
+        self.network.add_constraint(current2, 10)
+        loads = {'PS-002' : [150, 120], 'PS-004' : [150, 120], 'PS-006' : [60, 9], 'PS-003' : [100, 40]}
+
+        np.testing.assert_allclose(self.network.constraint_current(loads),
+            np.array([[50+0j, 50+0j], [3+0j, -9.3+0j]]))
+        np.testing.assert_allclose(self.network.constraint_current(loads, constraints=['_const_1'], t=[1]),
+            np.array([[-9.3+0j]]))
+        np.testing.assert_allclose(self.network.constraint_current(loads, constraints=['_const_0']),
+            np.array([[50+0j, 50+0j]]))
+        np.testing.assert_allclose(self.network.constraint_current(loads, t=[1]),
+            np.array([[50+0j], [-9.3+0j]]))
