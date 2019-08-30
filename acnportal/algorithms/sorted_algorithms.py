@@ -3,6 +3,7 @@ from collections import deque
 from copy import copy
 
 import numpy as np
+import pandas as pd
 from .base_algorithm import BaseAlgorithm
 
 

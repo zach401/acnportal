@@ -31,7 +31,7 @@ class Interface:
         i = self._simulator.iteration - 1
         if i > 0:
             return {ev.session_id: self._simulator.pilot_signals[ev.station_id][i] for ev in self.active_evs if
-                    ev.arrival <= i}
+                ev.arrival <= i}
         else:
             return {}
 
@@ -152,7 +152,7 @@ class Interface:
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 
         Returns:
-            bool: If load_currents is feasible at time t according to this constraint set.
+            bool: If load_currents is feasible at time t according to this set of constraints.
         """
         return self._simulator.network.is_feasible(load_currents, t, linear)
 
