@@ -13,7 +13,6 @@ algorithms package, so we will compare the results of our implementation with th
 # -- Custom Algorithm --------------------------------------------------------------------------------------------------
 from acnportal.algorithms import BaseAlgorithm
 import pandas as pd
-# TODO: update ipynb with constraint current code
 # All custom algorithms should inherit from the abstract class BaseAlgorithm. It is the responsibility of all derived
 # classes to implement the schedule method. This method takes as an input a list of EVs which are currently connected
 # to the system but have not yet finished charging. Its output is a dictionary which maps a station_id to a list of

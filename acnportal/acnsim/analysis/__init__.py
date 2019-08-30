@@ -10,7 +10,7 @@ def aggregate_current(sim):
         sim (Simulator): A Simulator object which has been run.
 
     Returns:
-        pandas.Series: A pandas Series of the aggregate current at each time.
+        np.Array: A numpy ndarray of the aggregate current at each time.
     """
     return sim.charging_rates.sum(axis=0)
 
@@ -39,18 +39,6 @@ def constraint_currents(sim, complex=False, constraint_ids=None):
         currents_list = sim.network.constraint_current(dict_charging_rates)
     else:
         currents_list = np.abs(sim.network.constraint_current(dict_charging_rates))
-    # for constraint in cs.keys():
-    #     if constraint in constraint_ids:
-    #         if complex:
-    #             c = np.zeros(sim_length, dtype=np.csingle)
-    #         else:
-    #             c = np.zeros(sim_length)
-    #         for t in range(sim_length):
-    #             if complex:
-    #                 c[t] = cs.constraint_current(constraint, sim.charging_rates, sim.network.phase_angles, t)
-    #             else:
-    #                 c[t] = np.abs(cs.constraint_current(constraint, sim.charging_rates, sim.network.phase_angles, t))
-    #         currents[constraint.name] = c
     return {constraint_ids[i] : currents_list[i] for i in range(len(constraint_ids))}
 
 

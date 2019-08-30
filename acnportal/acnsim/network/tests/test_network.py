@@ -3,7 +3,7 @@ from unittest.mock import Mock, create_autospec
 
 from acnportal.acnsim.models import EV
 from acnportal.acnsim.models import EVSE, InvalidRateError
-from acnportal.acnsim import ChargingNetwork
+from acnportal.acnsim import ChargingNetwork, InvalidScheduleError
 from acnportal.acnsim import Current
 
 import pandas as pd
@@ -101,4 +101,7 @@ class TestChargingNetwork(TestCase):
                     [0.00, 0.50, 0.00, -0.60, 0.30]]),
                 columns=['PS-001', 'PS-002', 'PS-003', 'PS-004', 'PS-006'],
                 index=['_const_0', '_const_1']))
-    # TODO: Test constraint current, more thorough tests for is feasible
+    
+    def test_is_feasible_uneven_schedules(self):
+        with self.assertRaises(InvalidScheduleError):
+            self.network.is_feasible({'PS-001': [1, 3], 'PS-002': [2]})

@@ -10,7 +10,6 @@ class ChargingNetwork:
 
     def __init__(self, constraints=None, magnitudes=None):
         self._EVSEs = {}
-        # TODO: is the case where constraints, magnitudes != None still relevant?
         self.constraints = constraints if constraints is not None else pd.DataFrame()
         self.magnitudes = magnitudes if magnitudes is not None else pd.Series()
         # Matrix of constraints
@@ -255,7 +254,6 @@ class ChargingNetwork:
         # build schedule matrix, ensuring rows in order of EVSE list
         schedule_lengths = set(len(x) for x in load_currents.values())
         if len(schedule_lengths) > 1:
-            # TODO: test case for this
             raise InvalidScheduleError('All schedules should have the same length.')
         schedule_length = schedule_lengths.pop()
         schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
