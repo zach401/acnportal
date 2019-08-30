@@ -121,7 +121,7 @@ class TestSimulator(TestCase):
         site = 'caltech'
 
         # -- Network -----------------------------------------------------------------------------------------------------------
-        cn = sites.CaltechACN(basic_evse=True, voltage=voltage)
+        cn = sites.caltech_acn(basic_evse=True, voltage=voltage)
 
         # -- Events ------------------------------------------------------------------------------------------------------------
         API_KEY = 'DEMO_TOKEN'
