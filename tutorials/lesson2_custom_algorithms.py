@@ -115,11 +115,11 @@ sch = EarliestDeadlineFirstAlgo(increment=1)
 sch2 = algorithms.SortedSchedulingAlgo(algorithms.earliest_deadline_first)
 
 # -- Simulator ---------------------------------------------------------------------------------------------------------
-sim = acnsim.Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1, verbose=True)
+sim = acnsim.Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, verbose=True)
 sim.run()
 
 # For comparison we will also run the builtin earliest deadline first algorithm
-sim2 = acnsim.Simulator(deepcopy(cn), sch2, deepcopy(events), start, period=period, max_recomp=1)
+sim2 = acnsim.Simulator(deepcopy(cn), sch2, deepcopy(events), start, period=period)
 sim2.run()
 
 # -- Analysis ----------------------------------------------------------------------------------------------------------
