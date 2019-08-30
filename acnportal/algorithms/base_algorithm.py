@@ -6,6 +6,7 @@ class BaseAlgorithm:
 
     def __init__(self):
         self._interface = None
+        self.max_recompute = None
 
     @property
     def interface(self):
