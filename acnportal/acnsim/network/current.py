@@ -21,12 +21,12 @@ class Current(pd.Series):
             super().__init__(loads)
         elif isinstance(loads, str):
             super().__init__({loads : 1})
-        elif loads is None:
-            super().__init__()
-        elif all(isinstance(l, str) for l in loads):
+        elif loads is not None and all(isinstance(l, str) for l in loads):
             super().__init__({load_id: 1 for load_id in loads})
         elif isinstance(loads, pd.Series):
             super().__init__(loads)
+        elif loads is None:
+            super().__init__()
         else:
             raise TypeError("Variable loads should be of type dict, str, pd.Series, or Lst[str].")
 
