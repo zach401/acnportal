@@ -88,7 +88,7 @@ class TestSimulator(TestCase):
 
     def test_correct_on_init_pilot_signals(self):
         np.testing.assert_allclose(self.simulator.pilot_signals,
-            np.ones((len(self.simulator.network.station_ids), len(self.simulator.event_queue))))
+            np.zeros((len(self.simulator.network.station_ids), len(self.simulator.event_queue))))
 
     def test_correct_on_init_charging_rates(self):
         np.testing.assert_allclose(self.simulator.charging_rates,
@@ -107,7 +107,7 @@ class TestSimulator(TestCase):
     def test_update_schedules_valid_schedule(self):
         new_schedule = {'PS-001' : [24, 16], 'PS-002' : [16, 24]}
         self.simulator._update_schedules(new_schedule)
-        np.testing.assert_allclose(self.simulator.pilot_signals[:, :2], np.array([[24, 16], [16, 24], [0, 0]]))
+        np.testing.assert_allclose(self.simulator.pilot_signals[:, :2], np.array([[24, 15], [16, 24], [0, 0]]))
 
     def test_run(self):
         # Integration test
