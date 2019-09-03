@@ -88,7 +88,7 @@ class TestSimulator(TestCase):
 
     def test_correct_on_init_pilot_signals(self):
         np.testing.assert_allclose(self.simulator.pilot_signals,
-            np.zeros((len(self.simulator.network.station_ids), len(self.simulator.event_queue))))
+            np.ones((len(self.simulator.network.station_ids), len(self.simulator.event_queue))))
 
     def test_correct_on_init_charging_rates(self):
         np.testing.assert_allclose(self.simulator.charging_rates,
