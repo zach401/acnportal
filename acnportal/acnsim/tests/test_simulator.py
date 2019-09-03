@@ -107,7 +107,7 @@ class TestSimulator(TestCase):
     def test_update_schedules_valid_schedule(self):
         new_schedule = {'PS-001' : [24, 16], 'PS-002' : [16, 24]}
         self.simulator._update_schedules(new_schedule)
-        np.testing.assert_allclose(self.simulator.pilot_signals[:, :2], np.array([[24, 15], [16, 24], [0, 0]]))
+        np.testing.assert_allclose(self.simulator.pilot_signals[:, :2], np.array([[24, 16], [16, 24], [0, 0]]))
 
     def test_run(self):
         # Integration test
