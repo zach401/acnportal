@@ -25,11 +25,12 @@ class ChargingNetwork:
 
     @property
     def current_charging_rates(self):
-        """ Return the current actual charging rate of all EVSEs in the network.
+        """ Return the current actual charging rate of all EVSEs in the network. If no EV is
+        attached to a given EVSE, that EVSE's charging rate is 0. In the returned array, the
+        charging rates are given in lexicographical ordering by EVSE name.
 
         Returns:
-            Dict[str, number]: Dictionary mapping station_id to the current actual charging rate of the EV attached to
-                that EVSE.
+            np.Array: numpy ndarray of actual charging rates of all EVSEs in the network.
         """
         current_rates = np.zeros(len(self._EVSEs))
         i = 0
@@ -200,7 +201,7 @@ class ChargingNetwork:
             new_rate = pilots[station_number, i]
             self._EVSEs[ids[station_number]].set_pilot(new_rate, self._voltages[ids[station_number]], period)
 
-    def constraint_current(self, load_currents, constraints=None, t=None, linear=False):
+    def constraint_current(self, load_currents, constraints=None, time_indices=None, linear=False):
         """ Return the aggregate currents subject to the given constraints. If constraints=None,
         return all aggregate currents.
 
@@ -208,7 +209,7 @@ class ChargingNetwork:
             load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
             constraints (List[str]): List of constraint id's for which to calculate aggregate current. If
                 None, calculates aggregate currents for all constraints.
-            t (List[int]): List of time indices for which to calculate aggregate current. If None, 
+            time_indices (List[int]): List of time indices for which to calculate aggregate current. If None, 
                 calculates aggregate currents for all timesteps.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
@@ -221,11 +222,12 @@ class ChargingNetwork:
             constraint_indices = [self.constraint_index[constraint_id] for constraint_id in constraints]
         else:
             constraint_indices = list(self.constraint_index.values())
-        if t:
-            schedule_length = len(t)
-            schedule_matrix = np.array([[load_currents[evse_id][i] for i in t] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
+        if time_indices:
+            schedule_length = len(time_indices)
+            schedule_matrix = np.array([[load_currents[evse_id][i] for i in time_indices] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
         else:
-            schedule_length = len(next(iter(load_currents.values())))
+            # Gets the length of the schedules given in load_currents
+            schedule_length = len(list(load_currents.values())[0])
             schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
         if linear:
             return complex(np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix))

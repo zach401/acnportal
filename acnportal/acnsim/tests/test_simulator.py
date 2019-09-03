@@ -20,53 +20,22 @@ import pytz
 from copy import deepcopy
 
 class EarliestDeadlineFirstAlgo(BaseAlgorithm):
-    """ Algorithm which assigns charging rates to each EV in order or departure time.
-
-    Implements abstract class BaseAlgorithm.
-
-    For this algorithm EVs will first be sorted by departure time. We will then allocate as much current as possible
-    to each EV in order until the EV is finished charging or an infrastructure limit is met.
-
-    Args:
-        increment (number): Minimum increment of charging rate. Default: 1.
-    """
+    ''' See EarliestDeadlineFirstAlgo in tutorial 2. '''
     def __init__(self, increment=1):
         super().__init__()
         self._increment = increment
 
     def schedule(self, active_evs):
-        """ Schedule EVs by first sorting them by departure time, then allocating them their maximum feasible rate.
-
-        Implements abstract method schedule from BaseAlgorithm.
-
-        See class documentation for description of the algorithm.
-
-        Args:
-            active_evs (List[EV]): see BaseAlgorithm
-
-        Returns:
-            Dict[str, List[float]]: see BaseAlgorithm
-        """
-        # First we define a schedule, this will be the output of our function
         schedule = {ev.station_id: [0] for ev in active_evs}
 
-        # Next, we sort the active_evs by their departure time.
         sorted_evs = sorted(active_evs, key=lambda x: x.departure)
 
-        # We now iterate over the sorted list of EVs.
         for ev in sorted_evs:
-            # First try to charge the EV at its maximum rate. Remember that each schedule value must be a list, even
-            #   if it only has one element.
             schedule[ev.station_id] = [self.interface.max_pilot_signal(ev.station_id)]
 
-            # If this is not feasible, we will reduce the rate.
-            #   interface.is_feasible() is one way to interact with the constraint set of the network. We will explore
-            #   another more direct method in lesson 3.
             while not self.interface.is_feasible(schedule):
-                # Since the maximum rate was not feasible, we should try a lower rate.
                 schedule[ev.station_id] = [schedule[ev.station_id][0] - self._increment]
 
-                # EVs should never charge below 0 (i.e. discharge) so we will clip the value at 0.
                 if schedule[ev.station_id][0] < 0:
                     schedule[ev.station_id] = [0]
                     break
@@ -109,9 +78,8 @@ class TestSimulator(TestCase):
         self.simulator._update_schedules(new_schedule)
         np.testing.assert_allclose(self.simulator.pilot_signals[:, :2], np.array([[24, 16], [16, 24], [0, 0]]))
 
-    def test_run(self):
-        # Integration test
-        # -- Experiment Parameters ---------------------------------------------------------------------------------------------
+    def test_tutorial_2(self):
+        # Integration test. Tests that results of tutorial 2 are unchanged
         timezone = pytz.timezone('America/Los_Angeles')
         start = timezone.localize(datetime(2018, 9, 5))
         end = timezone.localize(datetime(2018, 9, 6))
@@ -120,18 +88,14 @@ class TestSimulator(TestCase):
         default_battery_power = 32 * voltage / 1000 # kW
         site = 'caltech'
 
-        # -- Network -----------------------------------------------------------------------------------------------------------
         cn = sites.caltech_acn(basic_evse=True, voltage=voltage)
 
-        # -- Events ------------------------------------------------------------------------------------------------------------
         API_KEY = 'DEMO_TOKEN'
         events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
 
 
-        # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------
         sch = EarliestDeadlineFirstAlgo(increment=1)
 
-        # -- Simulator ---------------------------------------------------------------------------------------------------------
         self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1, verbose=False)
         self.sim.run()
 

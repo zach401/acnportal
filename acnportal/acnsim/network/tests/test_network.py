@@ -101,8 +101,14 @@ class TestChargingNetwork(TestCase):
                     [0.00, 0.50, 0.00, -0.60, 0.30]]),
                 columns=['PS-001', 'PS-002', 'PS-003', 'PS-004', 'PS-006'],
                 index=['_const_0', '_const_1']))
+        np.testing.assert_allclose(self.network.magnitude_vector, np.array([50, 10]))
+        np.testing.assert_allclose(
+            self.network.constraint_matrix,
+            np.array([[0.25, 0.50, -0.25, 0.00, 0.00],
+                [0.00, 0.50, 0.00, -0.60, 0.30]]))
+        self.assertEqual(self.network.constraint_index, {'_const_0' : 0, '_const_1' : 1})
 
-    def test_is_feasible(self):
+    def test_is_feasible_good_loads(self):
         self.network.register_evse(EVSE('PS-001'), 240, 0)
         self.network.register_evse(EVSE('PS-002'), 240, 0)
         self.network.register_evse(EVSE('PS-003'), 240, 0)
@@ -115,9 +121,23 @@ class TestChargingNetwork(TestCase):
         self.network.add_constraint(current1, 50)
         self.network.add_constraint(current2, 10)
         good_loads = {'PS-002' : [150, 120], 'PS-004' : [150, 120], 'PS-006' : [60, 9], 'PS-003' : [100, 40]}
-        bad_loads = {'PS-002' : [150, 800], 'PS-004' : [150, 20], 'PS-006' : [60, 9], 'PS-003' : [100, 0]}
         
         self.assertTrue(self.network.is_feasible(good_loads))
+
+    def test_is_feasible_bad_loads(self):
+        self.network.register_evse(EVSE('PS-001'), 240, 0)
+        self.network.register_evse(EVSE('PS-002'), 240, 0)
+        self.network.register_evse(EVSE('PS-003'), 240, 0)
+        self.network.register_evse(EVSE('PS-004'), 240, 0)
+        self.network.register_evse(EVSE('PS-006'), 240, 0)
+        curr_dict1 = {'PS-001' : 0.25, 'PS-002' : 0.50, 'PS-003' : -0.25}
+        current1 = Current(curr_dict1)
+        curr_dict2 = {'PS-006' : 0.30, 'PS-004' : -0.60, 'PS-002' : 0.50}
+        current2 = Current(curr_dict2)
+        self.network.add_constraint(current1, 50)
+        self.network.add_constraint(current2, 10)
+        bad_loads = {'PS-002' : [150, 800], 'PS-004' : [150, 20], 'PS-006' : [60, 9], 'PS-003' : [100, 0]}
+        
         self.assertFalse(self.network.is_feasible(bad_loads))
 
     def test_constraint_current(self):
@@ -136,9 +156,9 @@ class TestChargingNetwork(TestCase):
 
         np.testing.assert_allclose(self.network.constraint_current(loads),
             np.array([[50+0j, 50+0j], [3+0j, -9.3+0j]]))
-        np.testing.assert_allclose(self.network.constraint_current(loads, constraints=['_const_1'], t=[1]),
+        np.testing.assert_allclose(self.network.constraint_current(loads, constraints=['_const_1'], time_indices=[1]),
             np.array([[-9.3+0j]]))
         np.testing.assert_allclose(self.network.constraint_current(loads, constraints=['_const_0']),
             np.array([[50+0j, 50+0j]]))
-        np.testing.assert_allclose(self.network.constraint_current(loads, t=[1]),
+        np.testing.assert_allclose(self.network.constraint_current(loads, time_indices=[1]),
             np.array([[50+0j], [-9.3+0j]]))
