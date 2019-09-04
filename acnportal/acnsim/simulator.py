@@ -40,8 +40,8 @@ class Simulator:
         self.verbose = verbose
 
         # Information storage
-        self.pilot_signals = np.zeros((len(self.network.station_ids), len(self.event_queue)))
-        self.charging_rates = np.zeros((len(self.network.station_ids), len(self.event_queue)))
+        self.pilot_signals = np.zeros((len(self.network.station_ids), self.event_queue.get_last_timestamp()))
+        self.charging_rates = np.zeros((len(self.network.station_ids), self.event_queue.get_last_timestamp()))
         self.peak = 0
         self.ev_history = {}
         self.event_history = []
@@ -86,7 +86,6 @@ class Simulator:
                 self._update_schedules(new_schedule)
                 self._last_schedule_update = self._iteration
                 self._resolve = False
-            self._expand_pilots()
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
@@ -161,12 +160,6 @@ class Simulator:
                 max(self.event_queue.get_last_timestamp() + 1, self._iteration + schedule_length))
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
 
-    def _expand_pilots(self):
-        """ Extends all pilot signals by appending 0's so they at least last past the next time step."""
-        if len(self.pilot_signals[0]) < self._iteration + 1:
-            self.pilot_signals = _increase_width(self.pilot_signals,
-                max(self.event_queue.get_last_timestamp() + 1, self._iteration + 1))
-
     def _store_actual_charging_rates(self):
         """ Store actual charging rates from the network in the simulator for later analysis."""
         current_rates = self.network.current_charging_rates
@@ -174,8 +167,7 @@ class Simulator:
         if self.iteration < len(self.charging_rates[0]):
             self.charging_rates[:, self.iteration] = current_rates.T
         else:
-            self.charging_rates = _increase_width(self.charging_rates,
-                max(self.event_queue.get_last_timestamp() + 1, self._iteration))
+            self.charging_rates = _increase_width(self.charging_rates, self.event_queue.get_last_timestamp() + 1)
             self.charging_rates[:, self._iteration] = current_rates.T
         self.peak = max(self.peak, agg)
 
