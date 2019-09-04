@@ -253,8 +253,15 @@ class ChargingNetwork:
         Returns:
             bool: If load_currents is feasible at time t according to this set of constraints.
         """
-        # build schedule matrix, ensuring rows in order of EVSE list
-        schedule_length = len(list(load_currents.values())[0])
+        if len(load_currents) == 0:
+            return True
+
+        # Check that all schedules are the same length
+        schedule_lengths = set(len(x) for x in load_currents.values())
+        if len(schedule_lengths) > 1:
+            raise InvalidScheduleError('All schedules should have the same length.')
+        schedule_length = schedule_lengths.pop()
+
         aggregate_currents = self.constraint_current(load_currents, linear=linear)
         if linear:
             return np.all(self.magnitude_vector >= np.abs(aggregate_currents))
@@ -264,4 +271,8 @@ class ChargingNetwork:
 
 class StationOccupiedError(Exception):
     """ Exception which is raised when trying to add an EV to an EVSE which is already occupied."""
+    pass
+
+class InvalidScheduleError(Exception):
+    """ Raised when the schedule passed to the simulator is invalid. """
     pass
