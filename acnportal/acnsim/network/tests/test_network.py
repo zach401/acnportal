@@ -140,6 +140,22 @@ class TestChargingNetwork(TestCase):
         
         self.assertFalse(self.network.is_feasible(bad_loads))
 
+    def test_is_feasible_unequal_lengths(self):
+        self.network.register_evse(EVSE('PS-001'), 240, 0)
+        self.network.register_evse(EVSE('PS-002'), 240, 0)
+        self.network.register_evse(EVSE('PS-003'), 240, 0)
+        self.network.register_evse(EVSE('PS-004'), 240, 0)
+        self.network.register_evse(EVSE('PS-006'), 240, 0)
+        curr_dict1 = {'PS-001' : 0.25, 'PS-002' : 0.50, 'PS-003' : -0.25}
+        current1 = Current(curr_dict1)
+        curr_dict2 = {'PS-006' : 0.30, 'PS-004' : -0.60, 'PS-002' : 0.50}
+        current2 = Current(curr_dict2)
+        self.network.add_constraint(current1, 50)
+        self.network.add_constraint(current2, 10)
+        unequal_loads = {'PS-002' : [150, 800], 'PS-004' : [150], 'PS-006' : [60, 9], 'PS-003' : [100, 0]}
+        with self.assertRaises(InvalidScheduleError):
+            self.network.is_feasible(unequal_loads)
+
     def test_constraint_current(self):
         self.network.register_evse(EVSE('PS-001'), 240, 0)
         self.network.register_evse(EVSE('PS-002'), 240, 0)
@@ -162,3 +178,4 @@ class TestChargingNetwork(TestCase):
             np.array([[50+0j, 50+0j]]))
         np.testing.assert_allclose(self.network.constraint_current(loads, time_indices=[1]),
             np.array([[50+0j], [-9.3+0j]]))
+
