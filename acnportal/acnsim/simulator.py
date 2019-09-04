@@ -145,10 +145,7 @@ class Simulator:
         if len(new_schedule) == 0:
             return
 
-        schedule_lengths = set(len(x) for x in new_schedule.values())
-        if len(schedule_lengths) > 1:
-            raise InvalidScheduleError('All schedules should have the same length.')
-        schedule_length = schedule_lengths.pop()
+        schedule_length = len(list(new_schedule.values())[0])
 
         for station_id in new_schedule:
             if station_id not in self.network.station_ids:
@@ -189,10 +186,6 @@ class Simulator:
         """ Return the pilot signals as a pandas DataFrame """
         return pd.DataFrame(data=self.pilot_signals, columns=sorted(self.network.station_ids))
         pass
-
-class InvalidScheduleError(Exception):
-    """ Raised when the schedule passed to the simulator is invalid. """
-    pass
 
 def _increase_width(a, target_width):
     """ Returns a new 2-D numpy array with target_width number of columns, with the contents
