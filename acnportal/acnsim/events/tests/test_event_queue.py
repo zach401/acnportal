@@ -21,6 +21,11 @@ class TestEventQueue(TestCase):
         self.assertFalse(self.events.empty())
         self.assertEqual(5, len(self.events._queue))
 
+    def test_len(self):
+        events = [Event(i) for i in range(1, 6)]
+        self.events.add_events(events)
+        self.assertEqual(5, len(self.events))
+
     def test_get_event(self):
         self.events.add_event(Event(5))
         self.assertEqual(len(self.events._queue), 1)
@@ -33,3 +38,12 @@ class TestEventQueue(TestCase):
         self.events.add_events(events)
         curr_events = self.events.get_current_events(3)
         self.assertEqual(len(curr_events), 3)
+
+    def test_get_last_timestamp(self):
+        events = [Event(i) for i in range(1, 6)]
+        self.events.add_events(events)
+        self.assertEqual(5, self.events.get_last_timestamp())
+        self.events.add_event(Event(8))
+        self.assertEqual(8, self.events.get_last_timestamp())
+        curr_events = self.events.get_current_events(3)
+        self.assertEqual(8, self.events.get_last_timestamp())
