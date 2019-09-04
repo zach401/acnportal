@@ -52,7 +52,7 @@ class TestSimulator(TestCase):
         evse3 = EVSE('PS-003', max_rate=32)
         network.register_evse(evse3, 240, 0)
         scheduler = create_autospec(BaseAlgorithm)
-        events = create_autospec(EventQueue(events=[Event(1), Event(2)]))
+        events = EventQueue(events=[Event(1), Event(2)])
         self.simulator = Simulator(network, scheduler, events, start)
 
     def test_correct_on_init_pilot_signals(self):

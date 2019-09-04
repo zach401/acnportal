@@ -157,13 +157,15 @@ class Simulator:
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
         else:
             # We've reached the end of pilot_signals, so double pilot_signal array width
-            self.pilot_signals = _increase_width(self.pilot_signals, (self._iteration + schedule_length) * 2)
+            self.pilot_signals = _increase_width(self.pilot_signals,
+                max(self.event_queue.get_last_timestamp() + 1, self._iteration + schedule_length))
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
 
     def _expand_pilots(self):
         """ Extends all pilot signals by appending 0's so they at least last past the next time step."""
         if len(self.pilot_signals[0]) < self._iteration + 1:
-            self.pilot_signals = _increase_width(self.pilot_signals, (self._iteration + 1) * 2)
+            self.pilot_signals = _increase_width(self.pilot_signals,
+                max(self.event_queue.get_last_timestamp() + 1, self._iteration + 1))
 
     def _store_actual_charging_rates(self):
         """ Store actual charging rates from the network in the simulator for later analysis."""
@@ -172,7 +174,8 @@ class Simulator:
         if self.iteration < len(self.charging_rates[0]):
             self.charging_rates[:, self.iteration] = current_rates.T
         else:
-            self.charging_rates = _increase_width(self.charging_rates, self._iteration * 2)
+            self.charging_rates = _increase_width(self.charging_rates,
+                max(self.event_queue.get_last_timestamp() + 1, self._iteration))
             self.charging_rates[:, self._iteration] = current_rates.T
         self.peak = max(self.peak, agg)
 
