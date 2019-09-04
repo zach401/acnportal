@@ -8,10 +8,10 @@ class ChargingNetwork:
     information about the types of the charging station_schedule.
     """
 
-    def __init__(self, constraints=None, magnitudes=None):
+    def __init__(self):
         self._EVSEs = {}
-        self.constraints = constraints if constraints is not None else pd.DataFrame()
-        self.magnitudes = magnitudes if magnitudes is not None else pd.Series()
+        self.constraints = pd.DataFrame()
+        self.magnitudes = pd.Series()
         # Matrix of constraints
         self.constraint_matrix = None
         # Vector of limiting magnitudes
@@ -254,22 +254,12 @@ class ChargingNetwork:
             bool: If load_currents is feasible at time t according to this set of constraints.
         """
         # build schedule matrix, ensuring rows in order of EVSE list
-        schedule_lengths = set(len(x) for x in load_currents.values())
-        schedule_length = schedule_lengths.pop()
-        schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
+        schedule_length = len(list(load_currents.values())[0])
+        aggregate_currents = self.constraint_current(load_currents, linear=linear)
         if linear:
-            return np.all(np.tile(self.magnitude_vector) - np.abs(self.constraint_matrix@schedule_matrix) >= 0)
+            return np.all(self.magnitude_vector >= np.abs(aggregate_currents))
         else:
-            # build vector of phase angles on EVSE
-            angle_coeffs = np.exp(1j*np.deg2rad(self.angles_vector))
-
-            # multiply schedule by angles matrix element-wise
-            shifted_schedule = (schedule_matrix.T * angle_coeffs).T
-
-            # multiply constraint matrix by current schedule, shifted by the phases
-            curr_mags = self.constraint_matrix@shifted_schedule
-            # compare with tiled magnitude matrix
-            return np.all(np.tile(self.magnitude_vector, (schedule_length, 1)).T >= np.abs(curr_mags))
+            return np.all(np.tile(self.magnitude_vector, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
 
 class StationOccupiedError(Exception):

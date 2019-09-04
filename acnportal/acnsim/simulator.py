@@ -2,6 +2,7 @@ import copy
 from datetime import datetime
 import pandas as pd
 import numpy as np
+import warnings
 
 from .events import UnplugEvent
 from .interface import Interface
@@ -40,8 +41,8 @@ class Simulator:
         self.verbose = verbose
 
         # Information storage
-        self.pilot_signals = np.zeros((len(self.network.station_ids), self.event_queue.get_last_timestamp()))
-        self.charging_rates = np.zeros((len(self.network.station_ids), self.event_queue.get_last_timestamp()))
+        self.pilot_signals = np.zeros((len(self.network.station_ids), self.event_queue.get_last_timestamp() + 1))
+        self.charging_rates = np.zeros((len(self.network.station_ids), self.event_queue.get_last_timestamp() + 1))
         self.peak = 0
         self.ev_history = {}
         self.event_history = []
@@ -81,6 +82,8 @@ class Simulator:
                     self.max_recompute is not None and \
                     self._iteration - self._last_schedule_update >= self.max_recompute:
                 new_schedule = self.scheduler.run()
+                if new_schedule and not self.network.is_feasible(new_schedule):
+                    warnings.warn("Invalid schedule provided at iteration {0}".format(self._iteration), UserWarning)
                 if self.schedule_history is not None:
                     self.schedule_history[self._iteration] = new_schedule
                 self._update_schedules(new_schedule)

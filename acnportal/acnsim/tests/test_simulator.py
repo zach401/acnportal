@@ -57,11 +57,11 @@ class TestSimulator(TestCase):
 
     def test_correct_on_init_pilot_signals(self):
         np.testing.assert_allclose(self.simulator.pilot_signals,
-            np.zeros((len(self.simulator.network.station_ids), len(self.simulator.event_queue))))
+            np.zeros((len(self.simulator.network.station_ids), self.simulator.event_queue.get_last_timestamp() + 1)))
 
     def test_correct_on_init_charging_rates(self):
         np.testing.assert_allclose(self.simulator.charging_rates,
-            np.zeros((len(self.simulator.network.station_ids), len(self.simulator.event_queue))))
+            np.zeros((len(self.simulator.network.station_ids), self.simulator.event_queue.get_last_timestamp() + 1)))
 
     def test_update_schedules_unequal_lengths(self):
         new_schedule = {'PS-001' : [24], 'PS-002' : [16, 24]}
