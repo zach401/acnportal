@@ -26,15 +26,14 @@ def constraint_currents(sim, complex=False, constraint_ids=None):
         Dict (str, np.Array): A dictionary mapping the name of a constraint to a numpy array of the current subject to
             that constraint at each time.
     """
-    cs = sim.network.constraint_index
     if constraint_ids is None:
-        constraint_ids = sorted(list(set(c for c in cs.keys())))
+        constraint_ids = sorted(list(set(c for c in sim.network.constraint_index.keys())))
     else:
         constraint_ids = sorted(list(set(constraint_ids)))
 
     currents = {}
-    sim_length = len(sim.charging_rates.columns) # max(len(cr) for cr in sim.charging_rates.values())
-    dict_charging_rates = {key: value.to_numpy() for key, value in sim.charging_rates.to_dict('series').items()}
+    sim_length = len(sim.charging_rates[0])
+    dict_charging_rates = {sorted(sim.network.station_ids)[i] : sim.charging_rates[i] for i in range(len(sim.charging_rates))}
     if complex:
         currents_list = sim.network.constraint_current(dict_charging_rates)
     else:
