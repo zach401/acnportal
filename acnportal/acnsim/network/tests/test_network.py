@@ -185,3 +185,22 @@ class TestChargingNetwork(TestCase):
         np.testing.assert_allclose(self.network.constraint_current(loads, time_indices=[1]),
             np.array([[50+0j], [-9.3+0j]]))
 
+    def test_voltage_accessor(self):
+        evse1 = EVSE('PS-001')
+        evse2 = EVSE('PS-002')
+        evse3 = EVSE('PS-003')
+        self.network.register_evse(evse1, 240, -30)
+        self.network.register_evse(evse3, 100, 150)
+        self.network.register_evse(evse2, 140, 90)
+        assertEqual(self.network.voltages,
+            {'PS-001' : 240, 'PS-003' : 100, 'PS-002' : 140})
+
+    def test_phase_angles_accessor(self):
+        evse1 = EVSE('PS-001')
+        evse2 = EVSE('PS-002')
+        evse3 = EVSE('PS-003')
+        self.network.register_evse(evse1, 240, -30)
+        self.network.register_evse(evse3, 100, 150)
+        self.network.register_evse(evse2, 140, 90)
+        assertEqual(self.network.voltages,
+            {'PS-001' : -30, 'PS-003' : 150, 'PS-002' : 90})
