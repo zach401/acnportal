@@ -11,17 +11,14 @@ class ChargingNetwork:
 
     def __init__(self):
         self._EVSEs = OrderedDict()
-        self.constraints = pd.DataFrame()
-        self.magnitudes = pd.Series()
         # Matrix of constraints
         self.constraint_matrix = None
         # Vector of limiting magnitudes
-        self.magnitude_vector = None
+        self.magnitudes = np.array([])
         # Dict of constraint_id to row index in constraint matrix
-        self.constraint_ids = []
-        self._voltages = {}
-        self._phase_angles = pd.Series()
-        self.angles_vector = None
+        self.constraint_index = []
+        self._voltages = np.array([])
+        self._phase_angles = np.array([])
         pass
 
     @property
@@ -75,7 +72,7 @@ class ChargingNetwork:
         Returns:
             Dict[str, float]: Dictionary mapping EVSE ids their input voltage. [V]
         """
-        return self._voltages
+        return {self.station_ids[i] : self._voltages[i] for i in range(len(self._voltages))}
 
     @property
     def phase_angles(self):
@@ -84,7 +81,7 @@ class ChargingNetwork:
         Returns:
             Dict[str, float]: Dictionary mapping EVSE ids their input phase angle. [degrees]
         """
-        return self._phase_angles
+        return {self.station_ids[i] : self._phase_angles for i in range(len(self._phase_angles))}
 
     def register_evse(self, evse, voltage, phase_angle):
         """ Register an EVSE with the network so it will be accessible to the rest of the simulation.
@@ -98,10 +95,8 @@ class ChargingNetwork:
             None
         """
         self._EVSEs[evse.station_id] = evse
-        self._voltages[evse.station_id] = voltage
-        self._phase_angles[evse.station_id] = phase_angle
-        # Update the numpy vector of angles by reconstructing it.
-        self.angles_vector = np.array([angle for _, angle in self._phase_angles.items()])
+        self._voltages = np.append(self._voltages, voltage)
+        self._phase_angles = np.append(self._phase_angles, phase_angle)
 
     def add_constraint(self, current, limit, name=None):
         """ Add an additional constraint to the constraint DataFrame.
@@ -115,19 +110,19 @@ class ChargingNetwork:
             None
         """
         if name is None:
-            name = '_const_{0}'.format(len(self.constraints.index))
+            name = '_const_{0}'.format(len(self.constraint_index))
         for station_id in current.index:
             if station_id not in self._EVSEs:
                 raise KeyError('Station {0} not found. Register station {0} to add constraint {1} to network.'.format(station_id, name))
         current.name = name
-        self.magnitudes[name] = limit
-        # Update numpy vector of magnitudes (limits on aggregate currents) by reconstructing it.
-        self.magnitude_vector = self.magnitudes.to_numpy()
-        self.constraints = self.constraints.append(current).fillna(0)
-        # Update the numpy matrix of constraints by reconstructing it.
-        self.constraint_matrix = self.constraints.reindex(columns=self.station_ids).to_numpy()
-        # Maintain a dictoinary mapping constraints to row indices in the constraint_matrix, for use with constraint_current method
-        self.constraint_index = {self.constraints.index.to_list()[i] : i for i in range(len(self.constraints.index))}
+        self.magnitudes = np.append(self.magnitudes, limit)
+        # Make a dataframe for the constraint matrix for easy addition of the new constraint
+        constraint_frame = pd.DataFrame(self.constraint_matrix, columns=self.station_ids, index=self.constraint_index)
+        constraint_frame = constraint_frame.append(current).fillna(0)
+        # Maintain a list of constraint ids for use with constraint_current.
+        self.constraint_index = constraint_frame.index
+        # Update the numpy matrix of constraints by reconstructing it from constraint_frame.
+        self.constraint_matrix = constraint_frame.reindex(columns=self.station_ids).to_numpy()
 
     def plugin(self, ev, station_id):
         """ Attach EV to a specific EVSE.
@@ -200,7 +195,7 @@ class ChargingNetwork:
         ids = self.station_ids
         for station_number in range(len(ids)):
             new_rate = pilots[station_number, i]
-            self._EVSEs[ids[station_number]].set_pilot(new_rate, self._voltages[ids[station_number]], period)
+            self._EVSEs[ids[station_number]].set_pilot(new_rate, self._voltages[station_number], period)
 
     def constraint_current(self, load_currents, constraints=None, time_indices=None, linear=False):
         """ Return the aggregate currents subject to the given constraints. If constraints=None,
@@ -220,9 +215,9 @@ class ChargingNetwork:
         """
         # Convert list of constraint id's to list of indices in constraint matrix
         if constraints:
-            constraint_indices = [self.constraint_index[constraint_id] for constraint_id in constraints]
+            constraint_indices = [i for i in range(len(self.constraint_index)) if self.constraint_index[i] in constraints]
         else:
-            constraint_indices = list(self.constraint_index.values())
+            constraint_indices = list(range(len(self.constraint_index)))
         if time_indices:
             schedule_length = len(time_indices)
             schedule_matrix = np.array([[load_currents[evse_id][i] for i in time_indices] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in self._EVSEs.items()])
@@ -234,7 +229,7 @@ class ChargingNetwork:
             return complex(np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix))
         else:
             # build vector of phase angles on EVSE
-            angle_coeffs = np.exp(1j*np.deg2rad(self.angles_vector))
+            angle_coeffs = np.exp(1j*np.deg2rad(self._phase_angles))
 
             # multiply schedule by angles matrix element-wise
             shifted_schedule = (schedule_matrix.T * angle_coeffs).T
@@ -265,9 +260,9 @@ class ChargingNetwork:
 
         aggregate_currents = self.constraint_current(load_currents, linear=linear)
         if linear:
-            return np.all(self.magnitude_vector >= np.abs(aggregate_currents))
+            return np.all(self.magnitudes >= np.abs(aggregate_currents))
         else:
-            return np.all(np.tile(self.magnitude_vector, (schedule_length, 1)).T >= np.abs(aggregate_currents))
+            return np.all(np.tile(self.magnitudes, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
 
 class StationOccupiedError(Exception):
