@@ -151,7 +151,7 @@ class Simulator:
             if station_id not in self.network.station_ids:
                 raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
 
-        schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in sorted(self.network.station_ids)])
+        schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
         if self._iteration + schedule_length <= len(self.pilot_signals[0]):
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
         else:
@@ -179,12 +179,12 @@ class Simulator:
         """ Return the charging rates as a pandas DataFrame, with EVSE id as columns
         and iteration as index.
         """
-        return pd.DataFrame(data=self.charging_rates, columns=sorted(self.network.station_ids))
+        return pd.DataFrame(data=self.charging_rates, columns=self.network.station_ids)
         pass
 
     def pilot_signals_as_df(self):
         """ Return the pilot signals as a pandas DataFrame """
-        return pd.DataFrame(data=self.pilot_signals, columns=sorted(self.network.station_ids))
+        return pd.DataFrame(data=self.pilot_signals, columns=self.network.station_ids)
         pass
 
 def _increase_width(a, target_width):

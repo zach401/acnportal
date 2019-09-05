@@ -103,12 +103,15 @@ class TestSimulator(TestCase):
                 edf_algo_true_info_dict[field] = pickle.load(info_file)
                 edf_algo_new_info_dict[field] = self.sim.__dict__[field]
 
-        evse_keys = sorted(list(edf_algo_true_info_dict['pilot_signals'].keys()))
+        old_evse_keys = list(edf_algo_true_info_dict['pilot_signals'].keys())
+        new_evse_keys = self.sim.network.station_ids
+        self.assertEqual(sorted(new_evse_keys), sorted(old_evse_keys))
 
-        edf_algo_new_info_dict['charging_rates'] = {evse_keys[i] : list(edf_algo_new_info_dict['charging_rates'][i]) for i in range(len(evse_keys))}
-        edf_algo_new_info_dict['pilot_signals'] = {evse_keys[i] : list(edf_algo_new_info_dict['pilot_signals'][i]) for i in range(len(evse_keys))}
 
-        for evse_key in evse_keys:
+        edf_algo_new_info_dict['charging_rates'] = {new_evse_keys[i] : list(edf_algo_new_info_dict['charging_rates'][i]) for i in range(len(new_evse_keys))}
+        edf_algo_new_info_dict['pilot_signals'] = {new_evse_keys[i] : list(edf_algo_new_info_dict['pilot_signals'][i]) for i in range(len(new_evse_keys))}
+
+        for evse_key in new_evse_keys:
             np.testing.assert_allclose(np.array(edf_algo_true_info_dict['pilot_signals'][evse_key]),
                 np.array(edf_algo_new_info_dict['pilot_signals'][evse_key])[:len(edf_algo_true_info_dict['pilot_signals'][evse_key])])
             np.testing.assert_allclose(np.array(edf_algo_true_info_dict['charging_rates'][evse_key]),
