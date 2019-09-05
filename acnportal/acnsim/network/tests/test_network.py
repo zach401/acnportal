@@ -1,6 +1,8 @@
 from unittest import TestCase
 from unittest.mock import Mock, create_autospec
 
+from collections import OrderedDict
+
 from acnportal.acnsim.models import EV
 from acnportal.acnsim.models import EVSE, InvalidRateError
 from acnportal.acnsim import ChargingNetwork, InvalidScheduleError
@@ -15,17 +17,29 @@ class TestChargingNetwork(TestCase):
         self.network = ChargingNetwork()
 
     def test_init_empty(self):
-        self.assertEqual(self.network._EVSEs, {})
-        pd.testing.assert_series_equal(self.network.magnitudes, pd.Series())
-        pd.testing.assert_frame_equal(self.network.constraints, pd.DataFrame())
-        self.assertEqual(self.network._voltages, {})
-        pd.testing.assert_series_equal(self.network._phase_angles, pd.Series())
+        self.assertEqual(self.network._EVSEs, OrderedDict())
+        self.assertEqual(self.network.constraint_matrix, None)
+        self.assertEqual(self.network.constraint_index, [])
+        np.testing.assert_equal(self.network.magnitudes, np.array([]))
+        np.testing.assert_equal(self.network._voltages, np.array([]))
+        np.testing.assert_equal(self.network._phase_angles, np.array([]))
 
     def test_register_evse(self):
-        evse = EVSE('PS-001')
-        self.network.register_evse(evse, 240, 0)
+        evse1 = EVSE('PS-001')
+        self.network.register_evse(evse1, 240, -30)
+        evse2 = EVSE('PS-002')
+        evse3 = EVSE('PS-003')
+        self.network.register_evse(evse3, 100, 150)
+        self.network.register_evse(evse2, 140, 90)
         self.assertIn('PS-001', self.network._EVSEs)
-        self.assertIs(self.network._EVSEs['PS-001'], evse)
+        self.assertIs(self.network._EVSEs['PS-001'], evse1)
+        self.assertIn('PS-002', self.network._EVSEs)
+        self.assertIs(self.network._EVSEs['PS-002'], evse2)
+        self.assertIn('PS-003', self.network._EVSEs)
+        self.assertIs(self.network._EVSEs['PS-003'], evse3)
+        self.assertEqual(self.network.station_ids, ['PS-001', 'PS-003', 'PS-002'])
+        np.testing.assert_allclose(self.network._phase_angles, np.array([-30, 150, 90]))
+        np.testing.assert_allclose(self.network._voltages, np.array([240, 100, 140]))
 
     # noinspection PyUnresolvedReferences
     def test_plugin_station_exists(self):
@@ -82,9 +96,9 @@ class TestChargingNetwork(TestCase):
 
     def test_add_constraint(self):
         self.network.register_evse(EVSE('PS-001'), 240, 0)
-        self.network.register_evse(EVSE('PS-002'), 240, 0)
-        self.network.register_evse(EVSE('PS-003'), 240, 0)
         self.network.register_evse(EVSE('PS-004'), 240, 0)
+        self.network.register_evse(EVSE('PS-003'), 240, 0)
+        self.network.register_evse(EVSE('PS-002'), 240, 0)
         self.network.register_evse(EVSE('PS-006'), 240, 0)
         curr_dict1 = {'PS-001' : 0.25, 'PS-002' : 0.50, 'PS-003' : -0.25}
         current1 = Current(curr_dict1)
@@ -92,21 +106,13 @@ class TestChargingNetwork(TestCase):
         current2 = Current(curr_dict2)
         self.network.add_constraint(current1, 50)
         self.network.add_constraint(current2, 10)
-        np.testing.assert_allclose(
-            self.network.magnitudes, pd.Series(
-                [50, 10], index=['_const_0', '_const_1']))
-        pd.testing.assert_frame_equal(
-            self.network.constraints, pd.DataFrame(
-                np.array([[0.25, 0.50, -0.25, 0.00, 0.00],
-                    [0.00, 0.50, 0.00, -0.60, 0.30]]),
-                columns=['PS-001', 'PS-002', 'PS-003', 'PS-004', 'PS-006'],
-                index=['_const_0', '_const_1']))
-        np.testing.assert_allclose(self.network.magnitude_vector, np.array([50, 10]))
+        np.testing.assert_allclose(self.network.magnitudes, np.array([50, 10]))
         np.testing.assert_allclose(
             self.network.constraint_matrix,
-            np.array([[0.25, 0.50, -0.25, 0.00, 0.00],
-                [0.00, 0.50, 0.00, -0.60, 0.30]]))
-        self.assertEqual(self.network.constraint_index, {'_const_0' : 0, '_const_1' : 1})
+            np.array([[0.25, 0.00, -0.25, 0.50, 0.00],
+                      [0.00, -0.60, 0.00, 0.50, 0.30]]))
+        self.assertEqual(self.network.constraint_index[0], '_const_0')
+        self.assertEqual(self.network.constraint_index[1], '_const_1')
 
     def test_is_feasible_good_loads(self):
         self.network.register_evse(EVSE('PS-001'), 240, 0)
