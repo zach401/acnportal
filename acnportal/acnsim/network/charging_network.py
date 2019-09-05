@@ -1,6 +1,7 @@
 from .current import Current
 import pandas as pd
 import numpy as np
+from collections import OrderedDict
 
 class ChargingNetwork:
     """
@@ -9,7 +10,7 @@ class ChargingNetwork:
     """
 
     def __init__(self):
-        self._EVSEs = {}
+        self._EVSEs = OrderedDict()
         self.constraints = pd.DataFrame()
         self.magnitudes = pd.Series()
         # Matrix of constraints
@@ -17,7 +18,7 @@ class ChargingNetwork:
         # Vector of limiting magnitudes
         self.magnitude_vector = None
         # Dict of constraint_id to row index in constraint matrix
-        self.constraint_index = {}
+        self.constraint_ids = []
         self._voltages = {}
         self._phase_angles = pd.Series()
         self.angles_vector = None
@@ -34,7 +35,7 @@ class ChargingNetwork:
         """
         current_rates = np.zeros(len(self._EVSEs))
         i = 0
-        for station_id, evse in sorted(self._EVSEs.items()):
+        for station_id, evse in self._EVSEs.items():
             if evse.ev is not None:
                 current_rates[i] = evse.ev.current_charging_rate
             i += 1
@@ -100,7 +101,7 @@ class ChargingNetwork:
         self._voltages[evse.station_id] = voltage
         self._phase_angles[evse.station_id] = phase_angle
         # Update the numpy vector of angles by reconstructing it.
-        self.angles_vector = np.array([angle for _, angle in sorted(self._phase_angles.items())])
+        self.angles_vector = np.array([angle for _, angle in self._phase_angles.items()])
 
     def add_constraint(self, current, limit, name=None):
         """ Add an additional constraint to the constraint DataFrame.
@@ -121,10 +122,10 @@ class ChargingNetwork:
         current.name = name
         self.magnitudes[name] = limit
         # Update numpy vector of magnitudes (limits on aggregate currents) by reconstructing it.
-        self.magnitude_vector = self.magnitudes.sort_index().to_numpy()
-        self.constraints = self.constraints.append(current).sort_index(axis=1).fillna(0)
+        self.magnitude_vector = self.magnitudes.to_numpy()
+        self.constraints = self.constraints.append(current).fillna(0)
         # Update the numpy matrix of constraints by reconstructing it.
-        self.constraint_matrix = self.constraints.sort_index(axis=0).to_numpy()
+        self.constraint_matrix = self.constraints.reindex(columns=self.station_ids).to_numpy()
         # Maintain a dictoinary mapping constraints to row indices in the constraint_matrix, for use with constraint_current method
         self.constraint_index = {self.constraints.index.to_list()[i] : i for i in range(len(self.constraints.index))}
 
@@ -196,7 +197,7 @@ class ChargingNetwork:
         Returns:
             None
         """
-        ids = sorted(self.station_ids)
+        ids = self.station_ids
         for station_number in range(len(ids)):
             new_rate = pilots[station_number, i]
             self._EVSEs[ids[station_number]].set_pilot(new_rate, self._voltages[ids[station_number]], period)
@@ -224,11 +225,11 @@ class ChargingNetwork:
             constraint_indices = list(self.constraint_index.values())
         if time_indices:
             schedule_length = len(time_indices)
-            schedule_matrix = np.array([[load_currents[evse_id][i] for i in time_indices] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
+            schedule_matrix = np.array([[load_currents[evse_id][i] for i in time_indices] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in self._EVSEs.items()])
         else:
             # Gets the length of the schedules given in load_currents
             schedule_length = len(list(load_currents.values())[0])
-            schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
+            schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in self._EVSEs.items()])
         if linear:
             return complex(np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix))
         else:

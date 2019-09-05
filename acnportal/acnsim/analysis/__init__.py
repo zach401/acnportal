@@ -27,13 +27,13 @@ def constraint_currents(sim, complex=False, constraint_ids=None):
             that constraint at each time.
     """
     if constraint_ids is None:
-        constraint_ids = sorted(list(set(c for c in sim.network.constraint_index.keys())))
+        constraint_ids = sim.network.constraint_ids
     else:
-        constraint_ids = sorted(list(set(constraint_ids)))
+        constraint_ids = [constraint_id for constraint_id in sim.network.constraint_ids if constraint_id in constraint_ids]
 
     currents = {}
     sim_length = len(sim.charging_rates[0])
-    dict_charging_rates = {sorted(sim.network.station_ids)[i] : sim.charging_rates[i] for i in range(len(sim.charging_rates))}
+    dict_charging_rates = {sim.network.station_ids[i] : sim.charging_rates[i] for i in range(len(sim.charging_rates))}
     if complex:
         currents_list = sim.network.constraint_current(dict_charging_rates)
     else:
