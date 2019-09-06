@@ -28,16 +28,11 @@ def constraint_currents(sim, complex=False, constraint_ids=None):
     """
     if constraint_ids is None:
         constraint_ids = sim.network.constraint_ids
-    else:
-        constraint_ids = [constraint_id for constraint_id in sim.network.constraint_ids if constraint_id in constraint_ids]
 
-    currents = {}
-    sim_length = len(sim.charging_rates[0])
-    dict_charging_rates = {sim.network.station_ids[i] : sim.charging_rates[i] for i in range(len(sim.charging_rates))}
-    if complex:
-        currents_list = sim.network.constraint_current(dict_charging_rates)
-    else:
-        currents_list = np.abs(sim.network.constraint_current(dict_charging_rates))
+    currents_list = sim.network.constraint_current(sim.network.charging_rates)
+    if not complex:
+        currents_list = np.abs(currents_list)
+        
     return {constraint_ids[i] : currents_list[i] for i in range(len(constraint_ids))}
 
 

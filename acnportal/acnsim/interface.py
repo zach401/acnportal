@@ -1,7 +1,7 @@
 """
 This module contains methods for directly interacting with the _simulator.
 """
-
+import numpy as np
 
 class Interface:
     """ Interface between algorithms and the ACN Simulation Environment."""
@@ -154,7 +154,23 @@ class Interface:
         Returns:
             bool: If load_currents is feasible at time t according to this set of constraints.
         """
-        return self._simulator.network.is_feasible(load_currents, t, linear)
+        if len(load_currents) == 0:
+            return True
+
+        # Check that all schedules are the same length
+        schedule_lengths = set(len(x) for x in load_currents.values())
+        if len(schedule_lengths) > 1:
+            raise InvalidScheduleError('All schedules should have the same length.')
+        schedule_length = schedule_lengths.pop()
+
+        # Convert input schedule into its matrix representation
+        schedule_matrix = np.array(
+            [load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id in self._simulator.network.station_ids])
+        return self._simulator.network.is_feasible(schedule_matrix, t, linear)
+
+class InvalidScheduleError(Exception):
+    """ Raised when the schedule passed to the simulator is invalid. """
+    pass
 
     # def get_prices(self, start, length):
     #     """

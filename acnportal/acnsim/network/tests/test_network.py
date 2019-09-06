@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 from acnportal.acnsim.models import EV
 from acnportal.acnsim.models import EVSE, InvalidRateError
-from acnportal.acnsim import ChargingNetwork, InvalidScheduleError
+from acnportal.acnsim import ChargingNetwork
 from acnportal.acnsim import Current
 
 import pandas as pd
@@ -126,7 +126,7 @@ class TestChargingNetwork(TestCase):
         current2 = Current(curr_dict2)
         self.network.add_constraint(current1, 50)
         self.network.add_constraint(current2, 10)
-        good_loads = {'PS-002' : [150, 120], 'PS-004' : [150, 120], 'PS-006' : [60, 9], 'PS-003' : [100, 40]}
+        good_loads = np.array([[0, 0], [150, 120], [100, 40], [150, 120], [60, 9]])
         
         self.assertTrue(self.network.is_feasible(good_loads))
 
@@ -142,25 +142,25 @@ class TestChargingNetwork(TestCase):
         current2 = Current(curr_dict2)
         self.network.add_constraint(current1, 50)
         self.network.add_constraint(current2, 10)
-        bad_loads = {'PS-002' : [150, 800], 'PS-004' : [150, 20], 'PS-006' : [60, 9], 'PS-003' : [100, 0]}
+        bad_loads = np.array([[0, 0], [150, 800], [100, 0], [150, 20], [60, 9]])
         
         self.assertFalse(self.network.is_feasible(bad_loads))
 
-    def test_is_feasible_unequal_lengths(self):
-        self.network.register_evse(EVSE('PS-001'), 240, 0)
-        self.network.register_evse(EVSE('PS-002'), 240, 0)
-        self.network.register_evse(EVSE('PS-003'), 240, 0)
-        self.network.register_evse(EVSE('PS-004'), 240, 0)
-        self.network.register_evse(EVSE('PS-006'), 240, 0)
-        curr_dict1 = {'PS-001' : 0.25, 'PS-002' : 0.50, 'PS-003' : -0.25}
-        current1 = Current(curr_dict1)
-        curr_dict2 = {'PS-006' : 0.30, 'PS-004' : -0.60, 'PS-002' : 0.50}
-        current2 = Current(curr_dict2)
-        self.network.add_constraint(current1, 50)
-        self.network.add_constraint(current2, 10)
-        unequal_loads = {'PS-002' : [150, 800], 'PS-004' : [150], 'PS-006' : [60, 9], 'PS-003' : [100, 0]}
-        with self.assertRaises(InvalidScheduleError):
-            self.network.is_feasible(unequal_loads)
+    # def test_is_feasible_unequal_lengths(self):
+    #     self.network.register_evse(EVSE('PS-001'), 240, 0)
+    #     self.network.register_evse(EVSE('PS-002'), 240, 0)
+    #     self.network.register_evse(EVSE('PS-003'), 240, 0)
+    #     self.network.register_evse(EVSE('PS-004'), 240, 0)
+    #     self.network.register_evse(EVSE('PS-006'), 240, 0)
+    #     curr_dict1 = {'PS-001' : 0.25, 'PS-002' : 0.50, 'PS-003' : -0.25}
+    #     current1 = Current(curr_dict1)
+    #     curr_dict2 = {'PS-006' : 0.30, 'PS-004' : -0.60, 'PS-002' : 0.50}
+    #     current2 = Current(curr_dict2)
+    #     self.network.add_constraint(current1, 50)
+    #     self.network.add_constraint(current2, 10)
+    #     unequal_loads = {'PS-002' : [150, 800], 'PS-004' : [150], 'PS-006' : [60, 9], 'PS-003' : [100, 0]}
+    #     with self.assertRaises(InvalidScheduleError):
+    #         self.network.is_feasible(unequal_loads)
 
     def test_constraint_current(self):
         self.network.register_evse(EVSE('PS-001'), 240, 0)
@@ -174,7 +174,7 @@ class TestChargingNetwork(TestCase):
         current2 = Current(curr_dict2)
         self.network.add_constraint(current1, 50)
         self.network.add_constraint(current2, 10)
-        loads = {'PS-002' : [150, 120], 'PS-004' : [150, 120], 'PS-006' : [60, 9], 'PS-003' : [100, 40]}
+        loads = np.array([[0, 0], [150, 120], [100, 40], [150, 120], [60, 9]])
 
         np.testing.assert_allclose(self.network.constraint_current(loads),
             np.array([[50+0j, 50+0j], [3+0j, -9.3+0j]]))
@@ -192,7 +192,7 @@ class TestChargingNetwork(TestCase):
         self.network.register_evse(evse1, 240, -30)
         self.network.register_evse(evse3, 100, 150)
         self.network.register_evse(evse2, 140, 90)
-        assertEqual(self.network.voltages,
+        self.assertEqual(self.network.voltages,
             {'PS-001' : 240, 'PS-003' : 100, 'PS-002' : 140})
 
     def test_phase_angles_accessor(self):
@@ -202,5 +202,5 @@ class TestChargingNetwork(TestCase):
         self.network.register_evse(evse1, 240, -30)
         self.network.register_evse(evse3, 100, 150)
         self.network.register_evse(evse2, 140, 90)
-        assertEqual(self.network.voltages,
+        self.assertEqual(self.network.phase_angles,
             {'PS-001' : -30, 'PS-003' : 150, 'PS-002' : 90})
