@@ -121,7 +121,8 @@ class Interface:
         Returns:
             float: voltage of the EVSE. [V]
         """
-        return self._simulator.network.voltages[station_id]
+
+        return self._simulator.network.voltages[self._simulator.network.station_ids.index(station_id)]
 
     def remaining_amp_periods(self, ev):
         """ Return the EV's remaining demand in A*periods.
