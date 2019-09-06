@@ -98,6 +98,9 @@ class ChargingNetwork:
         self._voltages = np.append(self._voltages, voltage)
         self._phase_angles = np.append(self._phase_angles, phase_angle)
 
+    def constraints_as_df(self):
+        return pd.DataFrame(self.constraint_matrix, columns=self.station_ids, index=self.constraint_index)
+
     def add_constraint(self, current, limit, name=None):
         """ Add an additional constraint to the constraint DataFrame.
 
@@ -117,7 +120,7 @@ class ChargingNetwork:
         current.name = name
         self.magnitudes = np.append(self.magnitudes, limit)
         # Make a dataframe for the constraint matrix for easy addition of the new constraint
-        constraint_frame = pd.DataFrame(self.constraint_matrix, columns=self.station_ids, index=self.constraint_index)
+        constraint_frame = self.constraints_as_df()
         constraint_frame = constraint_frame.append(current).fillna(0)
         # Maintain a list of constraint ids for use with constraint_current.
         self.constraint_index = constraint_frame.index
