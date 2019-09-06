@@ -1,9 +1,11 @@
 from unittest import TestCase
-from unittest.mock import Mock, create_autospec
+from unittest.mock import Mock, create_autospec, patch
 
 from acnportal.acnsim import Simulator, Interface, InvalidScheduleError
 from acnportal.acnsim.network import ChargingNetwork
 from acnportal.acnsim.models import EV
+
+import numpy as np
 
 class TestSimulator(TestCase):
     def setUp(self):
@@ -18,9 +20,6 @@ class TestSimulator(TestCase):
     def test_active_evs(self):
         _ = self.interface.active_evs()
         self.simulator.get_active_evs.assert_called_once()
-
-    def test_last_applied_pilot_signals(self):
-        pass
 
     def test_last_applied_pilot_signals_low_iteration(self):
         self.simulator.iteration = 1
@@ -40,7 +39,9 @@ class TestSimulator(TestCase):
                 {'PS-001' : [1, 2], 'PS-002' : [3, 4, 5], 'PS-003' : [4, 5]})
 
     def test_is_feasible(self):
-        pass
-        # self.network.station_ids = ['PS-002', 'PS-001', 'PS-003']
-        # all_calls = self.interface.is_feasible({'PS-001' : [1, 2], 'PS-003' : [4, 5]}).call_args
-        # print(all_calls)
+        self.network.station_ids = ['PS-002', 'PS-001', 'PS-003']
+        _ = self.interface.is_feasible({'PS-001' : [1, 2], 'PS-002' : [4, 5]})
+        network_is_feasible_args = self.network.is_feasible.call_args
+        np.testing.assert_allclose(network_is_feasible_args[0][0], np.array([[4, 5], [1, 2], [0, 0]]))
+        self.assertEqual(network_is_feasible_args[0][1], 0)
+        self.assertEqual(network_is_feasible_args[0][2], False)
