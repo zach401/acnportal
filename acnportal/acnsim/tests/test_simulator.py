@@ -14,7 +14,7 @@ from acnportal.acnsim.events import EventQueue, Event
 from datetime import datetime
 from acnportal.acnsim.models import EVSE
 
-import pickle
+import json
 from acnportal.algorithms import BaseAlgorithm
 import pytz
 from copy import deepcopy
@@ -94,22 +94,17 @@ class TestSimulator(TestCase):
         self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1, verbose=False)
         self.sim.run()
 
-        edf_algo_true_info_dict = {}
-        edf_algo_new_info_dict = {}
-        info_fields = ['pilot_signals', 'charging_rates', 'peak', 'ev_history', 'event_history']
-        work_dir = os.path.join(os.path.dirname(__file__), "edf_algo_true_info_fields")
-        for field in info_fields:
-            with open(os.path.join(work_dir, "edf_algo_true_"+field+".p"), 'rb') as info_file:
-                edf_algo_true_info_dict[field] = pickle.load(info_file)
-                edf_algo_new_info_dict[field] = self.sim.__dict__[field]
+        with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_info_fields.json'), 'r') as infile:
+            edf_algo_true_info_dict = json.load(infile)
+        print(list(edf_algo_true_info_dict.keys()))
 
         old_evse_keys = list(edf_algo_true_info_dict['pilot_signals'].keys())
         new_evse_keys = self.sim.network.station_ids
         self.assertEqual(sorted(new_evse_keys), sorted(old_evse_keys))
 
-
-        edf_algo_new_info_dict['charging_rates'] = {new_evse_keys[i] : list(edf_algo_new_info_dict['charging_rates'][i]) for i in range(len(new_evse_keys))}
-        edf_algo_new_info_dict['pilot_signals'] = {new_evse_keys[i] : list(edf_algo_new_info_dict['pilot_signals'][i]) for i in range(len(new_evse_keys))}
+        edf_algo_new_info_dict = {field : self.sim.__dict__[field] for field in edf_algo_true_info_dict.keys()}
+        edf_algo_new_info_dict['charging_rates'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['charging_rates'][i]) for i in range(len(self.sim.network.station_ids))}
+        edf_algo_new_info_dict['pilot_signals'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['pilot_signals'][i]) for i in range(len(self.sim.network.station_ids))}
 
         for evse_key in new_evse_keys:
             np.testing.assert_allclose(np.array(edf_algo_true_info_dict['pilot_signals'][evse_key]),
