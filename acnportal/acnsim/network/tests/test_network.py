@@ -94,6 +94,24 @@ class TestChargingNetwork(TestCase):
         evse2.set_pilot.assert_any_call(16, 240, 5)
         evse3.set_pilot.assert_any_call(0, 240, 5)
 
+    def test_constraints_as_df(self):
+        self.network.register_evse(EVSE('PS-001'), 240, 0)
+        self.network.register_evse(EVSE('PS-004'), 240, 0)
+        self.network.register_evse(EVSE('PS-003'), 240, 0)
+        self.network.register_evse(EVSE('PS-002'), 240, 0)
+        self.network.register_evse(EVSE('PS-006'), 240, 0)
+        curr_dict1 = {'PS-001' : 0.25, 'PS-002' : 0.50, 'PS-003' : -0.25}
+        current1 = Current(curr_dict1)
+        curr_dict2 = {'PS-006' : 0.30, 'PS-004' : -0.60, 'PS-002' : 0.50}
+        current2 = Current(curr_dict2)
+        self.network.add_constraint(current1, 50)
+        self.network.add_constraint(current2, 10)
+        constraint_frame = self.network.constraints_as_df()
+        pd.testing.assert_frame_equal(constraint_frame,
+            pd.DataFrame(data=[[0.25, 0.00, -0.25, 0.50, 0.00], [0.00, -0.60, 0.00, 0.50, 0.30]],
+                columns=['PS-001', 'PS-004', 'PS-003', 'PS-002', 'PS-006'],
+                index=['_const_0', '_const_1']))
+
     def test_add_constraint(self):
         self.network.register_evse(EVSE('PS-001'), 240, 0)
         self.network.register_evse(EVSE('PS-004'), 240, 0)
