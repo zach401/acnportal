@@ -82,11 +82,9 @@ class Simulator:
                     self.max_recompute is not None and \
                     self._iteration - self._last_schedule_update >= self.max_recompute:
                 new_schedule = self.scheduler.run()
-                if new_schedule and not self.network.is_feasible(new_schedule):
-                    warnings.warn("Invalid schedule provided at iteration {0}".format(self._iteration), UserWarning)
+                self._update_schedules(new_schedule)
                 if self.schedule_history is not None:
                     self.schedule_history[self._iteration] = new_schedule
-                self._update_schedules(new_schedule)
                 self._last_schedule_update = self._iteration
                 self._resolve = False
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
@@ -152,6 +150,8 @@ class Simulator:
                 raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
 
         schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
+        if not self.network.is_feasible(schedule_matrix):
+            warnings.warn("Invalid schedule provided at iteration {0}".format(self._iteration), UserWarning)
         if self._iteration + schedule_length <= len(self.pilot_signals[0]):
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
         else:
@@ -180,12 +180,10 @@ class Simulator:
         and iteration as index.
         """
         return pd.DataFrame(data=self.charging_rates, columns=self.network.station_ids)
-        pass
 
     def pilot_signals_as_df(self):
         """ Return the pilot signals as a pandas DataFrame """
         return pd.DataFrame(data=self.pilot_signals, columns=self.network.station_ids)
-        pass
 
 def _increase_width(a, target_width):
     """ Returns a new 2-D numpy array with target_width number of columns, with the contents

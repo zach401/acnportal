@@ -81,7 +81,7 @@ class ChargingNetwork:
         Returns:
             Dict[str, float]: Dictionary mapping EVSE ids their input phase angle. [degrees]
         """
-        return {self.station_ids[i] : self._phase_angles for i in range(len(self._phase_angles))}
+        return {self.station_ids[i] : self._phase_angles[i] for i in range(len(self._phase_angles))}
 
     def register_evse(self, evse, voltage, phase_angle):
         """ Register an EVSE with the network so it will be accessible to the rest of the simulation.
@@ -197,12 +197,13 @@ class ChargingNetwork:
             new_rate = pilots[station_number, i]
             self._EVSEs[ids[station_number]].set_pilot(new_rate, self._voltages[station_number], period)
 
-    def constraint_current(self, load_currents, constraints=None, time_indices=None, linear=False):
+    def constraint_current(self, schedule_matrix, constraints=None, time_indices=None, linear=False):
         """ Return the aggregate currents subject to the given constraints. If constraints=None,
         return all aggregate currents.
 
         Args:
-            load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
+            schedule_matrix (np.Array): 2-D matrix with each row corresponding to an EVSE and each
+                column corresponding to a time index in the schedule.
             constraints (List[str]): List of constraint id's for which to calculate aggregate current. If
                 None, calculates aggregate currents for all constraints.
             time_indices (List[int]): List of time indices for which to calculate aggregate current. If None, 
@@ -218,13 +219,12 @@ class ChargingNetwork:
             constraint_indices = [i for i in range(len(self.constraint_index)) if self.constraint_index[i] in constraints]
         else:
             constraint_indices = list(range(len(self.constraint_index)))
+
+        # If we only want the constraint currents at specific time indices,
+        # index schedule_matrix columns using these indices
         if time_indices:
-            schedule_length = len(time_indices)
-            schedule_matrix = np.array([[load_currents[evse_id][i] for i in time_indices] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in self._EVSEs.items()])
-        else:
-            # Gets the length of the schedules given in load_currents
-            schedule_length = len(list(load_currents.values())[0])
-            schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in self._EVSEs.items()])
+            schedule_matrix = schedule_matrix[:, time_indices]
+
         if linear:
             return complex(np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix))
         else:
@@ -237,11 +237,12 @@ class ChargingNetwork:
             # multiply constraint matrix by current schedule, shifted by the phases
             return self.constraint_matrix[constraint_indices]@shifted_schedule
 
-    def is_feasible(self, load_currents, t=0, linear=False):
+    def is_feasible(self, schedule_matrix, t=0, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.
 
         Args:
-            load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
+            schedule_matrix (np.Array): 2-D matrix with each row corresponding to an EVSE and each
+                column corresponding to a time index in the schedule.
             t (int): Index into the charging rate schedule where feasibility should be checked.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
@@ -249,26 +250,21 @@ class ChargingNetwork:
         Returns:
             bool: If load_currents is feasible at time t according to this set of constraints.
         """
-        if len(load_currents) == 0:
+        # If there are no constraints (magnitudes vector is empty) return True
+        if not len(self.magnitudes):
             return True
 
-        # Check that all schedules are the same length
-        schedule_lengths = set(len(x) for x in load_currents.values())
-        if len(schedule_lengths) > 1:
-            raise InvalidScheduleError('All schedules should have the same length.')
-        schedule_length = schedule_lengths.pop()
+        # Calculate aggregate currents for each constraint
+        aggregate_currents = self.constraint_current(schedule_matrix, linear=linear)
 
-        aggregate_currents = self.constraint_current(load_currents, linear=linear)
+        # Ensure each aggregate current is less than its limit, returning False if not
         if linear:
             return np.all(self.magnitudes >= np.abs(aggregate_currents))
         else:
+            schedule_length = len(schedule_matrix[0])
             return np.all(np.tile(self.magnitudes, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
 
 class StationOccupiedError(Exception):
     """ Exception which is raised when trying to add an EV to an EVSE which is already occupied."""
-    pass
-
-class InvalidScheduleError(Exception):
-    """ Raised when the schedule passed to the simulator is invalid. """
     pass

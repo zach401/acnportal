@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import os
 
-from acnportal.acnsim import Simulator, InvalidScheduleError
+from acnportal.acnsim import Simulator
 from acnportal.acnsim.network import ChargingNetwork
 from acnportal.acnsim import acndata_events
 from acnportal.acnsim import sites
