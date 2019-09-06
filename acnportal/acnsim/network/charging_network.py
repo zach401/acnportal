@@ -2,6 +2,7 @@ from .current import Current
 import pandas as pd
 import numpy as np
 from collections import OrderedDict
+import warnings
 
 class ChargingNetwork:
     """
@@ -114,6 +115,11 @@ class ChargingNetwork:
         """
         if name is None:
             name = '_const_{0}'.format(len(self.constraint_index))
+        if name in self.constraint_index:
+            warnings.warn(
+                "Constraint {0} already added. Adding input constraint as new constraint. Use network.update_constraint to update constraint {0}".format(name),
+                UserWarning)
+            name = name + "_v2"
         for station_id in current.index:
             if station_id not in self._EVSEs:
                 raise KeyError('Station {0} not found. Register station {0} to add constraint {1} to network.'.format(station_id, name))
@@ -123,9 +129,45 @@ class ChargingNetwork:
         constraint_frame = self.constraints_as_df()
         constraint_frame = constraint_frame.append(current).fillna(0)
         # Maintain a list of constraint ids for use with constraint_current.
-        self.constraint_index = constraint_frame.index
+        self.constraint_index = list(constraint_frame.index)
         # Update the numpy matrix of constraints by reconstructing it from constraint_frame.
         self.constraint_matrix = constraint_frame.reindex(columns=self.station_ids).to_numpy()
+
+    def remove_constraint(self, name):
+        """ Remove a network constraint.
+
+        Args:
+            name (str): Name of constriant to remove.
+
+        Returns:
+            None
+        """
+        if name not in self.constraint_index:
+            raise KeyError('Cannot remove constraint {0}: not found in network.'.format(name))
+        del_index = self.constraint_index.index(name)
+        self.constraint_matrix = np.delete(self.constraint_matrix, (del_index), axis=0)
+        self.magnitudes = np.delete(self.magnitudes, (del_index), axis=0)
+        self.constraint_index.remove(name)
+
+    def update_constraint(self, name, current, limit, new_name=None):
+        """ Update a network constraint with a new aggregate current, limit, and name.
+
+        Args:
+            name (str): Name of constriant to update.
+            current (Current): New current to update constraint with
+            limit (float): New upper limit to update constraint with
+            new_name (str): New name to give constraint
+
+        Returns:
+            None
+        """
+        if new_name is None:
+            new_name = name
+        if name not in self.constraint_index:
+            raise KeyError('Cannot update constraint {0}: not found in network.'.format(name))
+        self.remove_constraint(name)
+        self.add_constraint(current, limit, name=new_name)
+
 
     def plugin(self, ev, station_id):
         """ Attach EV to a specific EVSE.
