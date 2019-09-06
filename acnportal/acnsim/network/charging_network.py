@@ -218,14 +218,14 @@ class ChargingNetwork:
             List[complex]: Aggregate currents subject to the given constraints.
         """
         # Convert list of constraint id's to list of indices in constraint matrix
-        if constraints:
+        if constraints is not None:
             constraint_indices = [i for i in range(len(self.constraint_index)) if self.constraint_index[i] in constraints]
         else:
             constraint_indices = list(range(len(self.constraint_index)))
 
         # If we only want the constraint currents at specific time indices,
         # index schedule_matrix columns using these indices
-        if time_indices:
+        if time_indices is not None:
             schedule_matrix = schedule_matrix[:, time_indices]
 
         if linear:

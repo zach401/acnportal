@@ -15,7 +15,6 @@ from datetime import datetime
 from acnportal.acnsim.models import EVSE
 
 import json
-from acnportal.algorithms import BaseAlgorithm
 import pytz
 from copy import deepcopy
 
@@ -96,7 +95,6 @@ class TestSimulator(TestCase):
 
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_info_fields.json'), 'r') as infile:
             edf_algo_true_info_dict = json.load(infile)
-        print(list(edf_algo_true_info_dict.keys()))
 
         old_evse_keys = list(edf_algo_true_info_dict['pilot_signals'].keys())
         new_evse_keys = self.sim.network.station_ids
