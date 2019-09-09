@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 import warnings
+import copy
 
 class ChargingNetwork:
     """
@@ -16,7 +17,7 @@ class ChargingNetwork:
         self.constraint_matrix = None
         # Vector of limiting magnitudes
         self.magnitudes = np.array([])
-        # Dict of constraint_id to row index in constraint matrix
+        # List of constraints in order of addition to network
         self.constraint_index = []
         self._voltages = np.array([])
         self._phase_angles = np.array([])
@@ -25,8 +26,7 @@ class ChargingNetwork:
     @property
     def current_charging_rates(self):
         """ Return the current actual charging rate of all EVSEs in the network. If no EV is
-        attached to a given EVSE, that EVSE's charging rate is 0. In the returned array, the
-        charging rates are given in lexicographical ordering by EVSE name.
+        attached to a given EVSE, that EVSE's charging rate is 0. 
 
         Returns:
             np.Array: numpy ndarray of actual charging rates of all EVSEs in the network.
@@ -242,12 +242,12 @@ class ChargingNetwork:
             new_rate = pilots[station_number, i]
             self._EVSEs[ids[station_number]].set_pilot(new_rate, self._voltages[station_number], period)
 
-    def constraint_current(self, schedule_matrix, constraints=None, time_indices=None, linear=False):
+    def constraint_current(self, input_schedule, constraints=None, time_indices=None, linear=False):
         """ Return the aggregate currents subject to the given constraints. If constraints=None,
         return all aggregate currents.
 
         Args:
-            schedule_matrix (np.Array): 2-D matrix with each row corresponding to an EVSE and each
+            input_schedule (np.Array): 2-D matrix with each row corresponding to an EVSE and each
                 column corresponding to a time index in the schedule.
             constraints (List[str]): List of constraint id's for which to calculate aggregate current. If
                 None, calculates aggregate currents for all constraints.
@@ -259,6 +259,7 @@ class ChargingNetwork:
         Returns:
             List[complex]: Aggregate currents subject to the given constraints.
         """
+        schedule_matrix = copy.deepcopy(input_schedule)
         # Convert list of constraint id's to list of indices in constraint matrix
         if constraints is not None:
             constraint_indices = [i for i in range(len(self.constraint_index)) if self.constraint_index[i] in constraints]

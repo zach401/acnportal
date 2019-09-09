@@ -14,11 +14,12 @@ def aggregate_current(sim):
     """
     return sim.charging_rates.sum(axis=0)
 
-def constraint_currents(sim, complex=False, constraint_ids=None):
+def constraint_currents(sim, return_magnitudes=False, constraint_ids=None):
     """ Calculate the time series of current for each constraint in the ChargingNetwork for a simulation.
 
     Args:
         sim (Simulator): A Simulator object which has been run.
+        return_magnitudes (bool): If true, return constraint currents as real magnitudes instead of complex numbers.
         constraint_ids (List[str]): List of constraint names for which the current should be returned. If None, return
             all constraint currents.
 
@@ -31,7 +32,7 @@ def constraint_currents(sim, complex=False, constraint_ids=None):
 
     currents_list = sim.network.constraint_current(sim.charging_rates, constraints=constraint_ids)
     
-    if not complex:
+    if not return_magnitudes:
         currents_list = np.abs(currents_list)
     # Ensure constraint_ids have correct order relative to constraint_index in network
     constraint_ids = [constraint_id for constraint_id in sim.network.constraint_index if constraint_id in constraint_ids]

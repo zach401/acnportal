@@ -71,7 +71,7 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
             #   another more direct method in lesson 3.
             while not self.interface.is_feasible(schedule):
                 # Since the maximum rate was not feasible, we should try a lower rate.
-                schedule[ev.station_id] = [schedule[ev.station_id][0] - self._increment]
+                schedule[ev.station_id][i] -= self._increment
 
                 # EVs should never charge below 0 (i.e. discharge) so we will clip the value at 0.
                 if schedule[ev.station_id][0] < 0:
