@@ -309,7 +309,16 @@ class ChargingNetwork:
             schedule_length = len(schedule_matrix[0])
             return np.all(np.tile(self.magnitudes, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
-
 class StationOccupiedError(Exception):
     """ Exception which is raised when trying to add an EV to an EVSE which is already occupied."""
+    pass
+
+def network_from_json_dict(in_dict):
+    """ Load a ChargingNetwork object from a dict specifying JSON-encoded fields
+
+    Args:
+        in_dict (Dict[str, JSON-serializable]): input dictionary from which to read object.
+
+    Returns: ChargingNetwork
+    """
     pass

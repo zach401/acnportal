@@ -3,9 +3,11 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 import warnings
+import json
 
 from .events import UnplugEvent
 from .interface import Interface
+from . import io
 
 
 class Simulator:
@@ -178,12 +180,27 @@ class Simulator:
     def charging_rates_as_df(self):
         """ Return the charging rates as a pandas DataFrame, with EVSE id as columns
         and iteration as index.
+
+        Returns:
+            pandas.DataFrame
         """
         return pd.DataFrame(data=self.charging_rates, columns=self.network.station_ids)
 
     def pilot_signals_as_df(self):
-        """ Return the pilot signals as a pandas DataFrame """
+        """ Return the pilot signals as a pandas DataFrame
+
+        Returns:
+            pandas.DataFrame
+        """
         return pd.DataFrame(data=self.pilot_signals, columns=self.network.station_ids)
+
+    def to_json(self):
+        """ Converts the simulator into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        return io.to_json(self, obj_type='simulator')
 
 def _increase_width(a, target_width):
     """ Returns a new 2-D numpy array with target_width number of columns, with the contents
