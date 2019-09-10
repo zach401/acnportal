@@ -29,69 +29,69 @@ def from_json(in_file, typ='simulator'):
 
     return locals()[decoder_func]()(in_dict)
 
-def to_json(obj_dict):
+def to_json(obj):
 	""" Returns a JSON-serializable representation of the object obj if possible
 	
 	Args:
-		Dict[str, Object]: an object dictionary representing an instance of an object
-			Possible objects:
-			Simulator, ChargingNetwork, BasicAlgorithm, EventQueue, Event, EV, or EVSE like
+		obj (Object): Object to be converted into JSON-serializable form.
+        typ (str): Supertype of object to be serialized. Possible inputs:
+            {'simulator', 'network', 'scheduler', 'event_queue', 'event', 'ev', 'evse', 'battery'} 
 
-	Returns: JSON serializable
+	Returns:
+        JSON serializable
 	"""
-	encoder_func = '_{0}_dict_to_json'.format(obj_dict['obj_type'])
+    encoder_func = '_{0}_dict_to_json'.format(typ)
 	if encoder_func not in locals():
 		raise InvalidJSONError('Attempting to encode unrecognized object: {0}'.format(typ))
-	return locals()[encoder_func](obj_dict)
+	return locals()[encoder_func](obj.__dict__, {})
 
 ###-------------Encoders-------------###
 
-def _simulator_dict_to_json(out_dict):
-	# Doesn't JSONify schedule history
-    del out_dict['schedule_history']
+def _simulator_dict_to_json(obj_dict, json_dict):
+    json_dict = {}
 
-    out_dict['network'] = out_dict['network'].to_json()
-    out_dict['scheduler'] = out_dict['scheduler'].to_json()
-    out_dict['event_queue'] = out_dict['event_queue'].to_json()
+	json_dict['network'] = obj_dict['network'].to_json()
+    json_dict['scheduler'] = obj_dict['scheduler'].to_json()
+    json_dict['event_queue'] = obj_dict['event_queue'].to_json()
 
-    out_dict['pilot_signals'] = out_dict['pilot_signals'].to_list()
-    out_dict['charging_rates'] = out_dict['charging_rates'].to_list()
+    json_dict['pilot_signals'] = obj_dict['pilot_signals'].to_list()
+    json_dict['charging_rates'] = obj_dict['charging_rates'].to_list()
 
-    out_dict['ev_history'] = {session_id : ev.to_json() for session_id, ev in out_dict['ev_history'].items()}
-    out_dict['event_history'] = [event.to_json() for event in out_dict['event_history']]
+    json_dict['ev_history'] = {session_id : ev.to_json() for session_id, ev in obj_dict['ev_history'].items()}
+    json_dict['event_history'] = [event.to_json() for event in obj_dict['event_history']]
     
-    return json.dumps(out_dict)
+    return json.dumps(json_dict)
 
-def _network_dict_to_json(out_dict):
-    out_dict['constraint_matrix'] = out_dict['constraint_matrix'].to_list()
-    out_dict['magnitudes'] = out_dict['magnitudes'].to_list()
-    out_dict['_voltages'] = out_dict['_voltages'].to_list()
-    out_dict['_phase_angles'] = out_dict['_voltages'].to_list()
+def _network_dict_to_json(obj_dict, json_dict):
+    json_dict['constraint_matrix'] = obj_dict['constraint_matrix'].to_list()
+    json_dict['magnitudes'] = obj_dict['magnitudes'].to_list()
+    json_dict['_voltages'] = obj_dict['_voltages'].to_list()
+    json_dict['_phase_angles'] = obj_dict['_voltages'].to_list()
 
-    return json.dumps(out_dict)
+    return json.dumps(json_dict)
 
-def _scheduler_dict_to_json(out_dict):
+def _scheduler_dict_to_json(obj_dict, json_dict):
 	# TODO
 	pass
 
-def _event_queue_dict_to_json(out_dict):
-	out_dict['_queue'] = [event.to_json() for event in out_dict['_queue']]
+def _event_queue_dict_to_json(obj_dict, json_dict):
+	json_dict['_queue'] = [event.to_json() for event in obj_dict['_queue']]
 	
-	return json.dumps(out_dict)
+	return json.dumps(json_dict)
 
-def _event_dict_to_json(out_dict):=
-	return json.dumps(out_dict)
+def _event_dict_to_json(obj_dict, json_dict):
+	return json.dumps(json_dict)
 
-def _ev_dict_to_json(out_dict):
+def _ev_dict_to_json(out_dict, json_dict):
 	out_dict['_battery'] = out_dict['_battery'].to_json()
 
 	return json.dumps(out_dict)
 
-def _evse_dict_to_json(out_dict):
+def _evse_dict_to_json(out_dict, json_dict):
 	out_dict[]
 	pass
 
-def _battery_dict_to_json(out_dict):
+def _battery_dict_to_json(out_dict, json_dict):
 	return json.dumps(out_dict)
 
 ###-------------Decoders-------------###
