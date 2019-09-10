@@ -26,18 +26,13 @@ class ChargingNetwork:
     @property
     def current_charging_rates(self):
         """ Return the current actual charging rate of all EVSEs in the network. If no EV is
-        attached to a given EVSE, that EVSE's charging rate is 0. 
+        attached to a given EVSE, that EVSE's charging rate is 0. In the returned array, the
+        charging rates are given in the same order as the list of EVSEs given by station_ids
 
         Returns:
             np.Array: numpy ndarray of actual charging rates of all EVSEs in the network.
         """
-        current_rates = np.zeros(len(self._EVSEs))
-        i = 0
-        for station_id, evse in self._EVSEs.items():
-            if evse.ev is not None:
-                current_rates[i] = evse.ev.current_charging_rate
-            i += 1
-        return current_rates
+        return np.array([evse.ev.current_charging_rate if evse.ev is not None else 0 for evse in self._EVSEs.values()])
 
     @property
     def station_ids(self):
@@ -257,9 +252,9 @@ class ChargingNetwork:
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 
         Returns:
-            List[complex]: Aggregate currents subject to the given constraints.
+            np.Array: Aggregate currents subject to the given constraints.
         """
-        schedule_matrix = copy.deepcopy(input_schedule)
+        schedule_matrix = np.array(input_schedule)
         # Convert list of constraint id's to list of indices in constraint matrix
         if constraints is not None:
             constraint_indices = [i for i in range(len(self.constraint_index)) if self.constraint_index[i] in constraints]
@@ -278,18 +273,17 @@ class ChargingNetwork:
             angle_coeffs = np.exp(1j*np.deg2rad(self._phase_angles))
 
             # multiply schedule by angles matrix element-wise
-            shifted_schedule = (schedule_matrix.T * angle_coeffs).T
+            phasor_schedule = (schedule_matrix.T * angle_coeffs).T
 
             # multiply constraint matrix by current schedule, shifted by the phases
-            return self.constraint_matrix[constraint_indices]@shifted_schedule
+            return self.constraint_matrix[constraint_indices]@phasor_schedule
 
-    def is_feasible(self, schedule_matrix, t=0, linear=False):
+    def is_feasible(self, schedule_matrix, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.
 
         Args:
             schedule_matrix (np.Array): 2-D matrix with each row corresponding to an EVSE and each
                 column corresponding to a time index in the schedule.
-            t (int): Index into the charging rate schedule where feasibility should be checked.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 

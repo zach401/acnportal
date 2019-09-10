@@ -18,28 +18,6 @@ import json
 import pytz
 from copy import deepcopy
 
-class EarliestDeadlineFirstAlgo(BaseAlgorithm):
-    ''' See EarliestDeadlineFirstAlgo in tutorial 2. '''
-    def __init__(self, increment=1):
-        super().__init__()
-        self._increment = increment
-
-    def schedule(self, active_evs):
-        schedule = {ev.station_id: [0] for ev in active_evs}
-
-        sorted_evs = sorted(active_evs, key=lambda x: x.departure)
-
-        for ev in sorted_evs:
-            schedule[ev.station_id] = [self.interface.max_pilot_signal(ev.station_id)]
-
-            while not self.interface.is_feasible(schedule):
-                schedule[ev.station_id][0] -= self._increment
-
-                if schedule[ev.station_id][0] < 0:
-                    schedule[ev.station_id] = [0]
-                    break
-        return schedule
-
 class TestSimulator(TestCase):
     def setUp(self):
         start = Mock(datetime)
@@ -72,41 +50,10 @@ class TestSimulator(TestCase):
         self.simulator._update_schedules(new_schedule)
         np.testing.assert_allclose(self.simulator.pilot_signals[:, :2], np.array([[24, 16], [16, 24], [0, 0]]))
 
-    def test_tutorial_2(self):
-        # Integration test. Tests that results of tutorial 2 are unchanged
-        timezone = pytz.timezone('America/Los_Angeles')
-        start = timezone.localize(datetime(2018, 9, 5))
-        end = timezone.localize(datetime(2018, 9, 6))
-        period = 5  # minute
-        voltage = 220  # volts
-        default_battery_power = 32 * voltage / 1000 # kW
-        site = 'caltech'
+    def test_index_of_evse_error(self):
+        with self.assertRaises(KeyError):
+            _ = self.simulator.index_of_evse('PS-004')
 
-        cn = sites.caltech_acn(basic_evse=True, voltage=voltage)
-
-        API_KEY = 'DEMO_TOKEN'
-        events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
-
-
-        sch = EarliestDeadlineFirstAlgo(increment=1)
-
-        self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1, verbose=False)
-        self.sim.run()
-
-        with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_info_fields.json'), 'r') as infile:
-            edf_algo_true_info_dict = json.load(infile)
-
-        old_evse_keys = list(edf_algo_true_info_dict['pilot_signals'].keys())
-        new_evse_keys = self.sim.network.station_ids
-        self.assertEqual(sorted(new_evse_keys), sorted(old_evse_keys))
-
-        edf_algo_new_info_dict = {field : self.sim.__dict__[field] for field in edf_algo_true_info_dict.keys()}
-        edf_algo_new_info_dict['charging_rates'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['charging_rates'][i]) for i in range(len(self.sim.network.station_ids))}
-        edf_algo_new_info_dict['pilot_signals'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['pilot_signals'][i]) for i in range(len(self.sim.network.station_ids))}
-
-        for evse_key in new_evse_keys:
-            np.testing.assert_allclose(np.array(edf_algo_true_info_dict['pilot_signals'][evse_key]),
-                np.array(edf_algo_new_info_dict['pilot_signals'][evse_key])[:len(edf_algo_true_info_dict['pilot_signals'][evse_key])])
-            np.testing.assert_allclose(np.array(edf_algo_true_info_dict['charging_rates'][evse_key]),
-                np.array(edf_algo_new_info_dict['charging_rates'][evse_key])[:len(edf_algo_true_info_dict['charging_rates'][evse_key])])
-        self.assertEqual(edf_algo_new_info_dict['peak'], edf_algo_true_info_dict['peak'])
+    def test_index_of_evse(self):
+        idx = self.simulator.index_of_evse('PS-002')
+        self.assertEqual(idx, 1)

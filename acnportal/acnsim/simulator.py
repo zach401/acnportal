@@ -5,7 +5,7 @@ import numpy as np
 import warnings
 
 from .events import UnplugEvent
-from .interface import Interface
+from .interface import Interface, InvalidScheduleError
 
 
 class Simulator:
@@ -143,11 +143,14 @@ class Simulator:
         if len(new_schedule) == 0:
             return
 
-        schedule_length = len(list(new_schedule.values())[0])
-
         for station_id in new_schedule:
             if station_id not in self.network.station_ids:
                 raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
+
+        schedule_lengths = set(len(x) for x in new_schedule.values())
+        if len(schedule_lengths) > 1:
+            raise InvalidScheduleError('All schedules should have the same length.')
+        schedule_length = schedule_lengths.pop()
 
         schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
         if not self.network.is_feasible(schedule_matrix):
@@ -184,6 +187,14 @@ class Simulator:
     def pilot_signals_as_df(self):
         """ Return the pilot signals as a pandas DataFrame """
         return pd.DataFrame(data=self.pilot_signals, columns=self.network.station_ids)
+
+    def index_of_evse(self, station_id):
+        """ Return the numerical index of the EVSE given by station_id in the (ordered) dictionary
+        of EVSEs. 
+        """
+        if station_id not in self.network.station_ids:
+            raise KeyError("EVSE {0} not found in network.".format(station_id))
+        return self.network.station_ids.index(station_id)
 
 def _increase_width(a, target_width):
     """ Returns a new 2-D numpy array with target_width number of columns, with the contents
