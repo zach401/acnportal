@@ -43,26 +43,32 @@ def to_json(obj):
     encoder_func = '_{0}_dict_to_json'.format(typ)
 	if encoder_func not in locals():
 		raise InvalidJSONError('Attempting to encode unrecognized object: {0}'.format(typ))
-	return locals()[encoder_func](obj.__dict__, {})
+	return locals()[encoder_func](copy.deepcopy(obj.__dict__), {})
 
 ###-------------Encoders-------------###
 
 def _simulator_dict_to_json(obj_dict, json_dict):
-    json_dict = {}
-
 	json_dict['network'] = obj_dict['network'].to_json()
     json_dict['scheduler'] = obj_dict['scheduler'].to_json()
     json_dict['event_queue'] = obj_dict['event_queue'].to_json()
+
+    json_dict['start'] = obj_dict['start']
+    json_dict['period'] = obj_dict['period']
+    json_dict['max_recompute'] = obj_dict['max_recompute']
+    json_dict['verbose'] = obj_dict['verbose']
+    json_dict['_iteration'] = obj_dict['_iteration']
 
     json_dict['pilot_signals'] = obj_dict['pilot_signals'].to_list()
     json_dict['charging_rates'] = obj_dict['charging_rates'].to_list()
 
     json_dict['ev_history'] = {session_id : ev.to_json() for session_id, ev in obj_dict['ev_history'].items()}
     json_dict['event_history'] = [event.to_json() for event in obj_dict['event_history']]
-    
+
     return json.dumps(json_dict)
 
 def _network_dict_to_json(obj_dict, json_dict):
+    json_dict['_EVSEs']
+
     json_dict['constraint_matrix'] = obj_dict['constraint_matrix'].to_list()
     json_dict['magnitudes'] = obj_dict['magnitudes'].to_list()
     json_dict['_voltages'] = obj_dict['_voltages'].to_list()
@@ -82,17 +88,17 @@ def _event_queue_dict_to_json(obj_dict, json_dict):
 def _event_dict_to_json(obj_dict, json_dict):
 	return json.dumps(json_dict)
 
-def _ev_dict_to_json(out_dict, json_dict):
-	out_dict['_battery'] = out_dict['_battery'].to_json()
+def _ev_dict_to_json(obj_dict, json_dict):
+	json_dict['_battery'] = obj_dict['_battery'].to_json()
 
-	return json.dumps(out_dict)
+	return json.dumps(json_dict)
 
-def _evse_dict_to_json(out_dict, json_dict):
-	out_dict[]
+def _evse_dict_to_json(obj_dict, json_dict):
+	json_dict[]
 	pass
 
-def _battery_dict_to_json(out_dict, json_dict):
-	return json.dumps(out_dict)
+def _battery_dict_to_json(obj_dict, json_dict):
+	return json.dumps(json_dict)
 
 ###-------------Decoders-------------###
 
