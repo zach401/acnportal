@@ -30,7 +30,7 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self._simulator.pilot_signals_as_df().loc(ev.station_id)[i] for ev in self.active_evs if
+            return {ev.session_id: self._simulator.pilot_signals[self._simulator.network.station_ids.index(ev.station_id)] for ev in self.active_evs if
                 ev.arrival <= i}
         else:
             return {}
@@ -141,14 +141,13 @@ class Interface:
         """
         return kwh * 1000 / self.evse_voltage(station_id) * 60 / self.period
 
-    def is_feasible(self, load_currents, t=0, linear=False):
+    def is_feasible(self, load_currents, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.
 
         Wraps Network's is_feasible method.
 
         Args:
             load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
-            t (int): Index into the charging rate schedule where feasibility should be checked.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 
@@ -167,7 +166,7 @@ class Interface:
         # Convert input schedule into its matrix representation
         schedule_matrix = np.array(
             [load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id in self._simulator.network.station_ids])
-        return self._simulator.network.is_feasible(schedule_matrix, t, linear)
+        return self._simulator.network.is_feasible(schedule_matrix, linear)
 
 class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """

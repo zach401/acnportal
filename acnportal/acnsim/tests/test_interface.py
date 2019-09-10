@@ -7,7 +7,7 @@ from acnportal.acnsim.models import EV
 
 import numpy as np
 
-class TestSimulator(TestCase):
+class TestInterface(TestCase):
     def setUp(self):
         self.simulator = create_autospec(Simulator)
         self.network = create_autospec(ChargingNetwork)
@@ -43,5 +43,4 @@ class TestSimulator(TestCase):
         _ = self.interface.is_feasible({'PS-001' : [1, 2], 'PS-002' : [4, 5]})
         network_is_feasible_args = self.network.is_feasible.call_args
         np.testing.assert_allclose(network_is_feasible_args[0][0], np.array([[4, 5], [1, 2], [0, 0]]))
-        self.assertEqual(network_is_feasible_args[0][1], 0)
-        self.assertEqual(network_is_feasible_args[0][2], False)
+        self.assertEqual(network_is_feasible_args[0][1], False)
