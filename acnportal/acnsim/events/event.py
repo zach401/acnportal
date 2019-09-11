@@ -1,3 +1,5 @@
+from ... import io
+
 class Event:
     """ Base class for all events.
 
@@ -26,6 +28,14 @@ class Event:
             bool
         """
         return self.precedence < other.precedence
+
+    def to_json(self):
+        """ Converts the event into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        return io.to_json(self, typ='event')
 
 
 class PluginEvent(Event):

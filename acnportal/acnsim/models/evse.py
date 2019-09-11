@@ -1,4 +1,5 @@
 import numpy as np
+from ... import io
 
 BASIC = 'BASIC'
 AV = 'AeroVironment'
@@ -146,6 +147,14 @@ class EVSE:
         """
         self._ev = None
         self._current_pilot = 0
+
+    def to_json(self):
+        """ Converts the EVSE into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        return io.to_json(self, typ='evse')
 
 
 class DeadbandEVSE(EVSE):

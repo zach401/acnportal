@@ -1,6 +1,6 @@
 import heapq
 from .event import Event
-
+from ... import io
 
 class EventQueue:
     """ Queue which stores simulation events.
@@ -84,3 +84,11 @@ class EventQueue:
             int: Last timestamp in the event queue
         """
         return max(self._queue, key=lambda x: x[0])[0]
+
+    def to_json(self):
+        """ Converts the event queue into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        return io.to_json(self, typ='event_queue')

@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 import warnings
+from ... import io
 
 class ChargingNetwork:
     """
@@ -308,6 +309,14 @@ class ChargingNetwork:
         else:
             schedule_length = len(schedule_matrix[0])
             return np.all(np.tile(self.magnitudes, (schedule_length, 1)).T >= np.abs(aggregate_currents))
+
+    def to_json(self):
+        """ Converts the network into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        return io.to_json(self, typ='network')
 
 class StationOccupiedError(Exception):
     """ Exception which is raised when trying to add an EV to an EVSE which is already occupied."""

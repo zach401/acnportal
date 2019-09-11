@@ -1,4 +1,5 @@
 import numpy as np
+from ... import io
 
 IDEAL = 'Ideal'
 NOISY = 'Noisy'
@@ -77,6 +78,14 @@ class Battery:
             raise ValueError('Initial Charge cannot be greater than capacity.')
         self._current_charge = init_charge
         self._current_charging_power = 0
+
+    def to_json(self):
+        """ Converts the battery into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        return io.to_json(self, typ='battery')
 
 
 class Linear2StageBattery(Battery):

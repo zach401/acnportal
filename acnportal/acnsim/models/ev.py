@@ -1,5 +1,5 @@
 from builtins import property
-
+from ... import io
 
 class EV:
     """Class to model the behavior of an Electrical Vehicle (ev).
@@ -134,3 +134,11 @@ class EV:
         """
         self._energy_delivered = 0
         self._battery.reset()
+
+    def to_json(self):
+        """ Converts the EV into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        return io.to_json(self, typ='ev')
