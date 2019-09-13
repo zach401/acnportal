@@ -1,4 +1,4 @@
-from ... import io
+from .. import io
 
 class Event:
     """ Base class for all events.

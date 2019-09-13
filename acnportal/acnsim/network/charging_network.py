@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 import warnings
-from ... import io
+from .. import io
 
 class ChargingNetwork:
     """
@@ -305,7 +305,7 @@ class ChargingNetwork:
 
         # Ensure each aggregate current is less than its limit, returning False if not
         if linear:
-            return np.all(self.magnitudes >= np.abs(aggregate_currents))
+            return np.all(self.magnitudes + 1e-5 >= np.abs(aggregate_currents))
         else:
             schedule_length = len(schedule_matrix[0])
             return np.all(np.tile(self.magnitudes, (schedule_length, 1)).T >= np.abs(aggregate_currents))

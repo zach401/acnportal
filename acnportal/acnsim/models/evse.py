@@ -1,5 +1,5 @@
 import numpy as np
-from ... import io
+from .. import io
 
 BASIC = 'BASIC'
 AV = 'AeroVironment'

@@ -1,4 +1,4 @@
-from .simulator import Simulator, from_json
+from .simulator import Simulator
 from .interface import Interface, InvalidScheduleError
 
 from .analysis import *

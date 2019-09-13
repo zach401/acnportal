@@ -1,6 +1,6 @@
 import heapq
 from .event import Event
-from ... import io
+from .. import io
 
 class EventQueue:
     """ Queue which stores simulation events.
