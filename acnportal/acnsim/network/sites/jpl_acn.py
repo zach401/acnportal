@@ -1,5 +1,5 @@
 from .. import ChargingNetwork
-from .. constraint_set import Current
+from .. current import Current
 from ...models.evse import get_evse_by_type
 import numpy as np
 
@@ -67,15 +67,11 @@ def jpl_acn(basic_evse=False, voltage=208, first_transformer_cap=45, third_fourt
     first_floor_sp1 = _add_line2line_evses(network, ['AG-1F12', 'AG-1F14'],
                                                     [],
                                                     ['AG-1F11', 'AG-1F13'], voltage, evse_type)
-    for p in 'abc':
-        network.add_constraint(first_floor_sp1[p], 100, name='First Floor SP1 I_{0}'.format(p))
 
     # Sub-panel 2 (Max 100 A / phase)
     first_floor_sp2 = _add_line2line_evses(network, ['AG-1F03', 'AG-1F06'],
                                                     ['AG-1F01', 'AG-1F04'],
                                                     ['AG-1F02', 'AG-1F05'], voltage, evse_type)
-    for p in 'abc':
-        network.add_constraint(first_floor_sp2[p], 100, name='First Floor SP2 I_{0}'.format(p))
 
     # Additional EVSEs on main panel
     first_floor_transformer = _add_line2line_evses(network, ['AG-1F10'],
@@ -83,9 +79,6 @@ def jpl_acn(basic_evse=False, voltage=208, first_transformer_cap=45, third_fourt
                                                             ['AG-1F08'], voltage, evse_type)
     for p in 'abc':
         first_floor_transformer[p] += first_floor_sp1[p] + first_floor_sp2[p]
-
-    # Enforce constraints for 45 kW delta-wye transformer
-    _delta_wye_transformer('First Floor Transformer', first_floor_transformer, first_transformer_cap)
 
     # -------- 3rd and 4th Floors 150 kW Transformer -----------------
 
@@ -95,19 +88,26 @@ def jpl_acn(basic_evse=False, voltage=208, first_transformer_cap=45, third_fourt
                              ['AG-3F18', 'AG-3F21', 'AG-3F27', 'AG-3F30', 'AG-3F31'],
                              ['AG-3F15', 'AG-3F19', 'AG-3F22', 'AG-3F24', 'AG-3F28', 'AG-3F32'],
                              voltage, evse_type)
-    for p in 'abc':
-        network.add_constraint(third_floor_panel[p], 225, name='Third Floor Panel I_{0}'.format(p))
-        
+
     # 4th Floor (Max 225 A / phase)
     fourth_floor_panel = _add_line2line_evses(network,
                              ['AG-4F35', 'AG-4F36', 'AG-4F39', 'AG-4F42', 'AG-4F44', 'AG-4F45', 'AG-4F48', 'AG-4F52'],
                              ['AG-4F37', 'AG-4F40', 'AG-4F46', 'AG-4F49', 'AG-4F50'],
                              ['AG-4F34', 'AG-4F38', 'AG-4F41', 'AG-4F43', 'AG-4F47', 'AG-4F51'],
                              voltage, evse_type)
-    for p in 'abc':
-        network.add_constraint(fourth_floor_panel[p], 225, name='Fourth Floor Panel I_{0}'.format(p))
-        
     third_fourth_transformer = {p: third_floor_panel[p] + fourth_floor_panel[p] for p in 'abc'}
+
+
+    # ------ Add Constraints -----------------
+    # Line Constraints
+    for p in 'abc':
+        network.add_constraint(first_floor_sp1[p], 100, name='First Floor SP1 I_{0}'.format(p))
+        network.add_constraint(first_floor_sp2[p], 100, name='First Floor SP2 I_{0}'.format(p))
+        network.add_constraint(third_floor_panel[p], 225, name='Third Floor Panel I_{0}'.format(p))
+        network.add_constraint(fourth_floor_panel[p], 225, name='Fourth Floor Panel I_{0}'.format(p))
+
+    # Transformer Constraints
+    _delta_wye_transformer('First Floor Transformer', first_floor_transformer, first_transformer_cap)
     _delta_wye_transformer('Third/Fourth Floor Transformer', third_fourth_transformer, third_fourth_transformer_cap)
         
     return network
