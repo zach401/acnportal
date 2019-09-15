@@ -26,9 +26,9 @@ def caltech_acn(basic_evse=False, voltage=208, transformer_cap=150, network_type
     # Define the sets of EVSEs in the Caltech ACN.
     CC_pod_ids = ['CA-322', 'CA-493', 'CA-496', 'CA-320', 'CA-495', 'CA-321', 'CA-323', 'CA-494']
     AV_pod_ids = ['CA-324', 'CA-325', 'CA-326', 'CA-327', 'CA-489', 'CA-490', 'CA-491', 'CA-492']
-    AB_ids = ['CA-{0}'.format(i) for i in [308, 508, 303, 513, 310, 506, 316, 500, 318, 498]] + AV_pod_ids
+    AB_ids = ['CA-{0}'.format(i) for i in [308, 508, 303, 513, 310, 506, 316, 500, 318, 498]] + AV_pod_ids + CC_pod_ids
     BC_ids = ['CA-{0}'.format(i) for i in [304, 512, 305, 511, 313, 503, 311, 505, 317, 499, 148, 149, 212, 213]]
-    CA_ids = ['CA-{0}'.format(i) for i in [307, 509, 309, 507, 306, 510, 315, 501, 319, 497, 312, 504, 314, 502]] + CC_pod_ids
+    CA_ids = ['CA-{0}'.format(i) for i in [307, 509, 309, 507, 306, 510, 315, 501, 319, 497, 312, 504, 314, 502]]
 
     # Add Caltech EVSEs
     for evse_id in AB_ids:
