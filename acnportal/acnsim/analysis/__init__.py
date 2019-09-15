@@ -1,7 +1,5 @@
 import numpy as np
-import pandas as pd
 import cmath
-from ..interface import Interface
 
 
 def aggregate_current(sim):
@@ -11,7 +9,7 @@ def aggregate_current(sim):
         sim (Simulator): A Simulator object which has been run.
 
     Returns:
-        np.Array: A numpy ndarray of the aggregate current at each time.
+        np.Array: A numpy ndarray of the aggregate current at each time. [A]
     """
     return sim.charging_rates.sum(axis=0)
 
@@ -23,14 +21,12 @@ def aggregate_power(sim):
         sim (Simulator): A Simulator object which has been run.
 
     Returns:
-        np.Array: A numpy array of the aggregate power at each time.
+        np.Array: A numpy ndarray of the aggregate power at each time. [kW]
     """
-    iface = Interface(sim)
-    return sum(np.array(rates) * iface.evse_voltage(evse_id) / 1000 for evse_id, rates in sim.charging_rates.items())
+    return sim.network._voltages.T.dot(sim.charging_rates) / 1000
 
 
 def constraint_currents(sim, return_magnitudes=False, constraint_ids=None):
-
     """ Calculate the time series of current for each constraint in the ChargingNetwork for a simulation.
 
     Args:
@@ -47,7 +43,7 @@ def constraint_currents(sim, return_magnitudes=False, constraint_ids=None):
         constraint_ids = sim.network.constraint_index
 
     currents_list = sim.network.constraint_current(sim.charging_rates, constraints=constraint_ids)
-    
+
     if not return_magnitudes:
         currents_list = np.abs(currents_list)
     # Ensure constraint_ids have correct order relative to constraint_index in network
@@ -145,7 +141,7 @@ def _sym_comp_current_unbalance(sim, phase_ids):
     Returns:
         List[float]: Time series of current unbalance as a list with one value per timestep.
     """
-    currents_dict = constraint_currents(sim, complex=True, constraint_ids=phase_ids)
+    currents_dict = constraint_currents(sim, return_magnitudes=False, constraint_ids=phase_ids)
     currents = np.vstack([currents_dict[phase] for phase in phase_ids]).T
     alpha = cmath.rect(1, (2 / 3) * cmath.pi)
     A_inv = (1 / 3) * np.array([[1, 1, 1], [1, alpha, alpha ** 2], [1, alpha ** 2, alpha]])
