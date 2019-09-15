@@ -46,7 +46,7 @@ class TimeOfUseTariff(object):
             dt (datetime): A datetime object.
 
         Returns:
-            float: Tariff in $/kWh
+            float: Tariff [$/kWh]
         """
         tariff_schedule = self._get_tariff_schedule(dt)
         target_hour = dt.hour # + dt.minute/60 + dt.second/3600
@@ -65,11 +65,19 @@ class TimeOfUseTariff(object):
             period (int): Length of each time interval in minutes.
 
         Returns:
-            List[float]: A list of tariffs, one for each time interval.
+            List[float]: A list of tariffs, one for each time interval. [$/kWh]
         """
         return [self.get_tariff(start + t*timedelta(minutes=period)) for t in range(length)]
 
     def get_demand_charge(self, dt):
+        """ Return the demand charge for rates at the given time.
+
+        Args:
+            dt (datetime): A datetime object.
+
+        Returns:
+            float: Tariff [$/kW]
+        """
         tariff_schedule = self._get_tariff_schedule(dt)
         return tariff_schedule.demand_charge
 
