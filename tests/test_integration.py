@@ -2,13 +2,10 @@ from unittest import TestCase
 
 from acnportal import acnsim
 from acnportal.acnsim import Simulator
-from acnportal.acnsim.network import ChargingNetwork
 from acnportal.acnsim import acndata_events
 from acnportal.acnsim import sites
 from acnportal.algorithms import BaseAlgorithm
-from acnportal.acnsim.events import EventQueue, Event
 from datetime import datetime
-from acnportal.acnsim.models import EVSE
 
 import pytz
 import numpy as np
@@ -16,11 +13,13 @@ import os
 import json
 from copy import deepcopy
 
+
 class EarliestDeadlineFirstAlgo(BaseAlgorithm):
     ''' See EarliestDeadlineFirstAlgo in tutorial 2. '''
     def __init__(self, increment=1):
         super().__init__()
         self._increment = increment
+        self.max_recompute = 1
 
     def schedule(self, active_evs):
         schedule = {ev.station_id: [0] for ev in active_evs}
@@ -60,7 +59,7 @@ class TestAnalysisFuncs(TestCase):
 
         sch = EarliestDeadlineFirstAlgo(increment=1)
 
-        self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1, verbose=False)
+        self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, verbose=False)
         self.sim.run()
 
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_analysis_fields.json'), 'r') as infile:
@@ -123,7 +122,7 @@ class TestAnalysisFuncs(TestCase):
 
         sch = EarliestDeadlineFirstAlgo(increment=1)
 
-        self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1, verbose=False)
+        self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, verbose=False)
         self.sim.run()
 
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_info_fields.json'), 'r') as infile:
