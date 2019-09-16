@@ -81,8 +81,10 @@ class EventQueue:
         """ Return the timestamp of the last event (chronologically) in the event queue
 
         Returns:
-            int: Last timestamp in the event queue
+            int: Last timestamp in the event queue, or -1 if the queue is empty
         """
+        if self.empty():
+            return -1
         return max(self._queue, key=lambda x: x[0])[0]
 
     def to_json(self):

@@ -1,6 +1,7 @@
 import json
 from acnportal import acnsim
 from datetime import datetime, date
+from dateutil import parser
 import copy
 import warnings
 import numpy as np
@@ -69,7 +70,7 @@ def _simulator_to_json(obj, json_dict):
     assert isinstance(obj, acnsim.Simulator)
     json_dict['network'] = obj.network.to_json()
     json_dict['event_queue'] = obj.event_queue.to_json()
-
+    # TODO: No clean way to serialize datetime object yet
     json_dict['start'] = obj.start.isoformat()
     json_dict['period'] = obj.period
     json_dict['max_recompute'] = obj.max_recompute
@@ -153,12 +154,12 @@ def _battery_to_json(obj, json_dict):
 def _simulator_from_json_dict(in_dict):
     network = from_json(in_dict['network'], typ='network')
     events = from_json(in_dict['event_queue'], typ='event_queue')
-
+    # TODO: Deserialize datetime object
     out_obj = acnsim.Simulator(
         network,
         in_dict['scheduler'],
         events,
-        date.fromisoformat(in_dict['start']),
+        parser.parse(in_dict['start']),
         period=in_dict['period'],
         max_recomp=in_dict['max_recompute'],
         verbose=in_dict['verbose']
@@ -169,7 +170,7 @@ def _simulator_from_json_dict(in_dict):
     out_obj.pilot_signals = np.array(in_dict['pilot_signals'])
     out_obj.charging_rates = np.array(in_dict['charging_rates'])
 
-    out_obj.ev_history = {session_id : from_json(ev, typ='ev') for session_id, ev in in_dict['ev_history']}
+    out_obj.ev_history = {session_id : from_json(ev, typ='ev') for session_id, ev in in_dict['ev_history'].items()}
     out_obj.event_history = [from_json(event, typ='event') for event in in_dict['event_history']]
 
     return out_obj
@@ -227,7 +228,6 @@ def _evse_from_json_dict(in_dict):
 
 def _ev_from_json_dict(in_dict):
     battery = from_json(in_dict['_battery'], typ='battery')
-
     out_obj = acnsim.models.EV(
         in_dict['_arrival'],
         in_dict['_departure'],
