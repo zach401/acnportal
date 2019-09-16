@@ -40,6 +40,7 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
     def __init__(self, increment=1):
         super().__init__()
         self._increment = increment
+        self.max_recompute = 1
 
     def schedule(self, active_evs):
         """ Schedule EVs by first sorting them by departure time, then allocating them their maximum feasible rate.
