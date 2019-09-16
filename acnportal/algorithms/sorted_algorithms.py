@@ -1,4 +1,3 @@
-import math
 from collections import deque
 from copy import copy
 
@@ -25,6 +24,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
     def __init__(self, sort_fn):
         super().__init__()
         self._sort_fn = sort_fn
+        self.max_recompute = 1  # Call algorithm each period since it only returns a rate for the next period.
 
     def schedule(self, active_evs):
         """ Schedule EVs by first sorting them by sort_fn, then allocating them their maximum feasible rate.
