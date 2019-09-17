@@ -237,4 +237,29 @@ def least_laxity_first(evs, iface):
     return sorted(evs, key=lambda x: laxity(x))
 
 
+def largest_remaining_processing_time(evs, iface):
+    """ Sort EVs by  largest remaining processing time.
+
+    Args:
+        evs (List[EV]): List of EVs to be sorted.
+        iface (Interface): Interface object.
+
+    Returns:
+        List[EV]: List of EVs sorted by departure time.
+    """
+
+    def remaining_processing_time(ev):
+        """ Calculate laxity of the EV.
+
+        Args:
+            ev (EV): An EV object.
+
+        Returns:
+            float: The laxity of the EV.
+        """
+        rpt = (iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id))
+        return rpt
+
+    return sorted(evs, key=lambda x: remaining_processing_time(x), reverse=True)
+
 
