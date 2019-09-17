@@ -183,6 +183,17 @@ def first_come_first_served(evs, iface):
     return sorted(evs, key=lambda x: x.arrival)
 
 
+def last_come_first_served(evs, iface):
+    """ Sort EVs by arrival time in reverse order.
+    Args:
+       evs (List[EV]): List of EVs to be sorted.
+       iface (Interface): Interface object.
+    Returns:
+       List[EV]: List of EVs sorted by arrival time.
+    """
+    return sorted(evs, key=lambda x: x.arrival, reverse=True)
+
+
 def earliest_deadline_first(evs, iface):
     """ Sort EVs by departure time.
 
