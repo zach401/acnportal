@@ -171,14 +171,14 @@ class RoundRobin(SortedSchedulingAlgo):
 
 # -------------------- Sorting Functions --------------------------
 def first_come_first_served(evs, iface):
-    """ Sort EVs by arrival time.
+    """ Sort EVs by arrival time in increasing order.
 
     Args:
         evs (List[EV]): List of EVs to be sorted.
         iface (Interface): Interface object.
 
     Returns:
-        List[EV]: List of EVs sorted by arrival time.
+        List[EV]: List of EVs sorted by arrival time in increasing order.
     """
     return sorted(evs, key=lambda x: x.arrival)
 
@@ -189,26 +189,26 @@ def last_come_first_served(evs, iface):
        evs (List[EV]): List of EVs to be sorted.
        iface (Interface): Interface object.
     Returns:
-       List[EV]: List of EVs sorted by arrival time.
+       List[EV]: List of EVs sorted by arrival time in decreasing order.
     """
     return sorted(evs, key=lambda x: x.arrival, reverse=True)
 
 
 def earliest_deadline_first(evs, iface):
-    """ Sort EVs by departure time.
+    """ Sort EVs by departure time in increasing order.
 
     Args:
         evs (List[EV]): List of EVs to be sorted.
         iface (Interface): Interface object.
 
     Returns:
-        List[EV]: List of EVs sorted by departure time.
+        List[EV]: List of EVs sorted by departure time in increasing order.
     """
     return sorted(evs, key=lambda x: x.departure)
 
 
 def least_laxity_first(evs, iface):
-    """ Sort EVs by laxity.
+    """ Sort EVs by laxity in increasing order.
 
     Laxity is a measure of the charging flexibility of an EV. Here we define laxity as:
         LAX_i(t) = (departure_i - t) - (remaining_demand_i(t) / max_rate_i)
@@ -218,7 +218,7 @@ def least_laxity_first(evs, iface):
         iface (Interface): Interface object.
 
     Returns:
-        List[EV]: List of EVs sorted by laxity.
+        List[EV]: List of EVs sorted by laxity in increasing order.
     """
 
     def laxity(ev):
@@ -238,24 +238,25 @@ def least_laxity_first(evs, iface):
 
 
 def largest_remaining_processing_time(evs, iface):
-    """ Sort EVs by  largest remaining processing time.
+    """ Sort EVs in decreasing order by the time taken to finish charging them at the EVSE's maximum rate.
 
     Args:
         evs (List[EV]): List of EVs to be sorted.
         iface (Interface): Interface object.
 
     Returns:
-        List[EV]: List of EVs sorted by departure time.
+        List[EV]: List of EVs sorted by remaining processing time in decreasing order.
     """
 
     def remaining_processing_time(ev):
-        """ Calculate laxity of the EV.
+        """ Calculate minimum time needed to fully charge the EV based its remaining energy request and the EVSE's max
+            charging rate.
 
         Args:
             ev (EV): An EV object.
 
         Returns:
-            float: The laxity of the EV.
+            float: The minimum remaining processing time of the EV.
         """
         rpt = (iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id))
         return rpt
