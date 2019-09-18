@@ -169,10 +169,6 @@ class Interface:
             [load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id in self._simulator.network.station_ids])
         return self._simulator.network.is_feasible(schedule_matrix, linear)
 
-class InvalidScheduleError(Exception):
-    """ Raised when the schedule passed to the simulator is invalid. """
-    pass
-
     def get_prices(self, length, start=None):
         """
         Get a vector of prices beginning at time start and continuing for length periods.
@@ -203,17 +199,6 @@ class InvalidScheduleError(Exception):
             return self._simulator.signals['tariff'].get_demand_charge(price_start)
         else:
             raise ValueError('No pricing method is specified.')
-    #
-    # def get_revenue(self):
-    #     """
-    #     Get the per unit revenue of energy.
-    #
-    #     :return: float Revenue per unit of energy.
-    #     """
-    #     if self._simulator.prices is not None:
-    #         return self._simulator.prices.revenue
-    #     else:
-    #         raise ValueError('No pricing method is specified.')
 
     def get_prev_peak(self):
         """
@@ -223,7 +208,9 @@ class InvalidScheduleError(Exception):
         :rtype: float
         """
         return self._simulator.peak
-    #
-    # def get_max_recompute_period(self):
-    #     return self._simulator.max_recompute
+
+
+class InvalidScheduleError(Exception):
+    """ Raised when the schedule passed to the simulator is invalid. """
+    pass
 
