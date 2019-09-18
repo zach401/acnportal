@@ -1,6 +1,8 @@
 import json
 import os.path
 from datetime import datetime, timedelta
+from decimal import Decimal
+from copy import copy
 
 
 class TimeOfUseTariff(object):
@@ -22,7 +24,15 @@ class TimeOfUseTariff(object):
         self.name = tariff_file['name']
         self.effective = tariff_file['effective']
         self._schedule = [TariffSchedule(s) for s in tariff_file['schedule']]
-        self._schedule.sort(key=lambda x: (x.start_month, x.start_day))
+        to_add = []
+        for s in self._schedule:
+            if s.end < s.start:
+                s_copy = copy(s)
+                s_copy.start = (1, 1)
+                to_add.append(s_copy)
+                s.end = (12, 31)
+        self._schedule.extend(to_add)
+        self._schedule.sort(key=lambda x: x.start)
 
     def _get_tariff_schedule(self, dt):
         """ Return the tariff schedule in effect for the given datetime.
@@ -33,11 +43,19 @@ class TimeOfUseTariff(object):
         Returns:
             TariffSchedule: An object representing the tariff schedule for a given time.
         """
-        valid_schedules = [s for s in self._schedule if s.dow_mask[dt.weekday()]]
-        for i, s in enumerate(valid_schedules):
-            if (dt.month, dt.day) <= s.month_day and s.dow_mask[dt.weekday()]:
-                return valid_schedules[i-1]
-        return valid_schedules[-1]
+        valid_schedules = [s for s in self._schedule if s.dow_mask[dt.weekday()] and
+                           s.start <= (dt.month, dt.day) <= s.end]
+        if len(valid_schedules) == 0:
+            raise ValueError('No valid tariff schedule for {0}'.format(dt))
+        elif len(valid_schedules) > 1:
+            raise ValueError('More than tariff schedule is valid for {0}'.format(dt))
+        else:
+            return valid_schedules[0]
+
+        # for i, s in enumerate(valid_schedules):
+        #     if (dt.month, dt.day) <= s.month_day and s.dow_mask[dt.weekday()]:
+        #         return valid_schedules[i-1]
+        # return valid_schedules[-1]
 
     def get_tariff(self, dt):
         """ Return the tariff in effect at a given datetime.
@@ -49,7 +67,7 @@ class TimeOfUseTariff(object):
             float: Tariff [$/kWh]
         """
         tariff_schedule = self._get_tariff_schedule(dt)
-        target_hour = dt.hour # + dt.minute/60 + dt.second/3600
+        target_hour = Decimal(dt.hour) + Decimal(dt.minute)/60 + Decimal(dt.second)/3600
         for r in sorted(tariff_schedule.tariffs, reverse=True):
             if target_hour >= r[0]:
                 return r[1]
@@ -89,8 +107,8 @@ class TariffSchedule(object):
         doc (dict): A tariff schedule json document as a dict.
     Attributes:
         id (str): Identifier of the schedule.
-        start_month (int): Month when the schedule takes effect.
-        start_day (int): Day of the month when the schedule takes effect.
+        start (int): (Month, Day) when the schedule takes effect.
+        end (int): (Month, Day) of the last day when the schedule is in effect.
         dow_mask (List[bool]): Boolean mask which represents which days of the week a schedule is valid for. 0 index is
             Monday, 6 is Sunday.
         tariffs (List[Tuple[float, float]]): List of time, tariff pairs where time is measured in hours since midnight
@@ -98,8 +116,8 @@ class TariffSchedule(object):
     """
     def __init__(self, doc):
         self.id = doc['id']
-        self.start_month = int(doc['effective_start'].split('-')[0])
-        self.start_day = int(doc['effective_start'].split('-')[1])
+        self.start = tuple(int(x) for x in doc['effective_start'].split('-'))
+        self.end = tuple(int(x) for x in doc['effective_end'].split('-'))
         if doc['dow_mask'] == 'WEEKDAYS':
             self.dow_mask = [True] * 5 + [False] * 2
         elif doc['dow_mask'] == 'WEEKENDS':
@@ -108,11 +126,6 @@ class TariffSchedule(object):
             self.dow_mask = [True] * 7
         else:
             raise ValueError('dow_mask must be WEEKEDAY, WEEKENDS, or ALL.')
-        self.tariffs = [(int(doc['times'][i]), float(doc['tariffs'][i])) for i in range(len(doc['times']))]
+        self.tariffs = [(Decimal(doc['times'][i]), float(doc['tariffs'][i])) for i in range(len(doc['times']))]
         self.tariffs.sort()
         self.demand_charge = doc['demand_charge']
-
-    @property
-    def month_day(self):
-        """ Return a tuple of (start_month, start_day)."""
-        return self.start_month, self.start_day
