@@ -52,11 +52,6 @@ class TimeOfUseTariff(object):
         else:
             return valid_schedules[0]
 
-        # for i, s in enumerate(valid_schedules):
-        #     if (dt.month, dt.day) <= s.month_day and s.dow_mask[dt.weekday()]:
-        #         return valid_schedules[i-1]
-        # return valid_schedules[-1]
-
     def get_tariff(self, dt):
         """ Return the tariff in effect at a given datetime.
 
