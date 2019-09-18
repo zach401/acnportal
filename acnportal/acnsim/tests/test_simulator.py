@@ -1,22 +1,15 @@
 from unittest import TestCase
 from unittest.mock import Mock, create_autospec
 
-import pandas as pd
 import numpy as np
-import os
 
 from acnportal.acnsim import Simulator
 from acnportal.acnsim.network import ChargingNetwork
-from acnportal.acnsim import acndata_events
-from acnportal.acnsim import sites
 from acnportal.algorithms import BaseAlgorithm
 from acnportal.acnsim.events import EventQueue, Event
 from datetime import datetime
 from acnportal.acnsim.models import EVSE
 
-import json
-import pytz
-from copy import deepcopy
 
 class TestSimulator(TestCase):
     def setUp(self):
@@ -29,6 +22,7 @@ class TestSimulator(TestCase):
         evse3 = EVSE('PS-003', max_rate=32)
         network.register_evse(evse3, 240, 0)
         scheduler = create_autospec(BaseAlgorithm)
+        scheduler.max_recompute = None
         events = EventQueue(events=[Event(1), Event(2)])
         self.simulator = Simulator(network, scheduler, events, start)
 
