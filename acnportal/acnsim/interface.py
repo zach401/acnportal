@@ -168,6 +168,56 @@ class Interface:
             [load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id in self._simulator.network.station_ids])
         return self._simulator.network.is_feasible(schedule_matrix, linear)
 
+class OpenAIInterface(Interface):
+    """ Interface between OpenAI Environments and the ACN Simulation Environment.
+
+    """
+
+    def get_last_predicted_timestamp(self):
+        """ Return the timestamp of the last EV departure in the queue.
+
+        Returns:
+            int: Last timestamp of an EV departure in the event queue
+        """
+        return self._simulator.events.get_last_predicted_timestamp()
+
+    def get_num_evses(self):
+        """ Return the number of EVSEs in the network.
+
+        Returns:
+            int: Number of EVSEs in the network.
+        """
+        return len(self._simulator.network.station_ids)
+
+    def get_evse_list(self):
+        """ Return the list of EVSEs in the network.
+
+        Returns:
+            List[EVSE]: List of EVSEs in the network.
+        """
+        return self._simulator.network._EVSEs.values()
+
+    def step(self, new_schedule):
+        """ Step the simulation using the input new_schedule until the simulator
+        requests a new charging schedule.
+
+        Args:
+            new_schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
+
+        Returns:
+            bool: True if the simulation is completed
+        """
+        return self._simulator.step(new_schedule)
+
+    def last_energy_delivered(self):
+        """ Return the actual energy delivered in the last period, in amp-periods
+
+        Returns:
+            number: Total energy delivered in the last period, in amp-periods
+        """
+        return sum([ev.current_charging_rate for ev in self.active_evs])
+
+
 class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """
     pass

@@ -91,6 +91,50 @@ class Simulator:
             self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
 
+    def step(self, new_schedule):
+        """ Step the simulation until the next schedule recompute is required.
+
+        The step function executes a single iteration of the run() function. However,
+        the step function updates the simulator with an input schedule rather than
+        query the scheduler for a new schedule when one is required. Also, step
+        will return a flag if the simulation is done.
+
+        Args:
+            new_schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
+
+        Returns:
+            bool: True if the simulation is complete.
+        """
+        if not self.event_queue.empty():
+            # Check if the newest schedule is feasible; don't continue the simulation if not
+            if not self._feasibility_helper(new_schedule):
+                return False
+            # Update network with new schedules
+            self._update_schedules(new_schedule)
+            # Post-schedule update processing
+            if self.schedule_history is not None:
+                self.schedule_history[self._iteration] = new_schedule
+            self._last_schedule_update = self._iteration
+            self._resolve = False
+            # Initialize schedule-free loop
+            new_schedule_needed = False
+            while not new_schedule_needed and not self.event_queue.empty():
+                self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
+                self._store_actual_charging_rates()
+                self._iteration = self._iteration + 1
+                current_events = self.event_queue.get_current_events(self._iteration)
+                for e in current_events:
+                    self.event_history.append(e)
+                    self._process_event(e)
+                if self._resolve or \
+                    self.max_recompute is not None and \
+                    self._iteration - self._last_schedule_update >= self.max_recompute:
+                    new_schedule_needed = True
+            return False
+        else:
+            return True
+
+
     def get_active_evs(self):
         """ Return all EVs which are plugged in and not fully charged at the current time.
 
@@ -128,6 +172,30 @@ class Simulator:
             self._print('Recompute Event...')
             self._resolve = True
 
+    def _feasibility_helper(self, new_schedule):
+        """ Helper to check if a given schedule is feasible for the network based network constraint feasibility.
+
+        Args:
+            new_schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
+
+        Returns:
+            bool: True if the schedule is feasible for the network.       
+        """
+        if len(new_schedule) == 0:
+            return True
+
+        for station_id in new_schedule:
+            if station_id not in self.network.station_ids:
+                raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
+
+        schedule_lengths = set(len(x) for x in new_schedule.values())
+        if len(schedule_lengths) > 1:
+            raise InvalidScheduleError('All schedules should have the same length.')
+        schedule_length = schedule_lengths.pop()
+
+        schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
+        return self.network.is_feasible(schedule_matrix), schedule_matrix, schedule_length
+
     def _update_schedules(self, new_schedule):
         """ Extend the current self.pilot_signals with the new pilot signal schedule.
 
@@ -142,18 +210,8 @@ class Simulator:
         """
         if len(new_schedule) == 0:
             return
-
-        for station_id in new_schedule:
-            if station_id not in self.network.station_ids:
-                raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
-
-        schedule_lengths = set(len(x) for x in new_schedule.values())
-        if len(schedule_lengths) > 1:
-            raise InvalidScheduleError('All schedules should have the same length.')
-        schedule_length = schedule_lengths.pop()
-
-        schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
-        if not self.network.is_feasible(schedule_matrix):
+        good_schedule, schedule_matrix, schedule_length = self._feasibility_helper(new_schedule)
+        if not good_schedule:
             warnings.warn("Invalid schedule provided at iteration {0}".format(self._iteration), UserWarning)
         if self._iteration + schedule_length <= len(self.pilot_signals[0]):
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix

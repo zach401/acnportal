@@ -84,3 +84,11 @@ class EventQueue:
             int: Last timestamp in the event queue
         """
         return max(self._queue, key=lambda x: x[0])[0]
+
+    def get_last_predicted_timestamp(self):
+        """ Return the timestamp of the last EV departure in the queue.
+
+        Returns:
+            int: Last timestamp of an EV departure in the event queue
+        """
+        return max(self._queue, key=lambda x: x[1].ev if x[1].hasattr('ev') else 0)

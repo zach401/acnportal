@@ -24,6 +24,7 @@ setuptools.setup(
         'pandas',
         'matplotlib',
         'requests',
-        'pytz'
+        'pytz',
+        'gym'
     ]
 )
