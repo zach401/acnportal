@@ -142,15 +142,3 @@ class TestAnalysisFuncs(TestCase):
             np.testing.assert_allclose(np.array(edf_algo_true_info_dict['charging_rates'][evse_key]),
                 np.array(edf_algo_new_info_dict['charging_rates'][evse_key])[:len(edf_algo_true_info_dict['charging_rates'][evse_key])])
         self.assertEqual(edf_algo_new_info_dict['peak'], edf_algo_true_info_dict['peak'])
-
-    # def test_current_unbalance_sym_comp(self):
-    #     print(
-    #         acnsim.current_unbalance(self.sim, ['Primary A', 'Primary B', 'Primary C'], type='SYM_COMP'),
-    #         np.array(self.edf_algo_true_analysis_dict['primary_current_unbalance_sym_comp'])
-    #         )
-    #     np.testing.assert_allclose(
-    #         acnsim.current_unbalance(self.sim, ['Primary A', 'Primary B', 'Primary C'], type='SYM_COMP'),
-    #         np.array(self.edf_algo_true_analysis_dict['primary_current_unbalance_sym_comp']))
-    #     np.testing.assert_allclose(
-    #         acnsim.current_unbalance(self.sim, ['Secondary A', 'Secondary B', 'Secondary C'], type='SYM_COMP'),
-    #         np.array(self.edf_algo_true_analysis_dict['secondary_current_unbalance_sym_comp']))
