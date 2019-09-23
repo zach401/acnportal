@@ -21,14 +21,12 @@ class Simulator:
         events (EventQueue): Queue of events which will occur in the simulation.
         start (datetime): Date and time of the first period of the simulation.
         period (int): Length of each time interval in the simulation in minutes. Default: 1
-        max_recomp (int): Maximum number of periods between calling the scheduling algorithm even if no events occur.
-            If None, the scheduling algorithm is only called when an event occurs. Default: None.
         signals (Dict[str, ...]):
         store_schedule_history (bool): If True, store the scheduler output each time it is run. Note this can use lots
             of memory for long simulations.
     """
 
-    def __init__(self, network, scheduler, events, start, period=1, max_recomp=None, signals=None,
+    def __init__(self, network, scheduler, events, start, period=1, signals=None,
                  store_schedule_history=False, verbose=True):
         self.network = network
         self.scheduler = scheduler
@@ -36,7 +34,7 @@ class Simulator:
         self.event_queue = events
         self.start = start
         self.period = period
-        self.max_recompute = max_recomp
+        self.max_recompute = scheduler.max_recompute
         self.signals = signals
         self.verbose = verbose
 

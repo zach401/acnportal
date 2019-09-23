@@ -2,13 +2,10 @@ from unittest import TestCase
 
 from acnportal import acnsim
 from acnportal.acnsim import Simulator
-from acnportal.acnsim.network import ChargingNetwork
 from acnportal.acnsim import acndata_events
 from acnportal.acnsim import sites
 from acnportal.algorithms import BaseAlgorithm
-from acnportal.acnsim.events import EventQueue, Event
 from datetime import datetime
-from acnportal.acnsim.models import EVSE
 
 import pytz
 import numpy as np
@@ -16,11 +13,13 @@ import os
 import json
 from copy import deepcopy
 
+
 class EarliestDeadlineFirstAlgo(BaseAlgorithm):
     ''' See EarliestDeadlineFirstAlgo in tutorial 2. '''
     def __init__(self, increment=1):
         super().__init__()
         self._increment = increment
+        self.max_recompute = 1
 
     def schedule(self, active_evs):
         schedule = {ev.station_id: [0] for ev in active_evs}
@@ -60,7 +59,7 @@ class TestAnalysisFuncs(TestCase):
 
         sch = EarliestDeadlineFirstAlgo(increment=1)
 
-        self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1, verbose=False)
+        self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, verbose=False)
         self.sim.run()
 
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_analysis_fields.json'), 'r') as infile:
@@ -123,7 +122,7 @@ class TestAnalysisFuncs(TestCase):
 
         sch = EarliestDeadlineFirstAlgo(increment=1)
 
-        self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1, verbose=False)
+        self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, verbose=False)
         self.sim.run()
 
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_info_fields.json'), 'r') as infile:
@@ -143,15 +142,3 @@ class TestAnalysisFuncs(TestCase):
             np.testing.assert_allclose(np.array(edf_algo_true_info_dict['charging_rates'][evse_key]),
                 np.array(edf_algo_new_info_dict['charging_rates'][evse_key])[:len(edf_algo_true_info_dict['charging_rates'][evse_key])])
         self.assertEqual(edf_algo_new_info_dict['peak'], edf_algo_true_info_dict['peak'])
-
-    # def test_current_unbalance_sym_comp(self):
-    #     print(
-    #         acnsim.current_unbalance(self.sim, ['Primary A', 'Primary B', 'Primary C'], type='SYM_COMP'),
-    #         np.array(self.edf_algo_true_analysis_dict['primary_current_unbalance_sym_comp'])
-    #         )
-    #     np.testing.assert_allclose(
-    #         acnsim.current_unbalance(self.sim, ['Primary A', 'Primary B', 'Primary C'], type='SYM_COMP'),
-    #         np.array(self.edf_algo_true_analysis_dict['primary_current_unbalance_sym_comp']))
-    #     np.testing.assert_allclose(
-    #         acnsim.current_unbalance(self.sim, ['Secondary A', 'Secondary B', 'Secondary C'], type='SYM_COMP'),
-    #         np.array(self.edf_algo_true_analysis_dict['secondary_current_unbalance_sym_comp']))

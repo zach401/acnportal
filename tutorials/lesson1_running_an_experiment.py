@@ -62,7 +62,7 @@ sch = algorithms.UncontrolledCharging()
 
 # -- Simulator ---------------------------------------------------------------------------------------------------------
 # We can now load the simulator enviroment with the network, scheduler, and events we have already defined.
-sim = acnsim.Simulator(cn, sch, events, start, period=period, max_recomp=1)
+sim = acnsim.Simulator(cn, sch, events, start, period=period)
 
 # To execute the simulation we simply call the run() function.
 sim.run()
