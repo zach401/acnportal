@@ -73,9 +73,9 @@ class EventQueue:
         """
         self._timestep = timestep
         current_events = []
-        while len(self._queue) > 0 and self._queue[0][0] <= self._timestep:
+        while not self.empty() and self._queue[0][0] <= self._timestep:
             current_events.append(self.get_event())
-        return current_events
+        return sorted(current_events)
 
     def get_last_timestamp(self):
         """ Return the timestamp of the last event (chronologically) in the event queue
@@ -91,4 +91,4 @@ class EventQueue:
         Returns:
             int: Last timestamp of an EV departure in the event queue
         """
-        return max(self._queue, key=lambda x: x[1].ev if x[1].hasattr('ev') else 0)
+        return max(self._queue, key=lambda x: x[1].ev.departure if hasattr(x[1], 'ev') else 0)[1].ev.departure

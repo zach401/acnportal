@@ -173,15 +173,31 @@ class OpenAIInterface(Interface):
 
     """
 
-    def get_last_predicted_timestamp(self):
+    @classmethod
+    def from_interface(cls, interface):
+        self = OpenAIInterface(interface._simulator)
+        return self
+
+    @property
+    def last_predicted_timestamp(self):
         """ Return the timestamp of the last EV departure in the queue.
 
         Returns:
             int: Last timestamp of an EV departure in the event queue
         """
-        return self._simulator.events.get_last_predicted_timestamp()
+        return self._simulator.event_queue.get_last_predicted_timestamp()
 
-    def get_num_evses(self):
+    @property
+    def station_ids(self):
+        """ Return a list of space ids of stations the in the network.
+
+        Returns:
+            List[str]: List of station ids in the newtork.
+        """
+        return self._simulator.network.station_ids
+
+    @property
+    def num_evses(self):
         """ Return the number of EVSEs in the network.
 
         Returns:
@@ -189,13 +205,14 @@ class OpenAIInterface(Interface):
         """
         return len(self._simulator.network.station_ids)
 
-    def get_evse_list(self):
+    @property
+    def evse_list(self):
         """ Return the list of EVSEs in the network.
 
         Returns:
             List[EVSE]: List of EVSEs in the network.
         """
-        return self._simulator.network._EVSEs.values()
+        return list(self._simulator.network._EVSEs.values())
 
     def step(self, new_schedule):
         """ Step the simulation using the input new_schedule until the simulator
