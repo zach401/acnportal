@@ -7,6 +7,7 @@ class OpenAIAlgorithm(BaseAlgorithm):
     is stepped """
     def __init__(self):
         super().__init__()
+        self.max_recompute = 1
 
     def register_interface(self, interface):
     	self._interface = OpenAIInterface.from_interface(interface)

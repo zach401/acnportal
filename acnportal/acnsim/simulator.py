@@ -105,7 +105,7 @@ class Simulator:
         """
         if not self.event_queue.empty():
             # Check if the newest schedule is feasible; don't continue the simulation if not
-            if not self._feasibility_helper(new_schedule):
+            if not self._feasibility_helper(new_schedule)[0]:
                 return False
             # Update network with new schedules
             self._update_schedules(new_schedule)
@@ -177,10 +177,12 @@ class Simulator:
             new_schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
 
         Returns:
-            bool: True if the schedule is feasible for the network.       
+            bool, np.Array, int: True if the schedule is feasible for the network.
+                A numpy array representing the schedule
+                The length of each schedule   
         """
         if len(new_schedule) == 0:
-            return True
+            return True, None, 0
 
         for station_id in new_schedule:
             if station_id not in self.network.station_ids:
