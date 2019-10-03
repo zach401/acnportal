@@ -105,9 +105,9 @@ class ContSimPrototypeEnv(gym.Env):
         departure_space = spaces.Box(low=0, high=self.total_time, shape=(num_evses,), dtype='int32')
         # remaining amp-period demand
         # TODO: This assumes infeasible demands won't be input. Filter this out?
-        remaining_demand_space = spaces.Box(low=np.zeros((num_evses,)), high=max_rates*self.total_time, dtype=np.float32)
+        remaining_demand_space = spaces.Box(low=np.zeros((num_evses,)), high=max_rates*self.total_time, dtype='int32')
         # current sim timestep
-        timestep_space = spaces.Discrete(self.total_time+1)
+        timestep_space = spaces.Box(low=0, high=self.total_time+1, shape=(1,), dtype='int32')
         
         # Total observation space is a Dict space of the subspaces
         self.observation_space = spaces.Dict({
@@ -133,14 +133,21 @@ class ContSimPrototypeEnv(gym.Env):
         curr_obs = {}
         curr_obs['arrivals'] = np.array([evse.ev.arrival if evse.ev is not None else -1 for evse in self.interface.evse_list])
         curr_obs['departures'] = np.array([evse.ev.departure if evse.ev is not None else -1 for evse in self.interface.evse_list])
-        curr_obs['demand'] = np.array([self.interface.remaining_amp_periods(evse.ev) if evse.ev is not None else -1 for evse in self.interface.evse_list])
+        curr_obs['demand'] = np.array([math.ceil(self.interface.remaining_amp_periods(evse.ev)) if evse.ev is not None else -1 for evse in self.interface.evse_list])
         curr_obs['timestep'] = self.interface.current_time
-
+        return curr_obs
+        
     def _reward_from_state(self):
-        return self.interface.last_energy_delivered()
+        last_energy_delivered = self.interface.last_energy_delivered()
+        evse_violation = 0
+        for evse in evse_list:
+            if 
 
     def reset(self):
         self.interface = self.init_snapshot
+        observation = self._state_to_obs()
+        assert isinstance(observation, dict)
+        return self._state_to_obs()
 
     def render(self):
         pass
