@@ -14,11 +14,16 @@ import json
 from copy import deepcopy
 
 
-class EarliestDeadlineFirstAlgo(BaseAlgorithm):
-    ''' See EarliestDeadlineFirstAlgo in tutorial 2. '''
+class EarliestDeadlineFirstAlgoStateful(BaseAlgorithm):
+    ''' See EarliestDeadlineFirstAlgo in tutorial 2. This is a stateful version that
+    occasionally records charging rates and pilot signals to test the last_applied_pilot_signals
+    and last_actual_charging_rate functions in Interface.
+    '''
     def __init__(self, increment=1):
         super().__init__()
         self._increment = increment
+        self.polled_pilots = {}
+        self.polled_charging_rates = {}
         self.max_recompute = 1
 
     def schedule(self, active_evs):
@@ -35,13 +40,16 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
                 if schedule[ev.station_id][0] < 0:
                     schedule[ev.station_id] = [0]
                     break
+        if not self.interface.current_time % 100:
+            self.polled_pilots[str(self.interface.current_time)] = self.interface.last_applied_pilot_signals
+            self.polled_charging_rates[str(self.interface.current_time)] = self.interface.last_actual_charging_rate
         return schedule
 
 def to_array_dict(list_dict):
     ''' Converts a dictionary of strings to lists to a dictionary of strings to numpy arrays. '''
     return {key : np.array(value) for key, value in list_dict.items()}
 
-class TestAnalysisFuncs(TestCase):
+class TestIntegration(TestCase):
     @classmethod
     def setUpClass(self):
         timezone = pytz.timezone('America/Los_Angeles')
@@ -57,13 +65,16 @@ class TestAnalysisFuncs(TestCase):
         API_KEY = 'DEMO_TOKEN'
         events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
 
-        sch = EarliestDeadlineFirstAlgo(increment=1)
+        self.sch = EarliestDeadlineFirstAlgoStateful(increment=1)
 
-        self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, verbose=False)
+        self.sim = Simulator(deepcopy(cn), self.sch, deepcopy(events), start, period=period, verbose=False)
         self.sim.run()
 
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_analysis_fields.json'), 'r') as infile:
             self.edf_algo_true_analysis_dict = json.load(infile)
+
+        with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_info_fields.json'), 'r') as infile:
+            self.edf_algo_true_info_dict = json.load(infile)
 
     def test_aggregate_current(self):
         np.testing.assert_allclose(acnsim.aggregate_current(self.sim),
@@ -103,44 +114,31 @@ class TestAnalysisFuncs(TestCase):
         np.testing.assert_allclose(
             acnsim.current_unbalance(self.sim, ['Secondary A', 'Secondary B', 'Secondary C']),
             np.array(self.edf_algo_true_analysis_dict['secondary_current_unbalance_nema']))
-
-
-class TestTutorialResults(TestCase):
+    
     def test_tutorial_2(self):
-        # Integration test. Tests that results of tutorial 2 are unchanged
-        timezone = pytz.timezone('America/Los_Angeles')
-        start = timezone.localize(datetime(2018, 9, 5))
-        end = timezone.localize(datetime(2018, 9, 6))
-        period = 5  # minute
-        voltage = 220  # volts
-        default_battery_power = 32 * voltage / 1000 # kW
-        site = 'caltech'
-
-        cn = sites.caltech_acn(basic_evse=True, voltage=voltage)
-
-        API_KEY = 'DEMO_TOKEN'
-        events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
-
-
-        sch = EarliestDeadlineFirstAlgo(increment=1)
-
-        self.sim = Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, verbose=False)
-        self.sim.run()
-
-        with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_info_fields.json'), 'r') as infile:
-            edf_algo_true_info_dict = json.load(infile)
-
-        old_evse_keys = list(edf_algo_true_info_dict['pilot_signals'].keys())
+        old_evse_keys = list(self.edf_algo_true_info_dict['pilot_signals'].keys())
         new_evse_keys = self.sim.network.station_ids
         self.assertEqual(sorted(new_evse_keys), sorted(old_evse_keys))
 
-        edf_algo_new_info_dict = {field : self.sim.__dict__[field] for field in edf_algo_true_info_dict.keys()}
+        edf_algo_new_info_dict = {field : self.sim.__dict__[field] for field in self.edf_algo_true_info_dict.keys()}
         edf_algo_new_info_dict['charging_rates'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['charging_rates'][i]) for i in range(len(self.sim.network.station_ids))}
         edf_algo_new_info_dict['pilot_signals'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['pilot_signals'][i]) for i in range(len(self.sim.network.station_ids))}
         
         for evse_key in new_evse_keys:
-            np.testing.assert_allclose(np.array(edf_algo_true_info_dict['pilot_signals'][evse_key]),
-                np.array(edf_algo_new_info_dict['pilot_signals'][evse_key])[:len(edf_algo_true_info_dict['pilot_signals'][evse_key])])
-            np.testing.assert_allclose(np.array(edf_algo_true_info_dict['charging_rates'][evse_key]),
-                np.array(edf_algo_new_info_dict['charging_rates'][evse_key])[:len(edf_algo_true_info_dict['charging_rates'][evse_key])])
-        self.assertEqual(edf_algo_new_info_dict['peak'], edf_algo_true_info_dict['peak'])
+            np.testing.assert_allclose(np.array(self.edf_algo_true_info_dict['pilot_signals'][evse_key]),
+                np.array(edf_algo_new_info_dict['pilot_signals'][evse_key])[:len(self.edf_algo_true_info_dict['pilot_signals'][evse_key])])
+            np.testing.assert_allclose(np.array(self.edf_algo_true_info_dict['charging_rates'][evse_key]),
+                np.array(edf_algo_new_info_dict['charging_rates'][evse_key])[:len(self.edf_algo_true_info_dict['charging_rates'][evse_key])])
+        self.assertEqual(edf_algo_new_info_dict['peak'], self.edf_algo_true_info_dict['peak'])
+
+    def test_lap_interface_func(self):
+        with open(os.path.join(os.path.dirname(__file__), 'edf_algo_pilot_signals.json'), 'r') as infile:
+            self.edf_algo_true_lap = json.load(infile)
+
+        self.assertDictEqual(self.edf_algo_true_lap, self.sch.polled_pilots)
+
+    def test_cr_interface_func(self):
+        with open(os.path.join(os.path.dirname(__file__), 'edf_algo_charging_rates.json'), 'r') as infile:
+            self.edf_algo_true_cr = json.load(infile)
+
+        self.assertDictEqual(self.edf_algo_true_cr, self.sch.polled_charging_rates)
