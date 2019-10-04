@@ -104,6 +104,8 @@ class TestAnalysisFuncs(TestCase):
             acnsim.current_unbalance(self.sim, ['Secondary A', 'Secondary B', 'Secondary C']),
             np.array(self.edf_algo_true_analysis_dict['secondary_current_unbalance_nema']))
 
+
+class TestTutorialResults(TestCase):
     def test_tutorial_2(self):
         # Integration test. Tests that results of tutorial 2 are unchanged
         timezone = pytz.timezone('America/Los_Angeles')
@@ -128,6 +130,9 @@ class TestAnalysisFuncs(TestCase):
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_info_fields.json'), 'r') as infile:
             edf_algo_true_info_dict = json.load(infile)
 
+        with open(os.path.join(os.path.dirname(__file__), 'edf_algo_lap.json'), 'r') as infile:
+            edf_algo_true_info_dict['last_applied_pilots'] = json.load(infile)
+
         old_evse_keys = list(edf_algo_true_info_dict['pilot_signals'].keys())
         new_evse_keys = self.sim.network.station_ids
         self.assertEqual(sorted(new_evse_keys), sorted(old_evse_keys))
@@ -135,6 +140,7 @@ class TestAnalysisFuncs(TestCase):
         edf_algo_new_info_dict = {field : self.sim.__dict__[field] for field in edf_algo_true_info_dict.keys()}
         edf_algo_new_info_dict['charging_rates'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['charging_rates'][i]) for i in range(len(self.sim.network.station_ids))}
         edf_algo_new_info_dict['pilot_signals'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['pilot_signals'][i]) for i in range(len(self.sim.network.station_ids))}
+        edf_algo_new_info_dict['last_applied_pilots'] = self.sim.scheduler.interface.last_applied_pilot_signals
 
         for evse_key in new_evse_keys:
             np.testing.assert_allclose(np.array(edf_algo_true_info_dict['pilot_signals'][evse_key]),
@@ -142,3 +148,4 @@ class TestAnalysisFuncs(TestCase):
             np.testing.assert_allclose(np.array(edf_algo_true_info_dict['charging_rates'][evse_key]),
                 np.array(edf_algo_new_info_dict['charging_rates'][evse_key])[:len(edf_algo_true_info_dict['charging_rates'][evse_key])])
         self.assertEqual(edf_algo_new_info_dict['peak'], edf_algo_true_info_dict['peak'])
+        self.assertEqual(edf_algo_new_lap['last_applied_pilots'], edf_algo_true_lap['last_applied_pilots'])
