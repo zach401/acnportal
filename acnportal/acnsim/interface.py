@@ -30,13 +30,15 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i] for ev in self.active_evs if
+            # TODO: change back to session_id
+            return {ev.station_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i] for ev in self.active_evs if
                 ev.arrival <= i}
         else:
             return {}
 
     @property
     def last_actual_charging_rate(self):
+        # TODO: change to "rates"?
         """ Return the actual charging rates in the last period for all active EVs.
 
         Returns:
@@ -214,10 +216,21 @@ class OpenAIInterface(Interface):
         """
         return list(self._simulator.network._EVSEs.values())
 
+    @property
+    def network_constraints(self):
+        """ Return the network constraints.
+
+        Returns:
+            np.Array: constraint matrix
+            np.Array: magnitudes vector
+        """
+        return self._simulator.network.constraint_matrix, self._simulator.network.magnitudes
+
+
     def step(self, new_schedule):
         """ Step the simulation using the input new_schedule until the simulator
         requests a new charging schedule.
-
+        # TODO: somehow remove this function as it is unrealistic
         Args:
             new_schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
 
@@ -233,6 +246,10 @@ class OpenAIInterface(Interface):
             number: Total energy delivered in the last period, in amp-periods
         """
         return sum([ev.current_charging_rate for ev in self.active_evs])
+
+    def constraint_currents(self, input_schedule):
+        # TODO: standardize schedule input format for interface functions
+        return abs(self._simulator.network.constraint_current(input_schedule, time_indices=[0]))
 
 
 class InvalidScheduleError(Exception):

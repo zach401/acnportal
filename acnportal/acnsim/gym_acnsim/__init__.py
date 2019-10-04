@@ -9,3 +9,8 @@ register(
     id='continuous-acnsim-prototype-v0',
     entry_point='acnportal.acnsim.gym_acnsim.envs:ContSimPrototypeEnv',
 )
+
+register(
+    id='simple-acnsim-v0',
+    entry_point='acnportal.acnsim.gym_acnsim.envs:SimpleSimEnv',
+)

@@ -52,7 +52,8 @@ class Simulator:
         # Local Variables
         self._iteration = 0
         self._resolve = False
-        self._last_schedule_update = 0
+        # TODO: should this be -1? since there hasn't been a schedule update yet
+        self._last_schedule_update = -1
 
     @property
     def iteration(self):
@@ -103,10 +104,16 @@ class Simulator:
         Returns:
             bool: True if the simulation is complete.
         """
+        # TODO: move feasibility checks to interface. step should ONLY do one step of run function
         if not self.event_queue.empty():
             # Check if the newest schedule is feasible; don't continue the simulation if not
             if not self._feasibility_helper(new_schedule)[0]:
                 return False
+            # TODO: This might call the event processing subloop twice per iteration
+            current_events = self.event_queue.get_current_events(self._iteration)
+            for e in current_events:
+                self.event_history.append(e)
+                self._process_event(e)
             # Update network with new schedules
             self._update_schedules(new_schedule)
             # Post-schedule update processing
@@ -187,6 +194,13 @@ class Simulator:
         for station_id in new_schedule:
             if station_id not in self.network.station_ids:
                 raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
+
+        # TODO: remove private var access here, generalize to all schedule entries, not just first
+        for station_id in new_schedule:
+            if self.network._EVSEs[station_id].max_rate < new_schedule[station_id][0] or \
+                self.network._EVSEs[station_id].min_rate > new_schedule[station_id][0]:
+                # TODO: correct 2nd and 3rd rets
+                return False, None, 0
 
         schedule_lengths = set(len(x) for x in new_schedule.values())
         if len(schedule_lengths) > 1:
