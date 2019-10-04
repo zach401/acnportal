@@ -130,9 +130,6 @@ class TestTutorialResults(TestCase):
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_info_fields.json'), 'r') as infile:
             edf_algo_true_info_dict = json.load(infile)
 
-        with open(os.path.join(os.path.dirname(__file__), 'edf_algo_lap.json'), 'r') as infile:
-            edf_algo_true_info_dict['last_applied_pilots'] = json.load(infile)
-
         old_evse_keys = list(edf_algo_true_info_dict['pilot_signals'].keys())
         new_evse_keys = self.sim.network.station_ids
         self.assertEqual(sorted(new_evse_keys), sorted(old_evse_keys))
@@ -140,12 +137,10 @@ class TestTutorialResults(TestCase):
         edf_algo_new_info_dict = {field : self.sim.__dict__[field] for field in edf_algo_true_info_dict.keys()}
         edf_algo_new_info_dict['charging_rates'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['charging_rates'][i]) for i in range(len(self.sim.network.station_ids))}
         edf_algo_new_info_dict['pilot_signals'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['pilot_signals'][i]) for i in range(len(self.sim.network.station_ids))}
-        edf_algo_new_info_dict['last_applied_pilots'] = self.sim.scheduler.interface.last_applied_pilot_signals
-
+        
         for evse_key in new_evse_keys:
             np.testing.assert_allclose(np.array(edf_algo_true_info_dict['pilot_signals'][evse_key]),
                 np.array(edf_algo_new_info_dict['pilot_signals'][evse_key])[:len(edf_algo_true_info_dict['pilot_signals'][evse_key])])
             np.testing.assert_allclose(np.array(edf_algo_true_info_dict['charging_rates'][evse_key]),
                 np.array(edf_algo_new_info_dict['charging_rates'][evse_key])[:len(edf_algo_true_info_dict['charging_rates'][evse_key])])
         self.assertEqual(edf_algo_new_info_dict['peak'], edf_algo_true_info_dict['peak'])
-        self.assertEqual(edf_algo_new_lap['last_applied_pilots'], edf_algo_true_lap['last_applied_pilots'])
