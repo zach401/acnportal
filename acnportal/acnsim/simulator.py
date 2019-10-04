@@ -240,11 +240,11 @@ class Simulator:
         """ Return the charging rates as a pandas DataFrame, with EVSE id as columns
         and iteration as index.
         """
-        return pd.DataFrame(data=self.charging_rates, columns=self.network.station_ids)
+        return pd.DataFrame(data=self.charging_rates.T, columns=self.network.station_ids)
 
     def pilot_signals_as_df(self):
         """ Return the pilot signals as a pandas DataFrame """
-        return pd.DataFrame(data=self.pilot_signals, columns=self.network.station_ids)
+        return pd.DataFrame(data=self.pilot_signals.T, columns=self.network.station_ids)
 
     def index_of_evse(self, station_id):
         """ Return the numerical index of the EVSE given by station_id in the (ordered) dictionary
