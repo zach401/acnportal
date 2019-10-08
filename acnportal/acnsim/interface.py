@@ -170,12 +170,15 @@ class Interface:
         return self._simulator.network.is_feasible(schedule_matrix, linear)
 
     def get_prices(self, length, start=None):
-        """
-        Get a vector of prices beginning at time start and continuing for length periods.
+        """ Get a vector of prices beginning at time start and continuing for length periods. ($/kWh)
 
-        :param int start: Time step of the simulation where price vector should begin.
-        :param int length: Number of elements in the prices vector. One entry per period.
-        :return: vector of floats of length length where each entry is a price which is valid for one period.
+        Args:
+            length (int): Number of elements in the prices vector. One entry per period.
+            start (int): Time step of the simulation where price vector should begin. If None, uses the current timestep
+                of the simulation. Default None.
+
+        Returns:
+            np.ndarray[float]: Array of floats where each entry is the price for the corresponding period. ($/kWh)
         """
         if 'tariff' in self._simulator.signals:
             if start is None:
@@ -186,11 +189,14 @@ class Interface:
             raise ValueError('No pricing method is specified.')
 
     def get_demand_charge(self, start=None):
-        """
-        Get the demand charge scaled according to the length of the scheduling period.
+        """ Get the demand charge for the given period. ($/kW)
 
-        :param int start: Time step of the simulation where price vector should begin.
-        :return: float Demand charge for the scheduling period.
+        Args:
+            start (int): Time step of the simulation where price vector should begin. If None, uses the current timestep
+                of the simulation. Default None.
+
+        Returns:
+            float: Demand charge for the given period. ($/kW)
         """
         if 'tariff' in self._simulator.signals:
             if start is None:
@@ -201,11 +207,10 @@ class Interface:
             raise ValueError('No pricing method is specified.')
 
     def get_prev_peak(self):
-        """
-        Get the highest aggregate peak demand so far in the simulation.
+        """ Get the highest aggregate peak demand so far in the simulation.
 
-        :return: peak demand so far in the simulation.
-        :rtype: float
+        Returns:
+            float: Peak demand so far in the simulation. (A)
         """
         return self._simulator.peak
 
