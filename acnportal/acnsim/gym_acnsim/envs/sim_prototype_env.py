@@ -4,6 +4,51 @@ import numpy as np
 from gym import spaces
 import copy
 
+# -- Run Simulation ----------------------------------------------------------------------------------------------------
+from datetime import datetime
+import pytz
+import matplotlib.pyplot as plt
+from copy import deepcopy
+import random
+
+from acnportal import acnsim
+from acnportal import algorithms
+from acnportal.acnsim import events
+from acnportal.acnsim import models
+from acnportal.acnsim import gym_acnsim
+import gym
+from gym.wrappers import FlattenDictWrapper
+from gym.wrappers import ClipAction
+
+from spinup import sac, vpg
+from datetime import datetime
+import pytz
+import matplotlib.pyplot as plt
+
+def random_plugin(num, time_limit, evse):
+    """ Returns a list of num random plugin events occuring anytime from time 0 to time_limit
+    Each plugin has a random arrival and departure under the time limit, and a satisfiable
+    requested energy assuming no other cars plugged in.
+    The plugins occur for a single EVSE
+    """
+    out_event_lst = [None] * num
+    times = []
+    i = 0
+    while i < 2*num:
+        rnum = random.randint(0, time_limit)
+        if rnum not in times:
+            times.append(rnum)
+            i += 1
+    times = sorted(times)
+    battery = models.Battery(100, 0, 100)
+    for i in range(num):
+        arrival_time = times[2*i]
+        departure_time = times[2*i+1]
+        requested_energy = (departure_time - arrival_time) / 60 * 32 * 220 / 2
+        ev = models.EV(arrival_time, departure_time, requested_energy, evse, '', battery)
+        out_event_lst[i] = events.PluginEvent(arrival_time, ev)
+    return out_event_lst
+
 class SimpleSimEnv(gym.Env):
     # Action space: set of possible schedules passed to the network
     # These do not have the constraints applied to them
@@ -227,7 +272,6 @@ class ContSimPrototypeEnv(gym.Env):
         observation = self._state_to_obs()
         reward = self._reward_from_state(action)
         info = {}
-        print(action)
         return observation, reward, done, info
 
 
@@ -235,7 +279,7 @@ class ContSimPrototypeEnv(gym.Env):
         curr_obs = {}
         curr_obs['arrivals'] = np.array([evse.ev.arrival if evse.ev is not None else -1 for evse in self.interface.evse_list])
         curr_obs['departures'] = np.array([evse.ev.departure if evse.ev is not None else -1 for evse in self.interface.evse_list])
-        curr_obs['demand'] = np.array([math.ceil(self.interface.remaining_amp_periods(evse.ev)) if evse.ev is not None else -1 for evse in self.interface.evse_list])
+        curr_obs['demand'] = np.array([math.ceil(self.interface.remaining_amp_periods(evse.ev)) if evse.ev is not None else 0 for evse in self.interface.evse_list])
         curr_obs['timestep'] = self.interface.current_time
         return curr_obs
         
@@ -253,7 +297,7 @@ class ContSimPrototypeEnv(gym.Env):
 
             # If rate is attempted to be delivered to an evse with no ev,
             # this rate is subtracted from the reward.
-            if self.interface.evse_list[i] not in self.interface.active_evs:
+            if self.interface.evse_list[i].ev is None:
                 unplugged_ev_violation -= abs(action[i])
 
         # If a network constraint is violated, a negative reward equal to the abs
@@ -272,21 +316,38 @@ class ContSimPrototypeEnv(gym.Env):
         # (meaning schedule was feasible)
         charging_reward = 0
         lap = np.array([self.interface.last_applied_pilot_signals[station_id] if station_id in self.interface.last_applied_pilot_signals else action[self.interface.station_ids.index(station_id)] for station_id in self.interface.station_ids])
-        lap_keys = list(self.interface.last_applied_pilot_signals.keys())
-        relevant_actions = np.array([[action[i]] if self.interface.station_ids[i] in lap_keys else 0])
-        if np.allclose(lap, relevant_actions):
-            assert evse_violation == 0
-            assert constraint_violation == 0
+        if np.allclose(lap, action) and evse_violation == 0 and constraint_violation == 0:
             # TODO: currently only takes last actual charging rates, should take
             # all charging rates caused by this schedule
             charging_reward = sum(list(self.interface.last_actual_charging_rate.values()))
-
-        return evse_violation + constraint_violation + charging_reward
+        reward = charging_reward + evse_violation + constraint_violation + unplugged_ev_violation
+        return reward
 
 # TODO: random event generator within environment
 
     def reset(self):
-        self.interface = self.init_snapshot
+        """
+        Initializes an environment containing a simulation with random events.
+        """
+        timezone = pytz.timezone('America/Los_Angeles')
+        start = timezone.localize(datetime(2018, 9, 5))
+        voltage = 220
+        period = 1
+
+        # Make random event queue
+        cn = acnsim.sites.simple_acn(basic_evse=True, voltage=voltage)
+        event_list = []
+        for station_id in cn.station_ids:
+            event_list.extend(random_plugin(10, 100, station_id))
+        event_queue = events.EventQueue(event_list)
+
+        # Placeholder algorithm
+        schrl = algorithms.OpenAIAlgorithm()
+
+        # Simulation to be wrapped
+        simrl = acnsim.Simulator(deepcopy(cn), schrl, deepcopy(event_queue), start, period=period, verbose=False)
+
+        self.interface = schrl.interface
         observation = self._state_to_obs()
         assert isinstance(observation, dict)
         return self._state_to_obs()
