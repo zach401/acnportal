@@ -43,11 +43,11 @@ class TestInterface(TestCase):
                 {'PS-001' : [1, 2], 'PS-002' : [3, 4, 5], 'PS-003' : [4, 5]})
 
     def test_is_feasible(self):
-        self.simulator.network = create_autospec(ChargingNetwork)
-        self.simulator.network.station_ids = ['PS-002', 'PS-001', 'PS-003']
+        # Mock network's is_feasible function to check its call signature later
+        self.network.is_feasible = create_autospec(self.network.is_feasible)
         _ = self.interface.is_feasible({'PS-001' : [1, 2], 'PS-002' : [4, 5]})
-        network_is_feasible_args = self.interface._simulator.network.is_feasible.call_args
+        network_is_feasible_args = self.network.is_feasible.call_args
         # Check that the call to the network's is_feasible method has the correct arguments
-        np.testing.assert_allclose(network_is_feasible_args[0][0], np.array([[4, 5], [1, 2], [0, 0]]))
+        np.testing.assert_allclose(network_is_feasible_args[0][0], np.array([[1, 2], [0, 0], [4, 5]]))
         # Network's is_feasible method has its second argument (linear) defaulting to False. Check this is the case.
         self.assertEqual(network_is_feasible_args[0][1], False)
