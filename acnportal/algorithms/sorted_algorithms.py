@@ -175,7 +175,7 @@ def first_come_first_served(evs, iface):
 
     Args:
         evs (List[EV]): List of EVs to be sorted.
-        iface (Interface): Interface object.
+        iface (Interface): Interface object. (not used in this case)
 
     Returns:
         List[EV]: List of EVs sorted by arrival time in increasing order.
@@ -187,7 +187,7 @@ def last_come_first_served(evs, iface):
     """ Sort EVs by arrival time in reverse order.
     Args:
        evs (List[EV]): List of EVs to be sorted.
-       iface (Interface): Interface object.
+       iface (Interface): Interface object. (not used in this case)
     Returns:
        List[EV]: List of EVs sorted by arrival time in decreasing order.
     """
@@ -199,7 +199,7 @@ def earliest_deadline_first(evs, iface):
 
     Args:
         evs (List[EV]): List of EVs to be sorted.
-        iface (Interface): Interface object.
+        iface (Interface): Interface object. (not used in this case)
 
     Returns:
         List[EV]: List of EVs sorted by departure time in increasing order.
