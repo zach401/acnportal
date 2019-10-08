@@ -32,7 +32,7 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id)] for ev in self.active_evs if
+            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i] for ev in self.active_evs if
                 ev.arrival <= i}
         else:
             return {}
@@ -123,7 +123,7 @@ class Interface:
             float: voltage of the EVSE. [V]
         """
 
-        return self._simulator.network.voltages[self._simulator.network.station_ids.index(station_id)]
+        return self._simulator.network.voltages[station_id]
 
     def remaining_amp_periods(self, ev):
         """ Return the EV's remaining demand in A*periods.

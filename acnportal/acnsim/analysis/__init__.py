@@ -126,33 +126,6 @@ def _nema_current_unbalance(sim, phase_ids):
     currents = np.vstack([currents_dict[phase] for phase in phase_ids])
     return (np.max(currents, axis=0) - np.mean(currents, axis=0)) / np.mean(currents, axis=0)
 
-
-def _sym_comp_current_unbalance(sim, phase_ids):
-    """ Calculate the current unbalance using the Symmetric Components definition.
-
-    Symmetric Components definition defined as the ratio of the magnitude of the negative sequence component (I_-)
-    over the magnitude of the positive sequence component (I_+).
-        |I_-| / |I_+|
-
-    Args:
-        sim (Simulator): A Simulator object which has been run.
-        phase_ids (List[str]): List of length 3 where each element is the identifier of phase A, B, and C respectively.
-
-    Returns:
-        List[float]: Time series of current unbalance as a list with one value per timestep.
-    """
-    currents_dict = constraint_currents(sim, return_magnitudes=False, constraint_ids=phase_ids)
-    currents = np.vstack([currents_dict[phase] for phase in phase_ids]).T
-    alpha = cmath.rect(1, (2 / 3) * cmath.pi)
-    A_inv = (1 / 3) * np.array([[1, 1, 1], [1, alpha, alpha ** 2], [1, alpha ** 2, alpha]])
-    sym_comp = A_inv.dot(currents.T)
-
-    current_unbalance = np.divide(np.abs(sym_comp[2]), np.abs(sym_comp[1]),
-                                  out=np.full_like(np.abs(sym_comp[2]), np.nan),
-                                  where=np.abs(sym_comp[1]) != 0)
-    return current_unbalance
-
-
 def energy_cost(sim, tariff=None):
     """ Calculate the total energy cost of the simulation.
 
