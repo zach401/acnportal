@@ -74,11 +74,12 @@ def jpl_acn(basic_evse=False, voltage=208, first_transformer_cap=45, third_fourt
                                                     ['AG-1F02', 'AG-1F05'], voltage, evse_type)
 
     # Additional EVSEs on main panel
-    first_floor_transformer = _add_line2line_evses(network, ['AG-1F10'],
-                                                            ['AG-1F07', 'AG-1F09'],
-                                                            ['AG-1F08'], voltage, evse_type)
+    add_first_floor = _add_line2line_evses(network, ['AG-1F10'],
+                                                    ['AG-1F07', 'AG-1F09'],
+                                                    ['AG-1F08'], voltage, evse_type)
+    first_floor_transformer = dict()
     for p in 'abc':
-        first_floor_transformer[p] += first_floor_sp1[p] + first_floor_sp2[p]
+        first_floor_transformer[p] = add_first_floor[p] + first_floor_sp1[p] + first_floor_sp2[p]
 
     # -------- 3rd and 4th Floors 150 kW Transformer -----------------
 
