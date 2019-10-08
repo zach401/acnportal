@@ -1,5 +1,5 @@
 from unittest import TestCase
-from ..tou_tariff import TimeOfUseTariff
+from acnportal.signals.tariffs.tou_tariff import TimeOfUseTariff
 from datetime import datetime
 
 
