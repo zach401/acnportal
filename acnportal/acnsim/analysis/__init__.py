@@ -154,6 +154,16 @@ def _sym_comp_current_unbalance(sim, phase_ids):
 
 
 def energy_cost(sim, tariff=None):
+    """ Calculate the total energy cost of the simulation.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+        tariff (TimeOfUseTariff): Tariff structure to use when calculating energy costs.
+
+    Returns:
+        float: Total energy cost of the simulation ($)
+
+    """
     if tariff is None:
         if 'tariff' in sim.signals:
             tariff = sim.signals['tariff']
@@ -165,11 +175,24 @@ def energy_cost(sim, tariff=None):
 
 
 def demand_charge(sim, tariff=None):
+    """ Calculate the total demand charge of the simulation.
+
+    Note this is only an accurate depiction of true demand charge if the simulation is exactly one billing period
+    long.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+        tariff (TimeOfUseTariff): Tariff structure to use when calculating energy costs.
+
+    Returns:
+        float: Total demand charge incurred by the simulation ($)
+
+    """
     if tariff is None:
         if 'tariff' in sim.signals:
             tariff = sim.signals['tariff']
         else:
             raise ValueError('No pricing method is specified.')
-    agg_curr = aggregate_power(sim)
+    agg = aggregate_power(sim)
     dc = tariff.get_demand_charge(sim.start)
-    return dc * np.max(agg_curr)
+    return dc * np.max(agg)

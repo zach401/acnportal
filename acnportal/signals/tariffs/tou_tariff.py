@@ -15,7 +15,7 @@ class TimeOfUseTariff(object):
 
     Attributes:
         name (str): Name of the tariff.
-        effective (str): Date when the tariff when into effect. Useful if a tariff has been modified but kept the same
+        effective (str): Date when the tariff went into effect. Useful if a tariff has been modified but kept the same
             name.
     """
     def __init__(self, filename, tariff_dir='tariff_schedules'):
@@ -34,35 +34,35 @@ class TimeOfUseTariff(object):
         self._schedule.extend(to_add)
         self._schedule.sort(key=lambda x: x.start)
 
-    def _get_tariff_schedule(self, dt):
+    def _get_tariff_schedule(self, date_time):
         """ Return the tariff schedule in effect for the given datetime.
 
         Args:
-            dt (datetime): A datetime object.
+            date_time (datetime): A datetime object.
 
         Returns:
             TariffSchedule: An object representing the tariff schedule for a given time.
         """
-        valid_schedules = [s for s in self._schedule if s.dow_mask[dt.weekday()] and
-                           s.start <= (dt.month, dt.day) <= s.end]
+        valid_schedules = [s for s in self._schedule if s.dow_mask[date_time.weekday()] and
+                           s.start <= (date_time.month, date_time.day) <= s.end]
         if len(valid_schedules) == 0:
-            raise ValueError('No valid tariff schedule for {0}'.format(dt))
+            raise ValueError('No valid tariff schedule for {0}'.format(date_time))
         elif len(valid_schedules) > 1:
-            raise ValueError('More than tariff schedule is valid for {0}'.format(dt))
+            raise ValueError('More than one tariff schedule is valid for {0}'.format(date_time))
         else:
             return valid_schedules[0]
 
-    def get_tariff(self, dt):
+    def get_tariff(self, date_time):
         """ Return the tariff in effect at a given datetime.
 
         Args:
-            dt (datetime): A datetime object.
+            date_time (datetime): A datetime object.
 
         Returns:
             float: Tariff [$/kWh]
         """
-        tariff_schedule = self._get_tariff_schedule(dt)
-        target_hour = Decimal(dt.hour) + Decimal(dt.minute)/60 + Decimal(dt.second)/3600
+        tariff_schedule = self._get_tariff_schedule(date_time)
+        target_hour = Decimal(date_time.hour) + Decimal(date_time.minute) / 60 + Decimal(date_time.second) / 3600
         for r in sorted(tariff_schedule.tariffs, reverse=True):
             if target_hour >= r[0]:
                 return r[1]
