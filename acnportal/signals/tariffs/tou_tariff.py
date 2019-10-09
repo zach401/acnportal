@@ -66,7 +66,7 @@ class TimeOfUseTariff(object):
         for r in sorted(tariff_schedule.tariffs, reverse=True):
             if target_hour >= r[0]:
                 return r[1]
-        return tariff_schedule.tariffs[-1][1]
+        raise ValueError('Error with tariff schedule. Could not find a valid price for {0}.'.format(date_time))
 
     def get_tariffs(self, start, length, period):
         """ Return a list of tariffs beginning at time start and continuing for length time intervals.
@@ -123,4 +123,7 @@ class TariffSchedule(object):
             raise ValueError('dow_mask must be WEEKEDAY, WEEKENDS, or ALL.')
         self.tariffs = [(Decimal(doc['times'][i]), float(doc['tariffs'][i])) for i in range(len(doc['times']))]
         self.tariffs.sort()
+        if self.tariffs[0][0] != 0:
+            raise ValueError('Error with tariff schedule. '
+                             'Schedule must start at time 0, began with time {0}'.format(self.tariffs[0][0]))
         self.demand_charge = doc['demand_charge']

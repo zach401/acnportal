@@ -37,3 +37,7 @@ class TestTimeOfUseTariff(TestCase):
         tariff = TimeOfUseTariff('sce_tou_ev_4_march_2019')
         tariff_list = tariff.get_tariffs(datetime(2019, 9, 30, 23), 24, 5)
         self.assertListEqual(tariff_list, [0.05623]*12 + [0.06087]*12)
+
+    def test_tariff_not_start_at_0(self):
+        with self.assertRaises(ValueError):
+            tariff = TimeOfUseTariff('invalid_tariff_schedule', tariff_dir='tests')
