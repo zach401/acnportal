@@ -35,7 +35,7 @@ class DataClient(object):
         """
         # TODO: (zach) Use API to autodetect if a new site is added.
         if site not in {'caltech', 'jpl', 'office001'}:
-            raise ValueError("Invalid site name. Must be either 'caltech' or 'jpl'")
+            raise ValueError("Invalid site name. Must be either 'caltech', 'jpl', or 'office001'.")
 
         limit = 100
         endpoint = 'sessions/' + site

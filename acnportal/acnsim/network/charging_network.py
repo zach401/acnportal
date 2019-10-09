@@ -1,6 +1,9 @@
 from .current import Current
 import pandas as pd
 import numpy as np
+from collections import OrderedDict
+import warnings
+import copy
 
 class ChargingNetwork:
     """
@@ -8,36 +11,28 @@ class ChargingNetwork:
     information about the types of the charging station_schedule.
     """
 
-    def __init__(self, constraints=None, magnitudes=None):
-        self._EVSEs = {}
-        self.constraints = constraints if constraints is not None else pd.DataFrame()
-        self.magnitudes = magnitudes if magnitudes is not None else pd.Series()
+    def __init__(self):
+        self._EVSEs = OrderedDict()
         # Matrix of constraints
         self.constraint_matrix = None
         # Vector of limiting magnitudes
-        self.magnitude_vector = None
-        # Dict of constraint_id to row index in constraint matrix
-        self.constraint_index = {}
-        self._voltages = {}
-        self._phase_angles = pd.Series()
-        self.angles_vector = None
+        self.magnitudes = np.array([])
+        # List of constraints in order of addition to network
+        self.constraint_index = []
+        self._voltages = np.array([])
+        self._phase_angles = np.array([])
         pass
 
     @property
     def current_charging_rates(self):
-        """ Return the current actual charging rate of all EVSEs in the network.
+        """ Return the current actual charging rate of all EVSEs in the network. If no EV is
+        attached to a given EVSE, that EVSE's charging rate is 0. In the returned array, the
+        charging rates are given in the same order as the list of EVSEs given by station_ids
 
         Returns:
-            Dict[str, number]: Dictionary mapping station_id to the current actual charging rate of the EV attached to
-                that EVSE.
+            np.Array: numpy ndarray of actual charging rates of all EVSEs in the network.
         """
-        current_rates = np.zeros(len(self._EVSEs))
-        i = 0
-        for station_id, evse in sorted(self._EVSEs.items()):
-            if evse.ev is not None:
-                current_rates[i] = evse.ev.current_charging_rate
-            i += 1
-        return current_rates
+        return np.array([evse.ev.current_charging_rate if evse.ev is not None else 0 for evse in self._EVSEs.values()])
 
     @property
     def station_ids(self):
@@ -73,7 +68,7 @@ class ChargingNetwork:
         Returns:
             Dict[str, float]: Dictionary mapping EVSE ids their input voltage. [V]
         """
-        return self._voltages
+        return {self.station_ids[i] : self._voltages[i] for i in range(len(self._voltages))}
 
     @property
     def phase_angles(self):
@@ -82,7 +77,7 @@ class ChargingNetwork:
         Returns:
             Dict[str, float]: Dictionary mapping EVSE ids their input phase angle. [degrees]
         """
-        return self._phase_angles
+        return {self.station_ids[i] : self._phase_angles[i] for i in range(len(self._phase_angles))}
 
     def register_evse(self, evse, voltage, phase_angle):
         """ Register an EVSE with the network so it will be accessible to the rest of the simulation.
@@ -96,10 +91,11 @@ class ChargingNetwork:
             None
         """
         self._EVSEs[evse.station_id] = evse
-        self._voltages[evse.station_id] = voltage
-        self._phase_angles[evse.station_id] = phase_angle
-        # Update the numpy vector of angles by reconstructing it.
-        self.angles_vector = np.array([angle for _, angle in sorted(self._phase_angles.items())])
+        self._voltages = np.append(self._voltages, voltage)
+        self._phase_angles = np.append(self._phase_angles, phase_angle)
+
+    def constraints_as_df(self):
+        return pd.DataFrame(self.constraint_matrix, columns=self.station_ids, index=self.constraint_index)
 
     def add_constraint(self, current, limit, name=None):
         """ Add an additional constraint to the constraint DataFrame.
@@ -113,19 +109,60 @@ class ChargingNetwork:
             None
         """
         if name is None:
-            name = '_const_{0}'.format(len(self.constraints.index))
+            name = '_const_{0}'.format(len(self.constraint_index))
+        if name in self.constraint_index:
+            warnings.warn(
+                "Constraint {0} already added. Adding input constraint as new constraint. Use network.update_constraint to update constraint {0}".format(name),
+                UserWarning)
+            name = name + "_v2"
         for station_id in current.index:
             if station_id not in self._EVSEs:
                 raise KeyError('Station {0} not found. Register station {0} to add constraint {1} to network.'.format(station_id, name))
         current.name = name
-        self.magnitudes[name] = limit
-        # Update numpy vector of magnitudes (limits on aggregate currents) by reconstructing it.
-        self.magnitude_vector = self.magnitudes.sort_index().to_numpy()
-        self.constraints = self.constraints.append(current).sort_index(axis=1).fillna(0)
-        # Update the numpy matrix of constraints by reconstructing it.
-        self.constraint_matrix = self.constraints.sort_index(axis=0).to_numpy()
-        # Maintain a dictoinary mapping constraints to row indices in the constraint_matrix, for use with constraint_current method
-        self.constraint_index = {self.constraints.index.to_list()[i] : i for i in range(len(self.constraints.index))}
+        self.magnitudes = np.append(self.magnitudes, limit)
+        # Make a dataframe for the constraint matrix for easy addition of the new constraint
+        constraint_frame = self.constraints_as_df()
+        constraint_frame = constraint_frame.append(current).fillna(0)
+        # Maintain a list of constraint ids for use with constraint_current.
+        self.constraint_index = list(constraint_frame.index)
+        # Update the numpy matrix of constraints by reconstructing it from constraint_frame.
+        self.constraint_matrix = constraint_frame.reindex(columns=self.station_ids).to_numpy()
+
+    def remove_constraint(self, name):
+        """ Remove a network constraint.
+
+        Args:
+            name (str): Name of constriant to remove.
+
+        Returns:
+            None
+        """
+        if name not in self.constraint_index:
+            raise KeyError('Cannot remove constraint {0}: not found in network.'.format(name))
+        del_index = self.constraint_index.index(name)
+        self.constraint_matrix = np.delete(self.constraint_matrix, (del_index), axis=0)
+        self.magnitudes = np.delete(self.magnitudes, (del_index), axis=0)
+        self.constraint_index.remove(name)
+
+    def update_constraint(self, name, current, limit, new_name=None):
+        """ Update a network constraint with a new aggregate current, limit, and name.
+
+        Args:
+            name (str): Name of constriant to update.
+            current (Current): New current to update constraint with
+            limit (float): New upper limit to update constraint with
+            new_name (str): New name to give constraint
+
+        Returns:
+            None
+        """
+        if new_name is None:
+            new_name = name
+        if name not in self.constraint_index:
+            raise KeyError('Cannot update constraint {0}: not found in network.'.format(name))
+        self.remove_constraint(name)
+        self.add_constraint(current, limit, name=new_name)
+
 
     def plugin(self, ev, station_id):
         """ Attach EV to a specific EVSE.
@@ -195,79 +232,77 @@ class ChargingNetwork:
         Returns:
             None
         """
-        ids = sorted(self.station_ids)
+        ids = self.station_ids
         for station_number in range(len(ids)):
             new_rate = pilots[station_number, i]
-            self._EVSEs[ids[station_number]].set_pilot(new_rate, self._voltages[ids[station_number]], period)
+            self._EVSEs[ids[station_number]].set_pilot(new_rate, self._voltages[station_number], period)
 
-    def constraint_current(self, load_currents, constraints=None, t=None, linear=False):
+    def constraint_current(self, input_schedule, constraints=None, time_indices=None, linear=False):
         """ Return the aggregate currents subject to the given constraints. If constraints=None,
         return all aggregate currents.
 
         Args:
-            load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
+            input_schedule (np.Array): 2-D matrix with each row corresponding to an EVSE and each
+                column corresponding to a time index in the schedule.
             constraints (List[str]): List of constraint id's for which to calculate aggregate current. If
                 None, calculates aggregate currents for all constraints.
-            t (List[int]): List of time indices for which to calculate aggregate current. If None, 
+            time_indices (List[int]): List of time indices for which to calculate aggregate current. If None, 
                 calculates aggregate currents for all timesteps.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 
         Returns:
-            List[complex]: Aggregate currents subject to the given constraints.
+            np.Array: Aggregate currents subject to the given constraints.
         """
+        schedule_matrix = np.array(input_schedule)
         # Convert list of constraint id's to list of indices in constraint matrix
-        if constraints:
-            constraint_indices = [self.constraint_index[constraint_id] for constraint_id in constraints]
+        if constraints is not None:
+            constraint_indices = [i for i in range(len(self.constraint_index)) if self.constraint_index[i] in constraints]
         else:
-            constraint_indices = list(self.constraint_index.values())
-        if t:
-            schedule_length = len(t)
-            schedule_matrix = np.array([[load_currents[evse_id][i] for i in t] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
-        else:
-            schedule_length = len(next(iter(load_currents.values())))
-            schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
+            constraint_indices = list(range(len(self.constraint_index)))
+
+        # If we only want the constraint currents at specific time indices,
+        # index schedule_matrix columns using these indices
+        if time_indices is not None:
+            schedule_matrix = schedule_matrix[:, time_indices]
+
         if linear:
             return complex(np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix))
         else:
             # build vector of phase angles on EVSE
-            angle_coeffs = np.exp(1j*np.deg2rad(self.angles_vector))
+            angle_coeffs = np.exp(1j*np.deg2rad(self._phase_angles))
 
             # multiply schedule by angles matrix element-wise
-            shifted_schedule = (schedule_matrix.T * angle_coeffs).T
+            phasor_schedule = (schedule_matrix.T * angle_coeffs).T
 
             # multiply constraint matrix by current schedule, shifted by the phases
-            return self.constraint_matrix[constraint_indices]@shifted_schedule
+            return self.constraint_matrix[constraint_indices]@phasor_schedule
 
-    def is_feasible(self, load_currents, t=0, linear=False):
+    def is_feasible(self, schedule_matrix, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.
 
         Args:
-            load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
-            t (int): Index into the charging rate schedule where feasibility should be checked.
+            schedule_matrix (np.Array): 2-D matrix with each row corresponding to an EVSE and each
+                column corresponding to a time index in the schedule.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 
         Returns:
             bool: If load_currents is feasible at time t according to this set of constraints.
         """
-        # build schedule matrix, ensuring rows in order of EVSE list
-        schedule_lengths = set(len(x) for x in load_currents.values())
-        schedule_length = schedule_lengths.pop()
-        schedule_matrix = np.array([load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id, _ in sorted(self._EVSEs.items())])
+        # If there are no constraints (magnitudes vector is empty) return True
+        if not len(self.magnitudes):
+            return True
+
+        # Calculate aggregate currents for each constraint
+        aggregate_currents = self.constraint_current(schedule_matrix, linear=linear)
+
+        # Ensure each aggregate current is less than its limit, returning False if not
         if linear:
-            return np.all(np.tile(self.magnitude_vector) - np.abs(self.constraint_matrix@schedule_matrix) >= 0)
+            return np.all(self.magnitudes >= np.abs(aggregate_currents))
         else:
-            # build vector of phase angles on EVSE
-            angle_coeffs = np.exp(1j*np.deg2rad(self.angles_vector))
-
-            # multiply schedule by angles matrix element-wise
-            shifted_schedule = (schedule_matrix.T * angle_coeffs).T
-
-            # multiply constraint matrix by current schedule, shifted by the phases
-            curr_mags = self.constraint_matrix@shifted_schedule
-            # compare with tiled magnitude matrix
-            return np.all(np.tile(self.magnitude_vector, (schedule_length, 1)).T >= np.abs(curr_mags))
+            schedule_length = len(schedule_matrix[0])
+            return np.all(np.tile(self.magnitudes, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
 
 class StationOccupiedError(Exception):
