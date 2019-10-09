@@ -20,3 +20,5 @@ Download or clone this repository. Navigate to its root directory. Install using
 ```bash
 pip install .
 ```
+
+[![Build Status](https://travis-ci.org/zach401/acnportal.svg?branch=master)](https://travis-ci.org/zach401/acnportal)

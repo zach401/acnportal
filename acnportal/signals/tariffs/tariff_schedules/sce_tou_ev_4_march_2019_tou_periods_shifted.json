@@ -1,0 +1,35 @@
+{
+    "name": "SCE TOU-EV-4-TOU-Periods-Shifted",
+    "effective": "2018-10-12",
+    "comment": "This is NOT a real tariff structure. It explores if the TOU-EV-4 schedule was used with the TOU periods from the TOU-EV-8 schedule.",
+    "link": "N/A",
+    "schedule": [
+        {
+            "id": "Summer-Weekday",
+            "effective_start": "06-01",
+            "effective_end": "9-30",
+            "dow_mask": "WEEKDAYS",
+            "times": [0, 16, 21],
+            "tariffs": [0.05623, 0.26668, 0.05623],
+            "demand_charge": 15.51
+        },
+        {
+            "id": "Summer-Weekend",
+            "effective_start": "06-01",
+            "effective_end": "9-30",
+            "dow_mask": "WEEKENDS",
+            "times": [0, 16, 21],
+            "tariffs": [0.05623, 0.0925, 0.05623],
+            "demand_charge": 15.51
+        },
+        {
+            "id": "Winter",
+            "effective_start": "10-01",
+            "effective_end": "05-31",
+            "dow_mask": "ALL",
+            "times": [0, 8, 16, 21],
+            "tariffs": [0.07492, 0.06087, 0.0869, 0.07492],
+            "demand_charge": 15.51
+        }
+    ]
+}
