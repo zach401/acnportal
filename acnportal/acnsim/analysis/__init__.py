@@ -1,6 +1,4 @@
 import numpy as np
-import pandas as pd
-import cmath
 
 
 def aggregate_current(sim):
@@ -75,26 +73,22 @@ def current_unbalance(sim, phase_ids, type='NEMA'):
     1)  The NEMA definition defined as the ratio of the maximum deviation of an RMS current from the average RMS current
         over the average RMS current.
             (max(|I_a|, |I_b|, |I_c|) - 1/3 (|I_a| + |I_b| + |I_c|)) / (1/3 (|I_a| + |I_b| + |I_c|))
-    2)  Symmetric Components definition defined as the ratio of the magnitude of the negative sequence component (I_-)
-        over the magnitude of the positive sequence component (I_+).
-            |I_-| / |I_+|
 
     See https://www.powerstandards.com/Download/Brief%20Discussion%20of%20Unbalance%20Definitions.pdf for more info.
 
     Args:
         sim (Simulator): A Simulator object which has been run.
         phase_ids (List[str]): List of length 3 where each element is the identifier of phase A, B, and C respectively.
-        type (str): Method to use for calculating phase unbalance. Acceptable values are 'NEMA' and 'SYM_COMP'.
+        type (str): Method to use for calculating phase unbalance. Acceptable values are 'NEMA'.
 
     Returns:
         List[float]: Time series of current unbalance as a list with one value per timestep.
     """
     if type == 'NEMA':
         return _nema_current_unbalance(sim, phase_ids)
-    elif type == 'SYM_COMP':
-        return _sym_comp_current_unbalance(sim, phase_ids)
     else:
-        raise ValueError('type must be NEMA or SYM_COMP, not {0}'.format(type))
+        raise ValueError('type must be NEMA not {0}'.format(type))
+
 
 def _nema_current_unbalance(sim, phase_ids):
     """ Calculate the current unbalance using the NEMA definition.
