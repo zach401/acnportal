@@ -8,9 +8,22 @@ def aggregate_current(sim):
         sim (Simulator): A Simulator object which has been run.
 
     Returns:
-        np.Array: A numpy ndarray of the aggregate current at each time.
+        np.Array: A numpy ndarray of the aggregate current at each time. [A]
     """
     return sim.charging_rates.sum(axis=0)
+
+
+def aggregate_power(sim):
+    """ Calculate the time series of aggregate power of all EVSEs within a simulation.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+
+    Returns:
+        np.Array: A numpy ndarray of the aggregate power at each time. [kW]
+    """
+    return sim.network._voltages.T.dot(sim.charging_rates) / 1000
+
 
 def constraint_currents(sim, return_magnitudes=False, constraint_ids=None):
     """ Calculate the time series of current for each constraint in the ChargingNetwork for a simulation.
@@ -29,7 +42,7 @@ def constraint_currents(sim, return_magnitudes=False, constraint_ids=None):
         constraint_ids = sim.network.constraint_index
 
     currents_list = sim.network.constraint_current(sim.charging_rates, constraints=constraint_ids)
-    
+
     if not return_magnitudes:
         currents_list = np.abs(currents_list)
     # Ensure constraint_ids have correct order relative to constraint_index in network
@@ -107,3 +120,47 @@ def _nema_current_unbalance(sim, phase_ids):
     currents_dict = constraint_currents(sim, constraint_ids=phase_ids)
     currents = np.vstack([currents_dict[phase] for phase in phase_ids])
     return (np.max(currents, axis=0) - np.mean(currents, axis=0)) / np.mean(currents, axis=0)
+
+def energy_cost(sim, tariff=None):
+    """ Calculate the total energy cost of the simulation.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+        tariff (TimeOfUseTariff): Tariff structure to use when calculating energy costs.
+
+    Returns:
+        float: Total energy cost of the simulation ($)
+
+    """
+    if tariff is None:
+        if 'tariff' in sim.signals:
+            tariff = sim.signals['tariff']
+        else:
+            raise ValueError('No pricing method is specified.')
+    agg = aggregate_power(sim)
+    energy_costs = tariff.get_tariffs(sim.start, len(agg), sim.period)
+    return np.array(energy_costs).dot(agg) * (sim.period / 60)
+
+
+def demand_charge(sim, tariff=None):
+    """ Calculate the total demand charge of the simulation.
+
+    Note this is only an accurate depiction of true demand charge if the simulation is exactly one billing period
+    long.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+        tariff (TimeOfUseTariff): Tariff structure to use when calculating energy costs.
+
+    Returns:
+        float: Total demand charge incurred by the simulation ($)
+
+    """
+    if tariff is None:
+        if 'tariff' in sim.signals:
+            tariff = sim.signals['tariff']
+        else:
+            raise ValueError('No pricing method is specified.')
+    agg = aggregate_power(sim)
+    dc = tariff.get_demand_charge(sim.start)
+    return dc * np.max(agg)
