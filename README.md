@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/zach401/acnportal.svg?branch=master)](https://travis-ci.org/zach401/acnportal)
+
 # ACN Portal
 
 The ACN Portal is a suite research tools developed at Caltech to accelerate the pace of large-scale EV charging research.
@@ -20,5 +22,3 @@ Download or clone this repository. Navigate to its root directory. Install using
 ```bash
 pip install .
 ```
-
-[![Build Status](https://travis-ci.org/zach401/acnportal.svg?branch=master)](https://travis-ci.org/zach401/acnportal)
