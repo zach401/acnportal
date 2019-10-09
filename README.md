@@ -21,4 +21,4 @@ Download or clone this repository. Navigate to its root directory. Install using
 pip install .
 ```
 
-[![Build Status](https://travis-ci.org/zach401/acnportal.svg?branch=sunash-testing)](https://travis-ci.org/zach401/acnportal)
+[![Build Status](https://travis-ci.org/zach401/acnportal.svg?branch=master)](https://travis-ci.org/zach401/acnportal)
