@@ -2,9 +2,10 @@ import copy
 from datetime import datetime
 import pandas as pd
 import numpy as np
+import warnings
 
 from .events import UnplugEvent
-from .interface import Interface
+from .interface import Interface, InvalidScheduleError
 
 
 class Simulator:
@@ -20,14 +21,12 @@ class Simulator:
         events (EventQueue): Queue of events which will occur in the simulation.
         start (datetime): Date and time of the first period of the simulation.
         period (int): Length of each time interval in the simulation in minutes. Default: 1
-        max_recomp (int): Maximum number of periods between calling the scheduling algorithm even if no events occur.
-            If None, the scheduling algorithm is only called when an event occurs. Default: None.
         signals (Dict[str, ...]):
         store_schedule_history (bool): If True, store the scheduler output each time it is run. Note this can use lots
             of memory for long simulations.
     """
 
-    def __init__(self, network, scheduler, events, start, period=1, max_recomp=None, signals=None,
+    def __init__(self, network, scheduler, events, start, period=1, signals=None,
                  store_schedule_history=False, verbose=True):
         self.network = network
         self.scheduler = scheduler
@@ -35,13 +34,13 @@ class Simulator:
         self.event_queue = events
         self.start = start
         self.period = period
-        self.max_recompute = max_recomp
+        self.max_recompute = scheduler.max_recompute
         self.signals = signals
         self.verbose = verbose
 
         # Information storage
-        self.pilot_signals = np.zeros((len(self.network.station_ids), len(self.event_queue)))
-        self.charging_rates = np.zeros((len(self.network.station_ids), len(self.event_queue)))
+        self.pilot_signals = np.zeros((len(self.network.station_ids), self.event_queue.get_last_timestamp() + 1))
+        self.charging_rates = np.zeros((len(self.network.station_ids), self.event_queue.get_last_timestamp() + 1))
         self.peak = 0
         self.ev_history = {}
         self.event_history = []
@@ -81,12 +80,11 @@ class Simulator:
                     self.max_recompute is not None and \
                     self._iteration - self._last_schedule_update >= self.max_recompute:
                 new_schedule = self.scheduler.run()
+                self._update_schedules(new_schedule)
                 if self.schedule_history is not None:
                     self.schedule_history[self._iteration] = new_schedule
-                self._update_schedules(new_schedule)
                 self._last_schedule_update = self._iteration
                 self._resolve = False
-            self._expand_pilots()
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
@@ -143,27 +141,25 @@ class Simulator:
         if len(new_schedule) == 0:
             return
 
+        for station_id in new_schedule:
+            if station_id not in self.network.station_ids:
+                raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
+
         schedule_lengths = set(len(x) for x in new_schedule.values())
         if len(schedule_lengths) > 1:
             raise InvalidScheduleError('All schedules should have the same length.')
         schedule_length = schedule_lengths.pop()
 
-        for station_id in new_schedule:
-            if station_id not in self.network.station_ids:
-                raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
-
-        schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in sorted(self.network.station_ids)])
+        schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
+        if not self.network.is_feasible(schedule_matrix):
+            warnings.warn("Invalid schedule provided at iteration {0}".format(self._iteration), UserWarning)
         if self._iteration + schedule_length <= len(self.pilot_signals[0]):
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
         else:
             # We've reached the end of pilot_signals, so double pilot_signal array width
-            self.pilot_signals = _increase_width(self.pilot_signals, (self._iteration + schedule_length) * 2)
+            self.pilot_signals = _increase_width(self.pilot_signals,
+                max(self.event_queue.get_last_timestamp() + 1, self._iteration + schedule_length))
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
-
-    def _expand_pilots(self):
-        """ Extends all pilot signals by appending 0's so they at least last past the next time step."""
-        if len(self.pilot_signals[0]) < self._iteration + 1:
-            self.pilot_signals = _increase_width(self.pilot_signals, (self._iteration + 1) * 2)
 
     def _store_actual_charging_rates(self):
         """ Store actual charging rates from the network in the simulator for later analysis."""
@@ -172,7 +168,7 @@ class Simulator:
         if self.iteration < len(self.charging_rates[0]):
             self.charging_rates[:, self.iteration] = current_rates.T
         else:
-            self.charging_rates = _increase_width(self.charging_rates, self._iteration * 2)
+            self.charging_rates = _increase_width(self.charging_rates, self.event_queue.get_last_timestamp() + 1)
             self.charging_rates[:, self._iteration] = current_rates.T
         self.peak = max(self.peak, agg)
 
@@ -184,17 +180,19 @@ class Simulator:
         """ Return the charging rates as a pandas DataFrame, with EVSE id as columns
         and iteration as index.
         """
-        return pd.DataFrame(data=self.charging_rates, columns=sorted(self.network.station_ids))
-        pass
+        return pd.DataFrame(data=self.charging_rates.T, columns=self.network.station_ids)
 
     def pilot_signals_as_df(self):
         """ Return the pilot signals as a pandas DataFrame """
-        return pd.DataFrame(data=self.pilot_signals, columns=sorted(self.network.station_ids))
-        pass
+        return pd.DataFrame(data=self.pilot_signals.T, columns=self.network.station_ids)
 
-class InvalidScheduleError(Exception):
-    """ Raised when the schedule passed to the simulator is invalid. """
-    pass
+    def index_of_evse(self, station_id):
+        """ Return the numerical index of the EVSE given by station_id in the (ordered) dictionary
+        of EVSEs. 
+        """
+        if station_id not in self.network.station_ids:
+            raise KeyError("EVSE {0} not found in network.".format(station_id))
+        return self.network.station_ids.index(station_id)
 
 def _increase_width(a, target_width):
     """ Returns a new 2-D numpy array with target_width number of columns, with the contents

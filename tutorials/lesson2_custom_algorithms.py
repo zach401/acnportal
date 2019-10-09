@@ -12,7 +12,6 @@ algorithms package, so we will compare the results of our implementation with th
 
 # -- Custom Algorithm --------------------------------------------------------------------------------------------------
 from acnportal.algorithms import BaseAlgorithm
-import pandas as pd
 # All custom algorithms should inherit from the abstract class BaseAlgorithm. It is the responsibility of all derived
 # classes to implement the schedule method. This method takes as an input a list of EVs which are currently connected
 # to the system but have not yet finished charging. Its output is a dictionary which maps a station_id to a list of
@@ -41,6 +40,7 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
     def __init__(self, increment=1):
         super().__init__()
         self._increment = increment
+        self.max_recompute = 1
 
     def schedule(self, active_evs):
         """ Schedule EVs by first sorting them by departure time, then allocating them their maximum feasible rate.
@@ -72,7 +72,7 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
             #   another more direct method in lesson 3.
             while not self.interface.is_feasible(schedule):
                 # Since the maximum rate was not feasible, we should try a lower rate.
-                schedule[ev.station_id] = [schedule[ev.station_id][0] - self._increment]
+                schedule[ev.station_id][0] -= self._increment
 
                 # EVs should never charge below 0 (i.e. discharge) so we will clip the value at 0.
                 if schedule[ev.station_id][0] < 0:
@@ -104,7 +104,7 @@ default_battery_power = 32 * voltage / 1000 # kW
 site = 'caltech'
 
 # -- Network -----------------------------------------------------------------------------------------------------------
-cn = acnsim.sites.CaltechACN(basic_evse=True, voltage=voltage)
+cn = acnsim.sites.caltech_acn(basic_evse=True, voltage=voltage)
 
 # -- Events ------------------------------------------------------------------------------------------------------------
 API_KEY = 'DEMO_TOKEN'
@@ -116,11 +116,11 @@ sch = EarliestDeadlineFirstAlgo(increment=1)
 sch2 = algorithms.SortedSchedulingAlgo(algorithms.earliest_deadline_first)
 
 # -- Simulator ---------------------------------------------------------------------------------------------------------
-sim = acnsim.Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1, verbose=True)
+sim = acnsim.Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, verbose=True)
 sim.run()
 
 # For comparison we will also run the builtin earliest deadline first algorithm
-sim2 = acnsim.Simulator(deepcopy(cn), sch2, deepcopy(events), start, period=period, max_recomp=1)
+sim2 = acnsim.Simulator(deepcopy(cn), sch2, deepcopy(events), start, period=period)
 sim2.run()
 
 # -- Analysis ----------------------------------------------------------------------------------------------------------
