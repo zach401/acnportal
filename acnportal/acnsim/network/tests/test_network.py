@@ -201,11 +201,11 @@ class TestChargingNetworkConstraints(TestCase):
 
     def test_is_feasible_good_loads(self):
         good_loads = np.array([[0, 0], [150, 120], [100, 40], [150, 120], [60, 9]])
-        self.assertTrue(self.network.is_feasible(good_loads))
+        self.assertTrue(np.all(self.network.is_feasible(good_loads)))
 
     def test_is_feasible_bad_loads(self):
         bad_loads = np.array([[0, 0], [150, 800], [100, 0], [150, 20], [60, 9]])
-        self.assertFalse(self.network.is_feasible(bad_loads))
+        self.assertFalse(np.all(self.network.is_feasible(bad_loads)))
 
     def test_constraint_current(self):
         loads = np.array([[0, 0], [150, 120], [100, 40], [150, 120], [60, 9]])

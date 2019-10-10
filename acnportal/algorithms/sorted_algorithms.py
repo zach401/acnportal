@@ -74,12 +74,12 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             new_schedule[_station_id][time] = mid
             if (_ub - _lb) <= eps:
                 return _lb
-            elif self.interface.is_feasible(new_schedule, time):
+            elif np.all(self.interface.is_feasible(new_schedule, time)):
                 return bisection(_station_id, mid, _ub, new_schedule)
             else:
                 return bisection(_station_id, _lb, mid, new_schedule)
 
-        if not self.interface.is_feasible(schedule):
+        if not np.all(self.interface.is_feasible(schedule)):
             raise ValueError('The initial schedule is not feasible.')
         return bisection(station_id, 0, ub, schedule)
 
@@ -99,12 +99,12 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Returns:
             float: maximum feasible rate less than ub subject to the environment's constraints. [A]
         """
-        if not self.interface.is_feasible(schedule):
+        if not np.all(self.interface.is_feasible(schedule)):
             raise ValueError('The initial schedule is not feasible.')
         new_schedule = copy(schedule)
         feasible_idx = len(allowable_rates) - 1
         new_schedule[station_id][time] = allowable_rates[feasible_idx]
-        while not self.interface.is_feasible(new_schedule):
+        while not np.all(self.interface.is_feasible(new_schedule)):
             feasible_idx -= 1
             if feasible_idx < 0:
                 new_schedule[station_id][time] = 0
@@ -161,7 +161,7 @@ class RoundRobin(SortedSchedulingAlgo):
             ev = ev_queue.popleft()
             if rate_idx_map[ev.station_id] < len(allowable_rates[ev.station_id]) - 1:
                 schedule[ev.station_id][0] = allowable_rates[ev.station_id][rate_idx_map[ev.station_id] + 1]
-                if self.interface.is_feasible(schedule):
+                if np.all(self.interface.is_feasible(schedule)):
                     rate_idx_map[ev.station_id] += 1
                     ev_queue.append(ev)
                 else:

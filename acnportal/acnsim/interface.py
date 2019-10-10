@@ -153,7 +153,7 @@ class Interface:
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 
         Returns:
-            bool: If load_currents is feasible at time t according to this set of constraints.
+            np.ndarray[bool]: If load_currents is feasible at time t according to this set of constraints.
         """
         if len(load_currents) == 0:
             return True

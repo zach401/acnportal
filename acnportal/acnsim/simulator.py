@@ -151,7 +151,7 @@ class Simulator:
         schedule_length = schedule_lengths.pop()
 
         schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
-        if not self.network.is_feasible(schedule_matrix):
+        if not np.all(self.network.is_feasible(schedule_matrix)):
             warnings.warn("Invalid schedule provided at iteration {0}".format(self._iteration), UserWarning)
         if self._iteration + schedule_length <= len(self.pilot_signals[0]):
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix

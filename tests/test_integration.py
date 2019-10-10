@@ -34,7 +34,7 @@ class EarliestDeadlineFirstAlgoStateful(BaseAlgorithm):
         for ev in sorted_evs:
             schedule[ev.station_id] = [self.interface.max_pilot_signal(ev.station_id)]
 
-            while not self.interface.is_feasible(schedule):
+            while not np.all(self.interface.is_feasible(schedule)):
                 schedule[ev.station_id][0] -= self._increment
 
                 if schedule[ev.station_id][0] < 0:

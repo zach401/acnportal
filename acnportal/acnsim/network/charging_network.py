@@ -288,7 +288,7 @@ class ChargingNetwork:
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 
         Returns:
-            bool: If load_currents is feasible at time t according to this set of constraints.
+            np.ndarray[bool]: If load_currents is feasible at time t according to this set of constraints.
         """
         # If there are no constraints (magnitudes vector is empty) return True
         if not len(self.magnitudes):
@@ -299,10 +299,10 @@ class ChargingNetwork:
 
         # Ensure each aggregate current is less than its limit, returning False if not
         if linear:
-            return np.all(self.magnitudes >= np.abs(aggregate_currents))
+            return self.magnitudes >= np.abs(aggregate_currents)
         else:
             schedule_length = len(schedule_matrix[0])
-            return np.all(np.tile(self.magnitudes, (schedule_length, 1)).T >= np.abs(aggregate_currents))
+            return np.tile(self.magnitudes, (schedule_length, 1)).T >= np.abs(aggregate_currents)
 
 
 class StationOccupiedError(Exception):
