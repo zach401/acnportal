@@ -50,7 +50,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             schedule[ev.station_id][0] = charging_rate
         return schedule
 
-    def max_feasible_rate(self, station_id, ub, schedule, time=0, eps=0.01):
+    def max_feasible_rate(self, station_index, ub, schedule, eps=0.01, n=100):
         """ Return the maximum feasible rate less than ub subject to the environment's constraints.
 
         If schedule contains non-zero elements at the given time, these are treated as fixed allocations and this
@@ -59,29 +59,35 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Args:
             station_id (str): ID for the station we are finding the maximum feasible rate for.
             ub (float): Upper bound on the charging rate. [A]
-            schedule (Dict[str, List[float]]): Dictionary mapping a station_id to a list of already fixed
-                charging rates.
+            schedule
             time (int): Time interval for which the max rate should be calculated.
             eps (float): Accuracy to which the max rate should be calculated. (When the binary search is terminated.)
 
         Returns:
             float: maximum feasible rate less than ub subject to the environment's constraints. [A]
         """
-        def bisection(_station_id, _lb, _ub, _schedule):
-            """ Use the bisection method to find the maximum feasible charging rate for the EV. """
-            mid = (_ub + _lb) / 2
-            new_schedule = copy(_schedule)
-            new_schedule[_station_id][time] = mid
+        def n_section(_station_id, _lb, _ub, _schedule, _n):
             if (_ub - _lb) <= eps:
                 return _lb
-            elif np.all(self.interface.is_feasible(new_schedule, time)):
-                return bisection(_station_id, mid, _ub, new_schedule)
-            else:
-                return bisection(_station_id, _lb, mid, new_schedule)
+            options = np.flip(np.linspace(_lb, _ub, _n))
+            new_schedule = {}
+            for evse_id in _schedule:
+                if evse_id != _station_id:
+                    new_schedule[evse_id] = _schedule[evse_id]*_n
+                else:
+                    new_schedule[evse_id] = list(options)
+            feasibility = np.all(self.interface.is_feasible(new_schedule), axis=0)
+            largest_feasible_index = np.argmax(feasibility)
+            # If the upper bound is feasible, it is the maximum feasible rate.
+            if largest_feasible_index == 0:
+                return options[0]
+            return n_section(station_index, options[largest_feasible_index],
+                             options[largest_feasible_index-1], _schedule, _n)
+
 
         if not np.all(self.interface.is_feasible(schedule)):
             raise ValueError('The initial schedule is not feasible.')
-        return bisection(station_id, 0, ub, schedule)
+        return n_section(station_index, 0, ub, schedule, n)
 
     def discrete_max_feasible_rate(self, station_id, allowable_rates, schedule, time=0):
         """ Return the maximum feasible allowable rate subject to the environment's constraints.
