@@ -1,8 +1,8 @@
 from .base_algorithm import BaseAlgorithm
-from ..acnsim.interface import OpenAIInterface
+from ..acnsim.interface import GymInterface
 
 
-class OpenAIAlgorithm(BaseAlgorithm):
+class GymAlgorithm(BaseAlgorithm):
     """ Placeholder algorithm class for OpenAI simulations. This is never called, instead the environment
     is stepped """
     def __init__(self):
@@ -10,4 +10,4 @@ class OpenAIAlgorithm(BaseAlgorithm):
         self.max_recompute = 1
 
     def register_interface(self, interface):
-    	self._interface = OpenAIInterface.from_interface(interface)
+    	self._interface = GymInterface.from_interface(interface)

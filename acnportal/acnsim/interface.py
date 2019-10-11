@@ -32,7 +32,7 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
-            # TODO: change back to session_id
+            # TODO: change back to session_id. For networks with unnamed sessions station_id is needed instead
             return {ev.station_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i] for ev in self.active_evs if
                 ev.arrival <= i}
         else:
@@ -41,12 +41,14 @@ class Interface:
     @property
     def last_actual_charging_rate(self):
         # TODO: change to "rates"?
+        # TODO: doesn't include charging rates of those evs that unplugged in the last period
         """ Return the actual charging rates in the last period for all active EVs.
 
         Returns:
             Dict[str, number]:  A dictionary with the session ID as key and actual charging rate as value.
         """
-        return {ev.session_id: ev.current_charging_rate for ev in self.active_evs}
+        # TODO: change back to session_id. For networks with unnamed sessions station_id is needed instead
+        return {ev.station_id: ev.current_charging_rate for ev in self.active_evs}
 
     @property
     def current_time(self):
@@ -217,14 +219,14 @@ class Interface:
         return self._simulator.peak
 
 
-class OpenAIInterface(Interface):
+class GymInterface(Interface):
     """ Interface between OpenAI Environments and the ACN Simulation Environment.
 
     """
 
     @classmethod
     def from_interface(cls, interface):
-        self = OpenAIInterface(interface._simulator)
+        self = GymInterface(interface._simulator)
         return self
 
     @property
@@ -273,6 +275,14 @@ class OpenAIInterface(Interface):
         """
         return self._simulator.network.constraint_matrix, self._simulator.network.magnitudes
 
+    @property
+    def is_done(self):
+        """ Returns if the simulation is complete (i.e. event queue is empty).
+
+        Returns:
+            bool: True if simulation is complete.
+        """
+        return self._simulator.event_queue.empty()
 
     def step(self, new_schedule):
         """ Step the simulation using the input new_schedule until the simulator

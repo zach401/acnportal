@@ -4,10 +4,6 @@ import numpy as np
 from gym import spaces
 import copy
 
-# -- Run Simulation ----------------------------------------------------------------------------------------------------
-from datetime import datetime
-import pytz
-import matplotlib.pyplot as plt
 from copy import deepcopy
 import random
 
@@ -16,286 +12,260 @@ from acnportal import algorithms
 from acnportal.acnsim import events
 from acnportal.acnsim import models
 from acnportal.acnsim import gym_acnsim
+
 import gym
 from gym.wrappers import FlattenDictWrapper
 from gym.wrappers import ClipAction
 
-from spinup import sac, vpg
-from datetime import datetime
-import pytz
-import matplotlib.pyplot as plt
+class BaseSimEnv(gym.Env):
+    """ Abstract base class meant to be inherited from to implement new ACN-Sim Environments.
 
-def random_plugin(num, time_limit, evse):
-    """ Returns a list of num random plugin events occuring anytime from time 0 to time_limit
-    Each plugin has a random arrival and departure under the time limit, and a satisfiable
-    requested energy assuming no other cars plugged in.
-    The plugins occur for a single EVSE
+    Subclasses must implement the following methods:
+        _action_to_schedule
+        _observation_from_state
+        _reward_from_state
+        _done_from_state
+
+    Subclasses must also specify observation_space and action_space, either as class
+    or instance variables.
+
+    Optionally, subclasses may implement _info_from_state, which here returns an empty dict.
+    
+    Subclasses may override __init__, step, and reset functions.
+
+    Currently, no render function is implemented, though this function is not required
+    for internal functionality.
+
+    Attributes:
+        interface (GymInterface): an interface to a simulation to be stepped by this environment.
+        init_snapshot (GymInterface): a deep copy of the initial interface, used for environment resets.
     """
-    out_event_lst = [None] * num
-    times = []
-    i = 0
-    while i < 2*num:
-        rnum = random.randint(0, time_limit)
-        if rnum not in times:
-            times.append(rnum)
-            i += 1
-    times = sorted(times)
-    battery = models.Battery(100, 0, 100)
-    for i in range(num):
-        arrival_time = times[2*i]
-        departure_time = times[2*i+1]
-        requested_energy = (departure_time - arrival_time) / 60 * 32 * 220 / 2
-        ev = models.EV(arrival_time, departure_time, requested_energy, evse, '', battery)
-        out_event_lst[i] = events.PluginEvent(arrival_time, ev)
-    return out_event_lst
-
-class SimpleSimEnv(gym.Env):
-    # Action space: set of possible schedules passed to the network
-    # These do not have the constraints applied to them
-    # For now, assume single-timestep algorithmic horizon
-    # Set of observations of the network. These observations include the following info:
-    # remaining demand
-    # Action space: set of possible schedules passed to the network (continuous)
-    # These do not have the constraints applied to them
-    # For now, assume single-timestep algorithmic horizon
-    # Set of observations of the network. These observations include the following info:
-    # Current arrival, departure, and energy demand remaining for all EVs plugged in
 
     def __init__(self, interface):
-        """ Initialize this environment. Every Sim environment needs an interface to a simulator which
-        runs an iteration every time the environment is stepped.
-
-        Args:
-            interface (acnsim.OpenAIInterface): OpenAI Interface with ACN simulation for this environment to use.
-        """
         self.interface = interface
         self.init_snapshot = copy.deepcopy(interface)
-        self.total_time = self.interface.last_predicted_timestamp
-        num_evses = self.interface.num_evses
-        min_rates = np.array([evse.min_rate for evse in self.interface.evse_list])
-        max_rates = np.array([evse.max_rate for evse in self.interface.evse_list])
-
-        # Action space is the set of possible schedules (0 - 32 A for each EVSE)
-        self.action_space = spaces.Box(low=min_rates, high=max_rates, dtype=np.float32)
-
-        self.observation_space = spaces.Box(low=np.zeros((num_evses,)), high=max_rates*self.total_time, dtype='int32')
-
-        # There's no initial observation
-        self.obs = self._state_to_obs()
 
     def step(self, action):
-        new_schedule = {self.interface.station_ids[i]: [action[i]] for i in range(len(action))}
-        done = self.interface.step(new_schedule)
-        observation = self._state_to_obs()
-        reward = self._reward_from_state(action)
-        info = {}
-        return observation, reward, done, info
+        """ Step the simulation one timestep with an agent's action.
 
-
-    def _state_to_obs(self):
-        return np.array([self.interface.remaining_amp_periods(evse.ev) if evse.ev is not None else -1 for evse in self.interface.evse_list])
+        Accepts an action and returns a tuple (observation, reward, done, info).
         
-    def _reward_from_state(self, action):
-        evse_violation = 0
-        unplugged_ev_violation = 0
-        for i in range(len(self.interface.evse_list)):
-            # If a single EVSE constraint is violated, a negative reward equal to the
-            # abs of the violation is added to the total reward
-            curr_evse = self.interface.evse_list[i]
-            if action[i] < curr_evse.min_rate:
-                evse_violation -= curr_evse.min_rate - action[i]
-            if action[i] > curr_evse.max_rate:
-                evse_violation -= action[i] - curr_evse.max_rate
+        Args:
+            action (object): an action provided by the agent
 
-            # If rate is attempted to be delivered to an evse with no ev,
-            # this rate is subtracted from the reward.
-            if self.interface.evse_list[i].ev is None:
-                unplugged_ev_violation -= abs(action[i])
+        Returns:
+            observation (object): agent's observation of the current environment
+            reward (float) : amount of reward returned after previous action
+            done (bool): whether the episode has ended, in which case further step() calls will return undefined results
+            info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
+        """
+        schedule = self._action_to_schedule(action)
+        self.interface.step(schedule)
+        
+        observation = self._observation_from_state()
+        reward = self._reward_from_state()
+        done = self._done_from_state()
+        info = self._info_from_state()
 
-        # If a network constraint is violated, a negative reward equal to the abs
-        # of the constraint violation, times the number of EVSEs, is added
-        _, magnitudes = self.interface.network_constraints
-        outvec = abs(self.interface.constraint_currents(
-            np.array([[action[i]] for i in range(len(action))])))
-        diffvec = np.array(
-            [0 if outvec[i] <= magnitudes[i] 
-                else outvec[i] - magnitudes[i] 
-                    for i in range(len(outvec))])
-        constraint_violation = np.linalg.norm(diffvec) * self.interface.num_evses * (-1)
-
-        # If no violation penalties are incurred, reward for charge delivered
-        # Check if the schedule history was updated with this schedule
-        # (meaning schedule was feasible)
-        charging_reward = 0
-        lap = np.array([self.interface.last_applied_pilot_signals[station_id] if station_id in self.interface.last_applied_pilot_signals else action[self.interface.station_ids.index(station_id)] for station_id in self.interface.station_ids])
-        lap_keys = list(self.interface.last_applied_pilot_signals.keys())
-        relevant_actions = np.array([[action[i]] if self.interface.station_ids[i] in lap_keys else 0])
-        if np.allclose(lap, relevant_actions):
-            assert evse_violation == 0
-            assert constraint_violation == 0
-            # TODO: currently only takes last actual charging rates, should take
-            # all charging rates caused by this schedule
-            charging_reward = sum(list(self.interface.last_actual_charging_rate.values()))
-
-        return evse_violation + constraint_violation + charging_reward + unplugged_ev_violation
-
-# TODO: random event generator within environment
+        return observation, reward, done, info
 
     def reset(self):
-        self.interface = copy.deepcopy(self.init_snapshot)
-        observation = self._state_to_obs()
-        return self._state_to_obs()
+        """Resets the state of the simulation and returns an initial observation.
+        Resetting is done by setting the interface to the simulation to an interface
+        to the simulation in its initial state.
+        
+        Returns:
+            observation (object): the initial observation.
+        """
+        self.interface = self.init_snapshot
+        return self._observation_from_state()
 
-    def render(self):
-        # TODO: render env
-        pass
-
-class SimPrototypeEnv(gym.Env):
-    # Action space: set of possible schedules passed to the network
-    # These do not have the constraints applied to them
-    # For now, assume single-timestep algorithmic horizon
-    # Set of observations of the network. These observations include the following info:
-    # Current date and time
-    # Current arrival, departure, and energy demand remaining for all EVs plugged in
-
-    def __init__(self, interface):
-        """ Initialize this environment. Every Sim environment needs an interface to a simulator which
-        runs an iteration every time the environment is stepped.
+    def _action_to_schedule(self, action):
+        """ Convert an agent action to a schedule to be input to the simulator.
 
         Args:
-            interface (acnsim.OpenAIInterface): OpenAI Interface with ACN simulation for this environment to use.
+            action (object): an action provided by the agent.
+
+        Returns:
+            schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
         """
-        self.interface = interface
-        self.init_snapshot = copy.deepcopy(interface)
-        self.total_time = self.interface.last_predicted_timestamp
-        num_evses = self.interface.num_evses
+        raise NotImplementedError
 
-        # Action space is the set of possible schedules (0 - 32 A for each EVSE)
-        self.action_space = spaces.MultiDiscrete([32] * num_evses)
+    def _observation_from_state(self):
+        """ Construct an environment observation from the state of the simulator
 
-        # Observation space contains vectors with the following info
-        # arrival time
-        arrival_space = spaces.Box(low=0, high=self.total_time, shape=(32,), dtype='int32')
-        # departure time
-        departure_space = spaces.Box(low=0, high=self.total_time, shape=(32,), dtype='int32')
-        # remaining amp-period demand
-        remaining_demand_space = spaces.Box(low=0, high=self.total_time*32, shape=(32,), dtype='int32')
-        # current sim timestep
-        timestep_space = spaces.Discrete(self.total_time+1)
-        
-        # Total observation space is a Dict space of the subspaces
-        self.observation_space = spaces.Dict({
-            'arrivals': arrival_space,
-            'departures': departure_space,
-            'demand': remaining_demand_space,
-            'timestep': timestep_space
-        })
-
-        # There's no initial observation
-        self.obs = None
-
-    def step(self, action):
-        new_schedule = {self.interface.station_ids[i]: [action[i]] for i in range(len(action))}
-        done = self.interface.step(new_schedule)
-        observation = self._state_to_obs()
-        reward = self._reward_from_state()
-        info = {}
-        return observation, reward, done, info
-
-
-    def _state_to_obs(self):
-        curr_obs = {}
-        curr_obs['arrivals'] = np.array([evse.ev.arrival if evse.ev is not None else -1 for evse in self.interface.evse_list])
-        curr_obs['departures'] = np.array([evse.ev.departure if evse.ev is not None else -1 for evse in self.interface.evse_list])
-        curr_obs['demand'] = np.array([math.ceil(self.interface.remaining_amp_periods(evse.ev)) if evse.ev is not None else -1 for evse in self.interface.evse_list])
-        curr_obs['timestep'] = self.interface.current_time
+        Returns:
+            observation (object): an environment observation generated from the simulation state
+        """
+        raise NotImplementedError
 
     def _reward_from_state(self):
-        return self.interface.last_energy_delivered()
+        """ Calculate a reward from the state of the simulator
 
-    def reset(self):
-        pass
+        Returns:
+            reward (float): a reward generated from the simulation state
+        """
+        raise NotImplementedError
 
-    def render(self):
-        pass
+    def _done_from_state(self):
+        """ Determine if the simulation is done from the state of the simulator
 
-# TODO: For new environments, can initialize env with input function
-class ContSimPrototypeEnv(gym.Env):
-    # Action space: set of possible schedules passed to the network (continuous)
-    # These do not have the constraints applied to them
-    # For now, assume single-timestep algorithmic horizon
-    # Set of observations of the network. These observations include the following info:
-    # Current arrival, departure, and energy demand remaining for all EVs plugged in
+        Returns:
+            done (bool): True if the simulation is done, False if not
+        """
+        raise NotImplementedError
 
-    def __init__(self, interface):
+    def _info_from_state(self):
+        """ Give information about the environment using the state of the simulator
+
+        Returns:
+            info (dict): dict of environment information
+        """
+        return {}
+
+class DefaultSimEnv(BaseSimEnv):
+    """ A simulator environment with the following characteristics:
+
+    The action and observation spaces are continuous.
+
+    An action in this environment is a charging rate for each EVSE, within the minimum and maximum
+    EVSE rates.
+
+    An observation is a dict consisting of fields (times are 1-indexed in
+    the observations):
+        arrivals: arrival time of the EV at each EVSE (or 0 if there's no EV plugged in)
+        departures: departure time of the EV at each EVSE (or 0 if there's no EV plugged in)
+        demand: energy demand of the EV at each EVSE (unoccupied EVSEs have demand 0)
+        constraint_matrix: matrix of aggregate current coefficients
+        magnitudes: magnitude vector constraining aggregate currents
+        timestep: timestep of the simulation
+
+    The reward is calculated as follows:
+        If no constraints (on the network or on the EVSEs) were violated by the action,
+        a reward equal to the total charge delivered (in A) is returned
+        If any constraint violation occurred, a negative reward equal to the magnitude of the violation is returned.
+        Network constraint violations are scaled by the number of EVs
+        Finally, a user-input reward function is added to the total reward.
+
+    The simulation is considered done if the event queue is empty.
+    """
+    def __init__(self, interface, reward_function=None):
         """ Initialize this environment. Every Sim environment needs an interface to a simulator which
         runs an iteration every time the environment is stepped.
 
         Args:
-            interface (acnsim.OpenAIInterface): OpenAI Interface with ACN simulation for this environment to use.
+            interface (acnsim.GymInterface): OpenAI Interface with ACN simulation for this environment to use.
+            reward_function (acnsim.GymInterface -> number): A function which takes no arguments and returns a number.
         """
-        self.interface = interface
-        self.init_snapshot = copy.deepcopy(interface)
-        self.total_time = self.interface.last_predicted_timestamp
+        super().__init__(interface)
+
+        # Get parameters that constrain the action/observation spaces
         num_evses = self.interface.num_evses
         min_rates = np.array([evse.min_rate for evse in self.interface.evse_list])
         max_rates = np.array([evse.max_rate for evse in self.interface.evse_list])
+        constraint_matrix, magnitudes = self.interface.network_constraints
+
+        # Some baselines require zero-centering; subtract this offset from actions to do this
+        # TODO: this would be better as an action wrapper
+        self.rate_offset_array = (max_rates + min_rates) / 2
+        
+        if reward_function is None:
+            def reward_function(self): return 0
+        else:
+            # TODO: reward function should accept kwargs input by user to env init
+            self.reward_function = reward_function
 
         # Action space is the set of possible schedules (0 - 32 A for each EVSE)
-        self.action_space = spaces.Box(low=min_rates, high=max_rates, dtype=np.float32)
+        # Recentered about 0
+        self.action_space = spaces.Box(low=min_rates-self.rate_offset_array, high=max_rates-self.rate_offset_array, dtype='float32')
 
         # Observation space contains vectors with the following info
         # arrival time
-        arrival_space = spaces.Box(low=0, high=self.total_time, shape=(num_evses,), dtype='int32')
+        arrival_space = spaces.Box(low=0, high=np.inf, shape=(num_evses,), dtype='float32')
         # departure time
-        departure_space = spaces.Box(low=0, high=self.total_time, shape=(num_evses,), dtype='int32')
+        departure_space = spaces.Box(low=0, high=np.inf, shape=(num_evses,), dtype='float32')
         # remaining amp-period demand
-        # TODO: This assumes infeasible demands won't be input. Filter this out?
-        remaining_demand_space = spaces.Box(low=np.zeros((num_evses,)), high=max_rates*self.total_time, dtype='int32')
+        remaining_demand_space = spaces.Box(low=0, high=np.inf, shape=(num_evses,), dtype='float32')
+        # constraint matrix (coefficients in aggregate currents)
+        constraint_matrix_space = spaces.Box(low=-1*np.inf, high=np.inf, shape=constraint_matrix.shape, dtype='float32')
+        # magnitude vector (upper limits on aggregate currents)
+        magnitudes_space = spaces.Box(low=-1*np.inf, high=np.inf, shape=magnitudes.shape, dtype='float32')
         # current sim timestep
-        timestep_space = spaces.Box(low=0, high=self.total_time+1, shape=(1,), dtype='int32')
-        
+        timestep_space = spaces.Box(low=0, high=np.inf, shape=(1,), dtype='float32')
+
         # Total observation space is a Dict space of the subspaces
         self.observation_space = spaces.Dict({
             'arrivals': arrival_space,
             'departures': departure_space,
             'demand': remaining_demand_space,
+            'constraint_matrix': constraint_matrix_space,
+            'magnitudes': magnitudes_space,
             'timestep': timestep_space
         })
 
-        # There's no initial observation
-        self.obs = None
+        # Var used to track EVs active in the previous timestep
+        self.prev_active = self.interface.active_evs
+        # Var used to track most recent action
+        self.action = None
 
-    def step(self, action):
+        # Portion of the observation that is independent of agent action
+        self.static_obs = {'constraint_matrix': constraint_matrix, 'magnitudes': magnitudes}
+
+    def _action_to_schedule(self, action):
+        """ Convert an agent action to a schedule to be input to the simulator.
+
+        Args:
+            action (object): an action provided by the agent.
+
+        Returns:
+            schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
+        """
+        action = action + self.rate_offset_array
         new_schedule = {self.interface.station_ids[i]: [action[i]] for i in range(len(action))}
-        done = self.interface.step(new_schedule)
-        observation = self._state_to_obs()
-        reward = self._reward_from_state(action)
-        info = {}
-        return observation, reward, done, info
+        self.action = action
+        self.prev_active = self.interface.active_evs
+        return new_schedule
 
+    def _observation_from_state(self):
+        """ Construct an environment observation from the state of the simulator
 
-    def _state_to_obs(self):
-        curr_obs = {}
-        curr_obs['arrivals'] = np.array([evse.ev.arrival if evse.ev is not None else -1 for evse in self.interface.evse_list])
-        curr_obs['departures'] = np.array([evse.ev.departure if evse.ev is not None else -1 for evse in self.interface.evse_list])
-        curr_obs['demand'] = np.array([math.ceil(self.interface.remaining_amp_periods(evse.ev)) if evse.ev is not None else 0 for evse in self.interface.evse_list])
-        curr_obs['timestep'] = self.interface.current_time
-        return curr_obs
+        Returns:
+            observation (object): an environment observation generated from the simulation state
+        """
+        curr_obs = self.static_obs
+
+        # Time-like observations are 1 indexed as 0 means no EV is plugged in.
+        curr_obs['arrivals'] = np.array([evse.ev.arrival + 1 if evse.ev is not None else 0 for evse in self.interface.evse_list])
+        curr_obs['departures'] = np.array([evse.ev.departure + 1 if evse.ev is not None else 0 for evse in self.interface.evse_list])
+        curr_obs['demand'] = np.array([self.interface.remaining_amp_periods(evse.ev) if evse.ev is not None else 0 for evse in self.interface.evse_list])
+        curr_obs['timestep'] = self.interface.current_time + 1
         
-    def _reward_from_state(self, action):
+        return curr_obs
+
+    def _reward_from_state(self):
+        """ Calculate a reward from the state of the simulator
+
+        Returns:
+            reward (float): a reward generated from the simulation state
+        """
+        action = self.action
+        # EVSE violation is the (negative) sum of violations of individual EVSE constraints,
+        # e.g. min/max charging rates.
         evse_violation = 0
+
+        # Unplugged EV violation is the (negative) sum of charge delivered to empty EVSEs
         unplugged_ev_violation = 0
+
         for i in range(len(self.interface.evse_list)):
             # If a single EVSE constraint is violated, a negative reward equal to the
-            # abs of the violation is added to the total reward
+            # magnitude of the violation is added to the total reward
             curr_evse = self.interface.evse_list[i]
             if action[i] < curr_evse.min_rate:
                 evse_violation -= curr_evse.min_rate - action[i]
             if action[i] > curr_evse.max_rate:
                 evse_violation -= action[i] - curr_evse.max_rate
 
-            # If rate is attempted to be delivered to an evse with no ev,
+            # If charge is attempted to be delivered to an evse with no ev,
             # this rate is subtracted from the reward.
             if self.interface.evse_list[i].ev is None:
                 unplugged_ev_violation -= abs(action[i])
@@ -303,54 +273,68 @@ class ContSimPrototypeEnv(gym.Env):
         # If a network constraint is violated, a negative reward equal to the abs
         # of the constraint violation, times the number of EVSEs, is added
         _, magnitudes = self.interface.network_constraints
+        # Calculate aggregate currents for this charging schedule
         outvec = abs(self.interface.constraint_currents(
             np.array([[action[i]] for i in range(len(action))])))
+        # Calculate violation of each individual constraint violation
         diffvec = np.array(
             [0 if outvec[i] <= magnitudes[i] 
                 else outvec[i] - magnitudes[i] 
                     for i in range(len(outvec))])
+        # Calculate total constraint violation, scaled by number of EVSEs
         constraint_violation = np.linalg.norm(diffvec) * self.interface.num_evses * (-1)
 
         # If no violation penalties are incurred, reward for charge delivered
-        # Check if the schedule history was updated with this schedule
-        # (meaning schedule was feasible)
         charging_reward = 0
-        lap = np.array([self.interface.last_applied_pilot_signals[station_id] if station_id in self.interface.last_applied_pilot_signals else action[self.interface.station_ids.index(station_id)] for station_id in self.interface.station_ids])
-        if np.allclose(lap, action) and evse_violation == 0 and constraint_violation == 0:
+        if evse_violation == 0 and constraint_violation == 0:
             # TODO: currently only takes last actual charging rates, should take
             # all charging rates caused by this schedule
-            charging_reward = sum(list(self.interface.last_actual_charging_rate.values()))
-        reward = charging_reward + evse_violation + constraint_violation + unplugged_ev_violation
+            # TODO: function for this that doesn't require private variable access
+            charging_reward = np.sum(self.interface._simulator.charging_rates[:, self.interface.current_time-1])
+            # TODO: there seems to be a problem with plugging in 2 evs at the same timestep having inaccurate len active evs
+        # TODO: add options to toggle which rewards are included in the sum
+        reward = charging_reward + evse_violation + constraint_violation  + unplugged_ev_violation + self.reward_function(self.interface)
         return reward
 
-# TODO: random event generator within environment
+    def _done_from_state(self):
+        """ Determine if the simulation is done from the state of the simulator
+
+        Returns:
+            done (bool): True if the simulation is done, False if not
+        """
+        return self.interface.is_done
+
+class RebuildingEnv(DefaultSimEnv):
+    """ A simulator environment that subclasses DefaultSimEnv, with the extra property
+    that the entire simulation is rebuilt within the environment when __init__ or reset are called
+
+    This is especially useful if the network or event queue have stochastic elements.
+    """
+    def __init__(self, interface, reward_function=None, sim_gen_func=None):
+        """ Initialize this environment. Every Sim environment needs an interface to a simulator which
+        runs an iteration every time the environment is stepped.
+
+        Args:
+            interface (acnsim.GymInterface): OpenAI Gym Interface with ACN simulation for this environment to use.
+            reward_function (-> number): A function which takes no arguments and returns a number.
+            sim_gen_function (-> acnsim.GymInterface): function which returns a GymInterface to a generated simulator.
+        """
+        if sim_gen_func is None:
+            def sim_gen_func(self): return self.init_snapshot
+        else:
+            self.sim_gen_func = sim_gen_func
+        
+        super().__init__(interface, reward_function=reward_function)
+
+        self.interface = self.sim_gen_func()
 
     def reset(self):
+        """ Resets the state of the simulation and returns an initial observation.
+        Resetting is done by setting the interface to the simulation to an interface
+        to the simulation in its initial state.
+        
+        Returns:
+            observation (object): the initial observation.
         """
-        Initializes an environment containing a simulation with random events.
-        """
-        timezone = pytz.timezone('America/Los_Angeles')
-        start = timezone.localize(datetime(2018, 9, 5))
-        voltage = 220
-        period = 1
-
-        # Make random event queue
-        cn = acnsim.sites.simple_acn(basic_evse=True, voltage=voltage)
-        event_list = []
-        for station_id in cn.station_ids:
-            event_list.extend(random_plugin(10, 100, station_id))
-        event_queue = events.EventQueue(event_list)
-
-        # Placeholder algorithm
-        schrl = algorithms.OpenAIAlgorithm()
-
-        # Simulation to be wrapped
-        simrl = acnsim.Simulator(deepcopy(cn), schrl, deepcopy(event_queue), start, period=period, verbose=False)
-
-        self.interface = schrl.interface
-        observation = self._state_to_obs()
-        assert isinstance(observation, dict)
-        return self._state_to_obs()
-
-    def render(self):
-        pass
+        self.interface = self.sim_gen_func()
+        return self._observation_from_state()

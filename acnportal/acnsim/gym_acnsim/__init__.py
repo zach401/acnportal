@@ -1,16 +1,11 @@
 from gym.envs.registration import register
 
 register(
-    id='acnsim-prototype-v0',
-    entry_point='acnportal.acnsim.gym_acnsim.envs:SimPrototypeEnv',
+    id='default-acnsim-v0',
+    entry_point='acnportal.acnsim.gym_acnsim.envs:DefaultSimEnv',
 )
 
 register(
-    id='continuous-acnsim-prototype-v0',
-    entry_point='acnportal.acnsim.gym_acnsim.envs:ContSimPrototypeEnv',
-)
-
-register(
-    id='simple-acnsim-v0',
-    entry_point='acnportal.acnsim.gym_acnsim.envs:SimpleSimEnv',
+    id='rebuilding-acnsim-v0',
+    entry_point='acnportal.acnsim.gym_acnsim.envs:RebuildingEnv',
 )

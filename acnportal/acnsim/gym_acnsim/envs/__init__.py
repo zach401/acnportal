@@ -1,3 +1,2 @@
-from .sim_prototype_env import SimPrototypeEnv
-from .sim_prototype_env import ContSimPrototypeEnv
-from .sim_prototype_env import SimpleSimEnv
+from .sim_prototype_env import DefaultSimEnv
+from .sim_prototype_env import RebuildingEnv

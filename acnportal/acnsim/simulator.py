@@ -106,7 +106,7 @@ class Simulator:
         """
         # TODO: move feasibility checks to interface. step should ONLY do one step of run function
         if not self.event_queue.empty():
-            # Check if the newest schedule is feasible; don't continue the simulation if not
+            # Check if the newest schedule is feasible; don't continue sim if not
             if not self._feasibility_helper(new_schedule)[0]:
                 return False
             # TODO: This might call the event processing subloop twice per iteration
