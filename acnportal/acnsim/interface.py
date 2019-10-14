@@ -33,7 +33,7 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id)] for ev in self.active_evs if
+            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i] for ev in self.active_evs if
                 ev.arrival <= i}
         else:
             return {}
@@ -64,7 +64,6 @@ class Interface:
             int: Length of each time interval in the simulation. [minutes]
         """
         return self._simulator.period
-
 
     @property
     def max_recompute_time(self):
@@ -192,27 +191,33 @@ class Interface:
         return self._simulator.network.is_feasible(schedule_matrix, linear)
 
     def get_prices(self, length, start=None):
-        """
-        Get a vector of prices beginning at time start and continuing for length periods.
+        """ Get a vector of prices beginning at time start and continuing for length periods. ($/kWh)
 
-        :param int start: Time step of the simulation where price vector should begin.
-        :param int length: Number of elements in the prices vector. One entry per period.
-        :return: vector of floats of length length where each entry is a price which is valid for one period. [$/kWh]
+        Args:
+            length (int): Number of elements in the prices vector. One entry per period.
+            start (int): Time step of the simulation where price vector should begin. If None, uses the current timestep
+                of the simulation. Default None.
+
+        Returns:
+            np.ndarray[float]: Array of floats where each entry is the price for the corresponding period. ($/kWh)
         """
         if 'tariff' in self._simulator.signals:
             if start is None:
                 start = self.current_time
-            price_start = self._simulator.start + timedelta(minutes=self.period) * start
+            price_start = self._simulator.start + timedelta(minutes=self.period)*start
             return np.array(self._simulator.signals['tariff'].get_tariffs(price_start, length, self.period))
         else:
             raise ValueError('No pricing method is specified.')
 
     def get_demand_charge(self, start=None):
-        """
-        Get the demand charge scaled according to the length of the scheduling period.
+        """ Get the demand charge for the given period. ($/kW)
 
-        :param int start: Time step of the simulation where price vector should begin.
-        :return: float Demand charge for the scheduling period. [$/kW]
+        Args:
+            start (int): Time step of the simulation where price vector should begin. If None, uses the current timestep
+                of the simulation. Default None.
+
+        Returns:
+            float: Demand charge for the given period. ($/kW)
         """
         if 'tariff' in self._simulator.signals:
             if start is None:
@@ -223,11 +228,10 @@ class Interface:
             raise ValueError('No pricing method is specified.')
 
     def get_prev_peak(self):
-        """
-        Get the highest aggregate peak demand so far in the simulation.
+        """ Get the highest aggregate peak demand so far in the simulation.
 
-        :return: peak demand so far in the simulation.
-        :rtype: float
+        Returns:
+            float: Peak demand so far in the simulation. (A)
         """
         return self._simulator.peak
 
@@ -235,5 +239,4 @@ class Interface:
 class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """
     pass
-
 
