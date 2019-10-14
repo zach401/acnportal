@@ -1,5 +1,5 @@
 from .. import ChargingNetwork
-from .. constraint_set import Current
+from .. current import Current
 from ...models.evse import get_evse_by_type
 
 
