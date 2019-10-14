@@ -32,8 +32,7 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
-            # TODO: change back to session_id. For networks with unnamed sessions station_id is needed instead
-            return {ev.station_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i] for ev in self.active_evs if
+            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i] for ev in self.active_evs if
                 ev.arrival <= i}
         else:
             return {}
@@ -47,8 +46,7 @@ class Interface:
         Returns:
             Dict[str, number]:  A dictionary with the session ID as key and actual charging rate as value.
         """
-        # TODO: change back to session_id. For networks with unnamed sessions station_id is needed instead
-        return {ev.station_id: ev.current_charging_rate for ev in self.active_evs}
+        return {ev.session_id: ev.current_charging_rate for ev in self.active_evs}
 
     @property
     def current_time(self):
