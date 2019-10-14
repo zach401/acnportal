@@ -40,6 +40,7 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
     def __init__(self, increment=1):
         super().__init__()
         self._increment = increment
+        self.max_recompute = 1
 
     def schedule(self, active_evs):
         """ Schedule EVs by first sorting them by departure time, then allocating them their maximum feasible rate.
@@ -115,11 +116,11 @@ sch = EarliestDeadlineFirstAlgo(increment=1)
 sch2 = algorithms.SortedSchedulingAlgo(algorithms.earliest_deadline_first)
 
 # -- Simulator ---------------------------------------------------------------------------------------------------------
-sim = acnsim.Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, max_recomp=1, verbose=True)
+sim = acnsim.Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, verbose=True)
 sim.run()
 
 # For comparison we will also run the builtin earliest deadline first algorithm
-sim2 = acnsim.Simulator(deepcopy(cn), sch2, deepcopy(events), start, period=period, max_recomp=1)
+sim2 = acnsim.Simulator(deepcopy(cn), sch2, deepcopy(events), start, period=period)
 sim2.run()
 
 # -- Analysis ----------------------------------------------------------------------------------------------------------

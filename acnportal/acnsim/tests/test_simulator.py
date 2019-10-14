@@ -1,22 +1,16 @@
 from unittest import TestCase
 from unittest.mock import Mock, create_autospec
 
-import pandas as pd
 import numpy as np
-import os
+import pandas as pd
 
 from acnportal.acnsim import Simulator
 from acnportal.acnsim.network import ChargingNetwork
-from acnportal.acnsim import acndata_events
-from acnportal.acnsim import sites
 from acnportal.algorithms import BaseAlgorithm
 from acnportal.acnsim.events import EventQueue, Event
 from datetime import datetime
 from acnportal.acnsim.models import EVSE
 
-import json
-import pytz
-from copy import deepcopy
 
 class TestSimulator(TestCase):
     def setUp(self):
@@ -29,6 +23,7 @@ class TestSimulator(TestCase):
         evse3 = EVSE('PS-003', max_rate=32)
         network.register_evse(evse3, 240, 0)
         scheduler = create_autospec(BaseAlgorithm)
+        scheduler.max_recompute = None
         events = EventQueue(events=[Event(1), Event(2)])
         self.simulator = Simulator(network, scheduler, events, start)
 
@@ -57,3 +52,17 @@ class TestSimulator(TestCase):
     def test_index_of_evse(self):
         idx = self.simulator.index_of_evse('PS-002')
         self.assertEqual(idx, 1)
+
+    def test_pilot_signals_as_df(self):
+        self.simulator.pilot_signals = np.array([[1, 2], [3, 4], [5, 6]])
+        outframe = self.simulator.pilot_signals_as_df()
+        pd.testing.assert_frame_equal(outframe,
+            pd.DataFrame(np.array([[1, 3, 5], [2, 4, 6]]),
+                columns=['PS-001', 'PS-002', 'PS-003']))
+
+    def test_charging_rates_as_df(self):
+        self.simulator.charging_rates = np.array([[1.1, 2.1], [3.1, 4.1], [5.1, 6.1]])
+        outframe = self.simulator.charging_rates_as_df()
+        pd.testing.assert_frame_equal(outframe,
+            pd.DataFrame(np.array([[1.1, 3.1, 5.1], [2.1, 4.1, 6.1]]),
+                columns=['PS-001', 'PS-002', 'PS-003']))

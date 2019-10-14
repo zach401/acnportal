@@ -1,0 +1,25 @@
+{
+    "name": "SCE TOU-EV-8",
+    "effective": "2018-10-12",
+    "link": "https://www1.sce.com/NR/sc3/tm2/pdf/ce401.pdf",
+    "schedule": [
+        {
+            "id": "Summer",
+            "effective_start": "06-01",
+            "effective_end": "9-30",
+            "dow_mask": "ALL",
+            "times": [0, 16, 21],
+            "tariffs": [0.05993, 0.17698, 0.05993],
+            "demand_charge": 0
+        },
+        {
+            "id": "Winter",
+            "effective_start": "10-01",
+            "effective_end": "5-31",
+            "dow_mask": "ALL",
+            "times": [0, 8, 16, 21],
+            "tariffs": [0.05993, 0.03964, 0.17698, 0.05993],
+            "demand_charge": 0
+        }
+    ]
+}

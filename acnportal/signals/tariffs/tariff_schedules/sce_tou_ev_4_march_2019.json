@@ -1,0 +1,43 @@
+{
+    "name": "SCE TOU-EV-4",
+    "effective": "2019-3-1",
+    "link": "https://www1.sce.com/NR/sc3/tm2/pdf/ce141-12.pdf",
+    "schedule": [
+        {
+            "id": "Summer-Weekday",
+            "effective_start": "06-01",
+            "effective_end": "09-30",
+            "dow_mask": "WEEKDAYS",
+            "times": [0, 8, 12, 18, 23],
+            "tariffs": [0.05623, 0.0925, 0.26668, 0.0925, 0.05623],
+            "demand_charge": 15.51
+        },
+        {
+            "id": "Summer-Weekend",
+            "effective_start": "06-01",
+            "effective_end": "09-30",
+            "dow_mask": "WEEKENDS",
+            "times": [0],
+            "tariffs": [0.05623],
+            "demand_charge": 15.51
+        },
+        {
+            "id": "Winter-Weekday",
+            "effective_start": "10-01",
+            "effective_end": "05-31",
+            "dow_mask": "WEEKDAYS",
+            "times": [0, 8, 12, 18, 23],
+            "tariffs": [0.06087, 0.07492, 0.0869, 0.07492, 0.06087],
+            "demand_charge": 15.51
+        },
+        {
+            "id": "Winter-Weekend",
+            "effective_start": "10-01",
+            "effective_end": "05-31",
+            "dow_mask": "WEEKENDS",
+            "times": [0],
+            "tariffs": [0.06087],
+            "demand_charge": 15.51
+        }
+    ]
+}
