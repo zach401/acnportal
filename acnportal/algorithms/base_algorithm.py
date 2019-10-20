@@ -2,10 +2,15 @@ class BaseAlgorithm:
     """ Abstract base class meant to be inherited from to implement new algorithms.
 
     Subclassed must implement the schedule method.
+
+    Attributes:
+        max_recompute (int): Maximum number of periods between calling the scheduling algorithm even if no events occur.
+            If None, the scheduling algorithm is only called when an event occurs. Default: None.
     """
 
     def __init__(self):
         self._interface = None
+        self.max_recompute = None
 
     @property
     def interface(self):

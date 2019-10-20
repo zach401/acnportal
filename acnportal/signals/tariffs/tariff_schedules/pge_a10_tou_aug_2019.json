@@ -1,0 +1,43 @@
+{
+    "name": "PGE A-10 TOU",
+    "effective": "2019-07-01",
+    "link": "https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_A-10.pdf",
+    "schedule": [
+        {
+            "id": "Summer-Weekday",
+            "effective_start": "05-01",
+            "effective_end": "10-31",
+            "dow_mask": "WEEKDAYS",
+            "times": [0, 8.5, 12, 18, 21.5],
+            "tariffs": [0.14903, 0.1771, 0.23223, 0.1771, 0.14903],
+            "demand_charge": 19.99
+        },
+        {
+            "id": "Summer-Weekend",
+            "effective_start": "05-01",
+            "effective_end": "10-31",
+            "dow_mask": "WEEKENDS",
+            "times": [0],
+            "tariffs": [0.14903],
+            "demand_charge": 19.99
+        },
+        {
+            "id": "Winter-Weekday",
+            "effective_start": "11-01",
+            "effective_end": "4-30",
+            "dow_mask": "ALL",
+            "times": [0, 8.5, 21.5],
+            "tariffs": [0.13064, 0.1477, 0.13064],
+            "demand_charge": 11.66
+        },
+        {
+            "id": "Winter-Weekend",
+            "effective_start": "11-01",
+            "effective_end": "4-30",
+            "dow_mask": "ALL",
+            "times": [0],
+            "tariffs": [0.13064],
+            "demand_charge": 11.66
+        }
+    ]
+}
