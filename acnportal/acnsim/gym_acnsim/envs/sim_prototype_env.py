@@ -13,7 +13,6 @@ from acnportal.acnsim import events
 from acnportal.acnsim import models
 from acnportal.acnsim import gym_acnsim
 
-import gym
 from gym.wrappers import FlattenDictWrapper
 from gym.wrappers import ClipAction
 
@@ -128,7 +127,7 @@ class DefaultSimEnv(BaseSimEnv):
 
     The action and observation spaces are continuous.
 
-    An action in this environment is a charging rate for each EVSE, within the minimum and maximum
+    An action in this environment is a pilot signal for each EVSE, within the minimum and maximum
     EVSE rates.
 
     An observation is a dict consisting of fields (times are 1-indexed in
@@ -149,43 +148,41 @@ class DefaultSimEnv(BaseSimEnv):
 
     The simulation is considered done if the event queue is empty.
     """
-    def __init__(self, interface, reward_function=None):
+    def __init__(self, interface, reward_func=None):
         """ Initialize this environment. Every Sim environment needs an interface to a simulator which
         runs an iteration every time the environment is stepped.
 
         Args:
             interface (acnsim.GymInterface): OpenAI Interface with ACN simulation for this environment to use.
-            reward_function (acnsim.GymInterface -> number): A function which takes no arguments and returns a number.
+            reward_func (acnsim.GymInterface -> number): A function which takes no arguments and returns a number.
         """
         super().__init__(interface)
 
         # Get parameters that constrain the action/observation spaces
-        num_evses = self.interface.num_evses
-        min_rates = np.array([evse.min_rate for evse in self.interface.evse_list])
-        max_rates = np.array([evse.max_rate for evse in self.interface.evse_list])
+        self.num_evses = self.interface.num_evses
+        self.min_rates = np.array([evse.min_rate for evse in self.interface.evse_list])
+        self.max_rates = np.array([evse.max_rate for evse in self.interface.evse_list])
         constraint_matrix, magnitudes = self.interface.network_constraints
 
         # Some baselines require zero-centering; subtract this offset from actions to do this
         # TODO: this would be better as an action wrapper
-        self.rate_offset_array = (max_rates + min_rates) / 2
+        self.rate_offset_array = (self.max_rates + self.min_rates) / 2
         
-        if reward_function is None:
-            def reward_function(self): return 0
-        else:
-            # TODO: reward function should accept kwargs input by user to env init
-            self.reward_function = reward_function
+        if reward_func is None:
+            def reward_func(self): return 0
+        self.reward_func = reward_func
 
         # Action space is the set of possible schedules (0 - 32 A for each EVSE)
         # Recentered about 0
-        self.action_space = spaces.Box(low=min_rates-self.rate_offset_array, high=max_rates-self.rate_offset_array, dtype='float32')
+        self.action_space = spaces.Box(low=self.min_rates-self.rate_offset_array, high=self.max_rates-self.rate_offset_array, dtype='float32')
 
         # Observation space contains vectors with the following info
         # arrival time
-        arrival_space = spaces.Box(low=0, high=np.inf, shape=(num_evses,), dtype='float32')
+        arrival_space = spaces.Box(low=0, high=np.inf, shape=(self.num_evses,), dtype='float32')
         # departure time
-        departure_space = spaces.Box(low=0, high=np.inf, shape=(num_evses,), dtype='float32')
+        departure_space = spaces.Box(low=0, high=np.inf, shape=(self.num_evses,), dtype='float32')
         # remaining amp-period demand
-        remaining_demand_space = spaces.Box(low=0, high=np.inf, shape=(num_evses,), dtype='float32')
+        remaining_demand_space = spaces.Box(low=0, high=np.inf, shape=(self.num_evses,), dtype='float32')
         # constraint matrix (coefficients in aggregate currents)
         constraint_matrix_space = spaces.Box(low=-1*np.inf, high=np.inf, shape=constraint_matrix.shape, dtype='float32')
         # magnitude vector (upper limits on aggregate currents)
@@ -194,17 +191,17 @@ class DefaultSimEnv(BaseSimEnv):
         timestep_space = spaces.Box(low=0, high=np.inf, shape=(1,), dtype='float32')
 
         # Total observation space is a Dict space of the subspaces
-        self.observation_space = spaces.Dict({
+        # TODO: plurals for keys
+        self.observation_dict = {
             'arrivals': arrival_space,
             'departures': departure_space,
             'demand': remaining_demand_space,
             'constraint_matrix': constraint_matrix_space,
             'magnitudes': magnitudes_space,
             'timestep': timestep_space
-        })
+        }
+        self.observation_space = spaces.Dict(self.observation_dict)
 
-        # Var used to track EVs active in the previous timestep
-        self.prev_active = self.interface.active_evs
         # Var used to track most recent action
         self.action = None
 
@@ -223,7 +220,6 @@ class DefaultSimEnv(BaseSimEnv):
         action = action + self.rate_offset_array
         new_schedule = {self.interface.station_ids[i]: [action[i]] for i in range(len(action))}
         self.action = action
-        self.prev_active = self.interface.active_evs
         return new_schedule
 
     def _observation_from_state(self):
@@ -232,6 +228,8 @@ class DefaultSimEnv(BaseSimEnv):
         Returns:
             observation (object): an environment observation generated from the simulation state
         """
+        # Note constraint_matrix and magnitudes don't change in time, so are
+        # stored in self.static_obs
         curr_obs = self.static_obs
 
         # Time-like observations are 1 indexed as 0 means no EV is plugged in.
@@ -239,7 +237,7 @@ class DefaultSimEnv(BaseSimEnv):
         curr_obs['departures'] = np.array([evse.ev.departure + 1 if evse.ev is not None else 0 for evse in self.interface.evse_list])
         curr_obs['demand'] = np.array([self.interface.remaining_amp_periods(evse.ev) if evse.ev is not None else 0 for evse in self.interface.evse_list])
         curr_obs['timestep'] = self.interface.current_time + 1
-        
+
         return curr_obs
 
     def _reward_from_state(self):
@@ -282,7 +280,7 @@ class DefaultSimEnv(BaseSimEnv):
                 else outvec[i] - magnitudes[i] 
                     for i in range(len(outvec))])
         # Calculate total constraint violation, scaled by number of EVSEs
-        constraint_violation = np.linalg.norm(diffvec) * self.interface.num_evses * (-1)
+        constraint_violation = np.linalg.norm(diffvec) * self.num_evses * (-1)
 
         # If no violation penalties are incurred, reward for charge delivered
         charging_reward = 0
@@ -293,7 +291,7 @@ class DefaultSimEnv(BaseSimEnv):
             charging_reward = np.sum(self.interface._simulator.charging_rates[:, self.interface.current_time-1])
             # TODO: there seems to be a problem with plugging in 2 evs at the same timestep having inaccurate len active evs
         # TODO: add options to toggle which rewards are included in the sum
-        reward = charging_reward + evse_violation + constraint_violation  + unplugged_ev_violation + self.reward_function(self.interface)
+        reward = charging_reward + evse_violation + constraint_violation  + unplugged_ev_violation + self.reward_func(self.interface)
         return reward
 
     def _done_from_state(self):
@@ -310,13 +308,14 @@ class RebuildingEnv(DefaultSimEnv):
 
     This is especially useful if the network or event queue have stochastic elements.
     """
-    def __init__(self, interface, reward_function=None, sim_gen_func=None):
+    # TODO: reward_func or sim_gen_function, choose a convention
+    def __init__(self, interface, reward_func=None, sim_gen_func=None):
         """ Initialize this environment. Every Sim environment needs an interface to a simulator which
         runs an iteration every time the environment is stepped.
 
         Args:
             interface (acnsim.GymInterface): OpenAI Gym Interface with ACN simulation for this environment to use.
-            reward_function (-> number): A function which takes no arguments and returns a number.
+            reward_func (-> number): A function which takes no arguments and returns a number.
             sim_gen_function (-> acnsim.GymInterface): function which returns a GymInterface to a generated simulator.
         """
         if sim_gen_func is None:
@@ -324,7 +323,7 @@ class RebuildingEnv(DefaultSimEnv):
         else:
             self.sim_gen_func = sim_gen_func
         
-        super().__init__(interface, reward_function=reward_function)
+        super().__init__(interface, reward_func=reward_func)
 
         self.interface = self.sim_gen_func()
 

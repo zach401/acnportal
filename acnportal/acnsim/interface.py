@@ -292,7 +292,7 @@ class GymInterface(Interface):
         Returns:
             bool: True if the simulation is completed
         """
-        return self._simulator.step(new_schedule)
+        return self._simulator.step(new_schedule, check_feasibility=False)
 
     def last_energy_delivered(self):
         """ Return the actual energy delivered in the last period, in amp-periods

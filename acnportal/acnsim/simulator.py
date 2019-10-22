@@ -90,7 +90,8 @@ class Simulator:
             self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
 
-    def step(self, new_schedule):
+    def step(self, new_schedule, check_feasibility=True):
+        # TODO: check_feasibility might be superfluous as a function, maybe move into envs
         """ Step the simulation until the next schedule recompute is required.
 
         The step function executes a single iteration of the run() function. However,
@@ -105,21 +106,21 @@ class Simulator:
             bool: True if the simulation is complete.
         """
         # TODO: move feasibility checks to interface. step should ONLY do one step of run function
+        # Check if the newest schedule is feasible; don't continue sim if not
+        if check_feasibility and not self._feasibility_helper(new_schedule)[0]:
+            return False
+        # Update network with new schedules
+        self._update_schedules(new_schedule)
+        # Post-schedule update processing
+        if self.schedule_history is not None:
+            self.schedule_history[self._iteration] = new_schedule
+        self._last_schedule_update = self._iteration
         if not self.event_queue.empty():
-            # Check if the newest schedule is feasible; don't continue sim if not
-            if not self._feasibility_helper(new_schedule)[0]:
-                return False
             # TODO: This might call the event processing subloop twice per iteration
             current_events = self.event_queue.get_current_events(self._iteration)
             for e in current_events:
                 self.event_history.append(e)
                 self._process_event(e)
-            # Update network with new schedules
-            self._update_schedules(new_schedule)
-            # Post-schedule update processing
-            if self.schedule_history is not None:
-                self.schedule_history[self._iteration] = new_schedule
-            self._last_schedule_update = self._iteration
             self._resolve = False
             # Initialize schedule-free loop
             new_schedule_needed = False
