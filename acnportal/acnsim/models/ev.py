@@ -134,3 +134,7 @@ class EV:
         """
         self._energy_delivered = 0
         self._battery.reset()
+
+    def __eq__(self, other):
+        # TODO: Is this an acceptable definition?
+        return self.session_id == other.session_id

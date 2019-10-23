@@ -93,7 +93,7 @@ def env_func(interface, reward_func, sim_gen_func):
     Generate an environment compatible with simple baselines (i.e. flatten dict obs space)
     """
     return FlattenDictWrapper(gym.make(id='rebuilding-acnsim-v0',
-        interface=interface, reward_function=reward_func, sim_gen_func=sim_gen_func),
+        interface=interface, reward_func=reward_func, sim_gen_func=sim_gen_func),
         ['arrivals', 'departures', 'demand', 'constraint_matrix', 'magnitudes', 'timestep'])
 
 n_cpu = 1
