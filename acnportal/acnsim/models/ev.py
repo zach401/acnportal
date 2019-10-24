@@ -1,5 +1,5 @@
 from builtins import property
-
+from copy import deepcopy
 
 class EV:
     """Class to model the behavior of an Electrical Vehicle (ev).
@@ -27,6 +27,8 @@ class EV:
 
         # Internal State
         self._battery = battery
+        # Copy of the battery for reset() function
+        self._init_battery = deepcopy(battery)
         self._energy_delivered = 0
         self._current_charging_rate = 0
 
@@ -133,7 +135,7 @@ class EV:
             None.
         """
         self._energy_delivered = 0
-        self._battery.reset()
+        self._battery = deepcopy(self._init_battery)
 
     def __eq__(self, other):
         # TODO: Is this an acceptable definition?

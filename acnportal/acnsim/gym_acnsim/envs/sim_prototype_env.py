@@ -38,11 +38,16 @@ class BaseSimEnv(gym.Env):
     Attributes:
         interface (GymInterface): an interface to a simulation to be stepped by this environment.
         init_snapshot (GymInterface): a deep copy of the initial interface, used for environment resets.
+        prev_interface (GymInterface): a deep copy of the interface at the previous time step; used for calculating action rewards.
+        action (object): the action taken by the agent in this agent-environment loop iteration
     """
 
     def __init__(self, interface):
         self.interface = interface
         self.init_snapshot = copy.deepcopy(interface)
+        # TODO: having prev_interface functionality slows down stepping as each step makes a copy of the entire simulation
+        self.prev_interface = copy.deepcopy(interface)
+        self.action = None
 
     def step(self, action):
         """ Step the simulation one timestep with an agent's action.
@@ -58,7 +63,11 @@ class BaseSimEnv(gym.Env):
             done (bool): whether the episode has ended, in which case further step() calls will return undefined results
             info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
         """
+        # TODO: We can remove action as an input ot action_to_schedule and use instance var isntead
+        self.action = action
         schedule = self._action_to_schedule(action)
+        
+        self.prev_interface = copy.deepcopy(self.interface)
         self.interface.step(schedule)
         
         observation = self._observation_from_state()
@@ -76,7 +85,8 @@ class BaseSimEnv(gym.Env):
         Returns:
             observation (object): the initial observation.
         """
-        self.interface = self.init_snapshot
+        self.interface = copy.deepcopy(self.init_snapshot)
+        self.prev_interface = copy.deepcopy(self.init_snapshot)
         return self._observation_from_state()
 
     def _action_to_schedule(self, action):
@@ -96,6 +106,7 @@ class BaseSimEnv(gym.Env):
         Returns:
             observation (object): an environment observation generated from the simulation state
         """
+        # TODO: should always copy over previous and current interfaces
         raise NotImplementedError
 
     def _reward_from_state(self):
@@ -202,9 +213,6 @@ class DefaultSimEnv(BaseSimEnv):
         }
         self.observation_space = spaces.Dict(self.observation_dict)
 
-        # Var used to track most recent action
-        self.action = None
-
         # Portion of the observation that is independent of agent action
         self.static_obs = {'constraint_matrix': constraint_matrix, 'magnitudes': magnitudes}
 
@@ -219,7 +227,6 @@ class DefaultSimEnv(BaseSimEnv):
         """
         action = action + self.rate_offset_array
         new_schedule = {self.interface.station_ids[i]: [action[i]] for i in range(len(action))}
-        self.action = action
         return new_schedule
 
     def _observation_from_state(self):
@@ -246,7 +253,7 @@ class DefaultSimEnv(BaseSimEnv):
         Returns:
             reward (float): a reward generated from the simulation state
         """
-        action = self.action
+        action = self.action + self.rate_offset_array
         # EVSE violation is the (negative) sum of violations of individual EVSE constraints,
         # e.g. min/max charging rates.
         evse_violation = 0
@@ -325,7 +332,10 @@ class RebuildingEnv(DefaultSimEnv):
         
         super().__init__(interface, reward_func=reward_func)
 
-        self.interface = self.sim_gen_func()
+        temp_interface = self.sim_gen_func()
+        self.interface = copy.deepcopy(temp_interface)
+        self.prev_interface = copy.deepcopy(temp_interface)
+        self.init_snapshot = copy.deepcopy(temp_interface)
 
     def reset(self):
         """ Resets the state of the simulation and returns an initial observation.
@@ -335,5 +345,8 @@ class RebuildingEnv(DefaultSimEnv):
         Returns:
             observation (object): the initial observation.
         """
-        self.interface = self.sim_gen_func()
+        temp_interface = self.sim_gen_func()
+        self.interface = copy.deepcopy(temp_interface)
+        self.prev_interface = copy.deepcopy(temp_interface)
+        self.init_snapshot = copy.deepcopy(temp_interface)
         return self._observation_from_state()

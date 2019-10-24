@@ -305,7 +305,7 @@ class GymInterface(Interface):
     def constraint_currents(self, input_schedule):
         # TODO: standardize schedule input format for interface functions
         return abs(self._simulator.network.constraint_current(input_schedule, time_indices=[0]))
-
+    # TODO: Add a function that gives the EVs unplugged in the last time step
 
 class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """
