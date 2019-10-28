@@ -316,7 +316,7 @@ class RebuildingEnv(DefaultSimEnv):
     This is especially useful if the network or event queue have stochastic elements.
     """
     # TODO: reward_func or sim_gen_function, choose a convention
-    def __init__(self, interface, reward_func=None, sim_gen_func=None):
+    def __init__(self, interface, reward_func=None, sim_gen_func=None, event_lst=None):
         """ Initialize this environment. Every Sim environment needs an interface to a simulator which
         runs an iteration every time the environment is stepped.
 
@@ -326,13 +326,17 @@ class RebuildingEnv(DefaultSimEnv):
             sim_gen_function (-> acnsim.GymInterface): function which returns a GymInterface to a generated simulator.
         """
         if sim_gen_func is None:
-            def sim_gen_func(self): return self.init_snapshot
+            def sim_gen_func(self, *args, **kwargs): return self.init_snapshot
         else:
             self.sim_gen_func = sim_gen_func
+            self.event_lst = event_lst
         
         super().__init__(interface, reward_func=reward_func)
 
-        temp_interface = self.sim_gen_func()
+        if self.event_lst is None:
+            temp_interface = self.sim_gen_func()
+        else:
+            temp_interface = self.sim_gen_func(self.event_lst)
         self.interface = copy.deepcopy(temp_interface)
         self.prev_interface = copy.deepcopy(temp_interface)
         self.init_snapshot = copy.deepcopy(temp_interface)
@@ -345,7 +349,10 @@ class RebuildingEnv(DefaultSimEnv):
         Returns:
             observation (object): the initial observation.
         """
-        temp_interface = self.sim_gen_func()
+        if self.event_lst is None:
+            temp_interface = self.sim_gen_func()
+        else:
+            temp_interface = self.sim_gen_func(self.event_lst)
         self.interface = copy.deepcopy(temp_interface)
         self.prev_interface = copy.deepcopy(temp_interface)
         self.init_snapshot = copy.deepcopy(temp_interface)

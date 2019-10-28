@@ -47,7 +47,7 @@ def get_evs(token, site, start, end, period, voltage, max_battery_power, max_len
             of energy which could be delivered at maximum rate during the duration of the charging session.
             Default False.
     Returns:
-
+        # TODO: what does it return?
     """
     client = DataClient(token)
     docs = client.get_sessions_by_time(site, start, end)
