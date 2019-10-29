@@ -130,7 +130,7 @@ class Simulator:
         """ Extend the current self.pilot_signals with the new pilot signal schedule.
 
         Args:
-            new_schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
+            new_schedule (Dict[str, List[number]]): Dictionary mapping station ids to a schedule of pilot signals.
 
         Returns:
             None
@@ -153,12 +153,12 @@ class Simulator:
         schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
         if not self.network.is_feasible(schedule_matrix):
             warnings.warn("Invalid schedule provided at iteration {0}".format(self._iteration), UserWarning)
-        if self._iteration + schedule_length <= len(self.pilot_signals[0]):
+        if self._iteration + schedule_length < len(self.pilot_signals[0]):
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
         else:
             # We've reached the end of pilot_signals, so double pilot_signal array width
             self.pilot_signals = _increase_width(self.pilot_signals,
-                max(self.event_queue.get_last_timestamp() + 1, self._iteration + schedule_length))
+                max(self.event_queue.get_last_timestamp() + 1, self._iteration + schedule_length + 1))
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
 
     def _store_actual_charging_rates(self):
