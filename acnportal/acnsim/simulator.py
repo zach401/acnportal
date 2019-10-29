@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import warnings
 
-from .events import UnplugEvent
+from .events import Departure
 from .interface import Interface, InvalidScheduleError
 
 
@@ -75,7 +75,7 @@ class Simulator:
             current_events = self.event_queue.get_current_events(self._iteration)
             for e in current_events:
                 self.event_history.append(e)
-                self._process_event(e)
+                e.execute(self)
             if self._resolve or \
                     self.max_recompute is not None and \
                     self._iteration - self._last_schedule_update >= self.max_recompute:
@@ -114,7 +114,7 @@ class Simulator:
             self._print('Plugin Event...')
             self.network.plugin(event.ev, event.ev.station_id)
             self.ev_history[event.ev.session_id] = event.ev
-            self.event_queue.add_event(UnplugEvent(event.ev.departure, event.ev.station_id, event.ev.session_id))
+            self.event_queue.add_event(Departure(event.ev.departure, event.ev))
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.type == 'Unplug':
@@ -172,7 +172,7 @@ class Simulator:
             self.charging_rates[:, self._iteration] = current_rates.T
         self.peak = max(self.peak, agg)
 
-    def _print(self, s):
+    def print(self, s):
         if self.verbose:
             print(s)
 
@@ -193,6 +193,7 @@ class Simulator:
         if station_id not in self.network.station_ids:
             raise KeyError("EVSE {0} not found in network.".format(station_id))
         return self.network.station_ids.index(station_id)
+
 
 def _increase_width(a, target_width):
     """ Returns a new 2-D numpy array with target_width number of columns, with the contents

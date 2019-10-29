@@ -162,7 +162,6 @@ class ChargingNetwork:
         self.remove_constraint(name)
         self.add_constraint(current, limit, name=new_name)
 
-
     def arrive(self, ev):
         """ Attach EV to a specific EVSE.
 
