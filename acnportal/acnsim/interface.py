@@ -1,6 +1,9 @@
 """
 This module contains methods for directly interacting with the _simulator.
 """
+import numpy as np
+from datetime import timedelta
+from collections import namedtuple
 
 
 class Interface:
@@ -30,8 +33,8 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self._simulator.pilot_signals[ev.station_id][i] for ev in self.active_evs if
-                    ev.arrival <= i}
+            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i] for ev in self.active_evs if
+                ev.arrival <= i}
         else:
             return {}
 
@@ -61,7 +64,6 @@ class Interface:
             int: Length of each time interval in the simulation. [minutes]
         """
         return self._simulator.period
-
 
     @property
     def max_recompute_time(self):
@@ -123,6 +125,17 @@ class Interface:
         """
         return self._simulator.network.voltages[station_id]
 
+    def evse_phase(self, station_id):
+        """ Returns the phase angle of the EVSE.
+
+        Args:
+            station_id (str): The ID of the station for which the allowable rates should be returned.
+
+        Returns:
+            float: phase angle of the EVSE. [degrees]
+        """
+        return self._simulator.network.phase_angles[station_id]
+
     def remaining_amp_periods(self, ev):
         """ Return the EV's remaining demand in A*periods.
 
@@ -140,67 +153,90 @@ class Interface:
         """
         return kwh * 1000 / self.evse_voltage(station_id) * 60 / self.period
 
-    def is_feasible(self, load_currents, t=0, linear=False):
+    def get_constraints(self):
+        """ Get the constraint matrix and corresponding EVSE ids for the network.
+
+        Returns:
+            np.ndarray: Matrix representing the constraints of the network. Each row is a constraint and each
+        """
+        Constraint = namedtuple('Constraint', ['constraint_matrix', 'magnitudes', 'constraint_index', 'evse_index'])
+        network = self._simulator.network
+        return Constraint(network.constraint_matrix, network.magnitudes, network.constraint_index, network.station_ids)
+
+    def is_feasible(self, load_currents, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.
 
         Wraps Network's is_feasible method.
 
         Args:
             load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
-            t (int): Index into the charging rate schedule where feasibility should be checked.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
 
         Returns:
-            bool: If load_currents is feasible at time t according to this constraint set.
+            bool: If load_currents is feasible at time t according to this set of constraints.
         """
-        return self._simulator.network.is_feasible(load_currents, t, linear)
+        if len(load_currents) == 0:
+            return True
 
-    # def get_prices(self, start, length):
-    #     """
-    #     Get a vector of prices beginning at time start and continuing for length periods.
-    #
-    #     :param int start: Time step of the simulation where price vector should begin.
-    #     :param int length: Number of elements in the prices vector. One entry per period.
-    #     :return: vector of floats of length length where each entry is a price which is valid for one period.
-    #     """
-    #     if self._simulator.prices is not None:
-    #         return self._simulator.prices.get_prices(start, length)
-    #     else:
-    #         raise ValueError('No pricing method is specified.')
-    #
-    # def get_demand_charge(self, schedule_len):
-    #     """
-    #     Get the demand charge scaled according to the length of the scheduling period.
-    #
-    #     :param int schedule_len: length of the schedule in number of periods.
-    #     :return: float Demand charge scaled for the scheduling period.
-    #     """
-    #     if self._simulator.prices is not None:
-    #         return self._simulator.prices.get_normalized_demand_charge(self._simulator.period, schedule_len)
-    #     else:
-    #         raise ValueError('No pricing method is specified.')
-    #
-    # def get_revenue(self):
-    #     """
-    #     Get the per unit revenue of energy.
-    #
-    #     :return: float Revenue per unit of energy.
-    #     """
-    #     if self._simulator.prices is not None:
-    #         return self._simulator.prices.revenue
-    #     else:
-    #         raise ValueError('No pricing method is specified.')
-    #
-    # def get_prev_peak(self):
-    #     """
-    #     Get the highest aggregate peak demand so far in the simulation.
-    #
-    #     :return: peak demand so far in the simulation.
-    #     :rtype: float
-    #     """
-    #     return self._simulator.peak
-    #
-    # def get_max_recompute_period(self):
-    #     return self._simulator.max_recompute
+        # Check that all schedules are the same length
+        schedule_lengths = set(len(x) for x in load_currents.values())
+        if len(schedule_lengths) > 1:
+            raise InvalidScheduleError('All schedules should have the same length.')
+        schedule_length = schedule_lengths.pop()
+
+        # Convert input schedule into its matrix representation
+        schedule_matrix = np.array(
+            [load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id in self._simulator.network.station_ids])
+        return self._simulator.network.is_feasible(schedule_matrix, linear)
+
+    def get_prices(self, length, start=None):
+        """ Get a vector of prices beginning at time start and continuing for length periods. ($/kWh)
+
+        Args:
+            length (int): Number of elements in the prices vector. One entry per period.
+            start (int): Time step of the simulation where price vector should begin. If None, uses the current timestep
+                of the simulation. Default None.
+
+        Returns:
+            np.ndarray[float]: Array of floats where each entry is the price for the corresponding period. ($/kWh)
+        """
+        if 'tariff' in self._simulator.signals:
+            if start is None:
+                start = self.current_time
+            price_start = self._simulator.start + timedelta(minutes=self.period)*start
+            return np.array(self._simulator.signals['tariff'].get_tariffs(price_start, length, self.period))
+        else:
+            raise ValueError('No pricing method is specified.')
+
+    def get_demand_charge(self, start=None):
+        """ Get the demand charge for the given period. ($/kW)
+
+        Args:
+            start (int): Time step of the simulation where price vector should begin. If None, uses the current timestep
+                of the simulation. Default None.
+
+        Returns:
+            float: Demand charge for the given period. ($/kW)
+        """
+        if 'tariff' in self._simulator.signals:
+            if start is None:
+                start = self.current_time
+            price_start = self._simulator.start + timedelta(minutes=self.period) * start
+            return self._simulator.signals['tariff'].get_demand_charge(price_start)
+        else:
+            raise ValueError('No pricing method is specified.')
+
+    def get_prev_peak(self):
+        """ Get the highest aggregate peak demand so far in the simulation.
+
+        Returns:
+            float: Peak demand so far in the simulation. (A)
+        """
+        return self._simulator.peak
+
+
+class InvalidScheduleError(Exception):
+    """ Raised when the schedule passed to the simulator is invalid. """
+    pass
 

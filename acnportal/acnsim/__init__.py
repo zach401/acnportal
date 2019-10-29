@@ -1,6 +1,5 @@
 from .simulator import Simulator
-from .simulator import InvalidScheduleError
-from .interface import Interface
+from .interface import Interface, InvalidScheduleError
 
 from .analysis import *
 from .events import *
