@@ -312,6 +312,9 @@ class ChargingNetwork:
             schedule_length = len(schedule_matrix[0])
             return np.all(np.tile(self.magnitudes + 1e-5, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
+    def post_charging_update(self):
+        pass
+
 
 class StationOccupiedError(Exception):
     """ Exception which is raised when trying to add an EV to an EVSE which is already occupied."""

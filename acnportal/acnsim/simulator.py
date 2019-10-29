@@ -87,6 +87,7 @@ class Simulator:
                 self._resolve = False
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
+            self.network.post_charging_update()
             self._iteration = self._iteration + 1
 
     def get_active_evs(self):

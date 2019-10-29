@@ -4,13 +4,16 @@ import warnings
 
 from acnportal.acnsim.network.charging_network import ChargingNetwork
 
+
 class AffinityChargingNetwork(ChargingNetwork):
-    def __init__(self):
+    def __init__(self, early_departure=False):
         """ Extends ChargingNetwork to support non-deterministic space assignment."""
         super().__init__()
         self.waiting_queue = deque()
         self.swaps = 0
         self.never_charged = 0
+        self.early_unplug = 0
+        self.early_departure = early_departure
 
     def available_evses(self):
         """ Return a list of all EVSEs which do not have an EV attached. """
@@ -53,8 +56,15 @@ class AffinityChargingNetwork(ChargingNetwork):
         elif ev in self.waiting_queue:
             self.waiting_queue.remove(ev)
             self.never_charged += 1
-        else:
-            warnings.warn('EV {0} cannot depart as it is neither plugged in or in the waiting queue.')
+        # else:
+        #     warnings.warn('EV {0} cannot depart as it is neither plugged in or in the waiting queue.')
+
+    def post_charging_update(self):
+        if self.early_departure:
+            fully_charged_evs = [evse.ev for evse in self._EVSEs.values() if evse.ev is not None and evse.ev.fully_charged]
+            for ev in fully_charged_evs:
+                if len(self.waiting_queue) > 0:
+                    self.depart(ev)
 
 
 
