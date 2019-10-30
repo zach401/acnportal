@@ -27,40 +27,98 @@ class Event:
         """
         return self.precedence < other.precedence
 
+    def execute(self, sim):
+        """ Execute actions associated with the event.
 
-class PluginEvent(Event):
+        Args:
+            sim (Simulator): Simulator on which the event should be executed.
+
+        Returns:
+            None
+
+        Raises:
+            NotImplementedError: Event does not implement the execute() method, it is left to subclasses.
+        """
+        raise NotImplementedError('Error. Event does not implement the execute() method. Please use a derived class.')
+
+
+class Arrival(Event):
     """ Subclass of Event for EV plugins.
 
     Args:
         timestamp (int): See Event.
-        ev (EV): The EV which will be plugged in.
+        ev (EV): The EV which is arriving.
     """
     def __init__(self, timestamp, ev):
         super().__init__(timestamp)
-        self.type = 'Plugin'
+        self.type = 'Arrival'
         self.ev = ev
         self.precedence = 10
 
+    def execute(self, sim):
+        """ Process an EV arriving to the network.
 
-class UnplugEvent(Event):
+        Calls the network's plugin handler and stored the EV in the sim's ev_history.
+        Also automatically creates a departure event.
+        Triggers resolve.
+
+        Args:
+            sim (Simulator): Simulator on which the event should be executed.
+
+        Returns:
+            None
+        """
+        sim.print('Plugin Event...')
+        sim.network.arrive(self.ev)
+        sim.ev_history[self.ev.session_id] = self.ev
+        sim.event_queue.add_event(Departure(self.ev.departure, self.ev))
+        sim._resolve = True
+
+
+class Departure(Event):
     """ Subclass of Event for EV unplugs.
 
     Args:
         timestamp (int): See Event.
-        station_id (str): ID of the EVSE where the EV is to be unplugged.
-        session_id (str): ID of the session which should be ended.
+        ev (EV): The EV which is departing.
     """
-    def __init__(self, timestamp, station_id, session_id):
+    def __init__(self, timestamp, ev):
         super().__init__(timestamp)
-        self.type = 'Unplug'
-        self.station_id = station_id
-        self.session_id = session_id
+        self.type = 'Departure'
+        self.ev = ev
         self.precedence = 0
 
+    def execute(self, sim):
+        """ Process an EV leaving the network.
 
-class RecomputeEvent(Event):
+        Calls the network's unplug handler and triggers resolve.
+
+        Args:
+            sim (Simulator): Simulator on which the event should be executed.
+
+        Returns:
+            None
+        """
+        sim.print('Unplug Event...')
+        sim.network.depart(self.ev)
+        sim._resolve = True
+
+
+class Recompute(Event):
     """ Subclass of Event for when the algorithm should be recomputed."""
     def __init__(self, timestamp):
         super().__init__(timestamp)
         self.type = 'Recompute'
         self.precedence = 20
+
+    def execute(self, sim):
+        """ Triggers a resolve of the scheduling algorithm.
+
+        Args:
+            sim (Simulator): Simulator on which the event should be executed.
+
+        Returns:
+            None
+        """
+        sim.print('Recompute Event...')
+        sim._resolve = True

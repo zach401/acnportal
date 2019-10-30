@@ -3,7 +3,7 @@ from datetime import datetime
 
 from ..models.ev import EV
 from ..models.battery import Battery
-from . import PluginEvent
+from . import Arrival
 from .event_queue import EventQueue
 from acnportal.acndata import DataClient
 
@@ -19,7 +19,7 @@ def generate_events(token, site, start, end, period, voltage, max_rate, **kwargs
 
     """
     evs = get_evs(token, site, start, end, period, voltage, max_rate, **kwargs)
-    events = [PluginEvent(sess.arrival, sess) for sess in evs]
+    events = [Arrival(sess.arrival, sess) for sess in evs]
     return EventQueue(events)
 
 
@@ -94,7 +94,7 @@ def _convert_to_ev(d, offset, period, voltage, max_battery_power, max_len=None, 
     else:
         cap = delivered_energy
         init = 0
-    batt = battery_params['type'](d['kWhDelivered'], init, max_battery_power, **batt_kwargs)
+    batt = battery_params['type'](cap, init, max_battery_power, **batt_kwargs)
 
     # delivered_energy_amp_periods = delivered_energy * 1000 * (60 / period) / voltage
     return EV(arrival, departure, delivered_energy, station_id, session_id, batt)

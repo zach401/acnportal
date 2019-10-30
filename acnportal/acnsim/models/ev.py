@@ -75,6 +75,11 @@ class EV:
         """ Return the unique identifier for the EVSE used for this charging session. """
         return self._station_id
 
+    @station_id.setter
+    def station_id(self, value):
+        """ Set the unique identifier for the EVSE used for this charging session. """
+        self._station_id = value
+
     @property
     def energy_delivered(self):
         """ Return the total energy delivered so far in this charging session. (float) """
@@ -134,3 +139,28 @@ class EV:
         """
         self._energy_delivered = 0
         self._battery.reset()
+
+
+class AffinityEV(EV):
+    def __init__(self, arrival, departure, requested_energy, station_id, session_id, battery, estimated_departure=None,
+                 affinity_map=None, unplug_delay=None, unqueue_delay=None):
+        """ Extends EV class to include an affinity map over spaces in a network.
+
+        Args:
+            See EV for inherited arguments.
+            affinity_map (Dict[str, float]): Dictionary mapping station_ids to a probability mass which represents the
+                user's preferences over spaces All values should be non-zero. If None, assume a uniform density over
+                all spaces. Default None.
+            unplug_delay (int): Number of periods between when a vehicle finishes charging and when the driver moves
+                their vehicle. Can use None to represent that the driver will not leave until their departure time.
+                Default None.
+            unqueue_delay (int): Number of periods between when a driver is notified a spot is empty and when they
+                actually plug in. Can use None to represent that the driver is not willing to use the queue system.
+                Default None.
+        """
+        super().__init__(arrival, departure, requested_energy, station_id, session_id, battery, estimated_departure)
+        self.affinity_map = affinity_map
+        self.unplug_delay = unplug_delay
+        self.unqueue_delay = unqueue_delay
+
+

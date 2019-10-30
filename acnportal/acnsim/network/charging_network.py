@@ -162,8 +162,7 @@ class ChargingNetwork:
         self.remove_constraint(name)
         self.add_constraint(current, limit, name=new_name)
 
-
-    def plugin(self, ev, station_id):
+    def arrive(self, ev):
         """ Attach EV to a specific EVSE.
 
         Args:
@@ -175,17 +174,18 @@ class ChargingNetwork:
 
         Raises:
             KeyError: Raised when the station id has not yet been registered.
+            StationOccupiedError: Raised when a station is already occupied.
         """
-        if station_id in self._EVSEs:
-            self._EVSEs[station_id].plugin(ev)
+        if ev.station_id in self._EVSEs:
+            self._EVSEs[ev.station_id].plugin(ev)
         else:
-            raise KeyError('Station {0} not found.'.format(station_id))
+            raise KeyError('Station {0} not found.'.format(ev.station_id))
 
-    def unplug(self, station_id):
+    def depart(self, ev):
         """ Detach EV from a specific EVSE.
 
         Args:
-            station_id (str): ID of the EVSE.
+            ev (EV): EV object which will be detached from the EVSE.
 
         Returns:
             None
@@ -193,10 +193,19 @@ class ChargingNetwork:
         Raises:
             KeyError: Raised when the station id has not yet been registered.
         """
-        if station_id in self._EVSEs:
-            self._EVSEs[station_id].unplug()
+        if ev.station_id in self._EVSEs:
+            if self._EVSEs[ev.station_id].ev is not None:
+                if self._EVSEs[ev.station_id].ev.session_id == ev.session_id:
+                    self._EVSEs[ev.station_id].unplug()
+                else:
+                    warnings.warn('EV at {0} has session_id {1} expected {2}. '
+                                  'EV will not be removed.'.format(ev.station_id,
+                                                                   self._EVSEs[ev.station_id].ev.session_id,
+                                                                   ev.session_id))
+            else:
+                warnings.warn('{0} does not currently have an EV to unplug.'.format(ev.station_id))
         else:
-            raise KeyError('Station {0} not found.'.format(station_id))
+            raise KeyError('Station {0} not found.'.format(ev.station_id))
 
     def get_ev(self, station_id):
         """ Return the EV attached to the specified EVSE.
@@ -245,7 +254,7 @@ class ChargingNetwork:
                 column corresponding to a time index in the schedule.
             constraints (List[str]): List of constraint id's for which to calculate aggregate current. If
                 None, calculates aggregate currents for all constraints.
-            time_indices (List[int]): List of time indices for which to calculate aggregate current. If None, 
+            time_indices (List[int]): List of time indices for which to calculate aggregate current. If None,
                 calculates aggregate currents for all timesteps.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
@@ -302,6 +311,9 @@ class ChargingNetwork:
         else:
             schedule_length = len(schedule_matrix[0])
             return np.all(np.tile(self.magnitudes + 1e-5, (schedule_length, 1)).T >= np.abs(aggregate_currents))
+
+    def post_charging_update(self):
+        pass
 
 
 class StationOccupiedError(Exception):
