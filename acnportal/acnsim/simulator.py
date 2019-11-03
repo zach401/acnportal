@@ -112,19 +112,19 @@ class Simulator:
             None
         """
         if event.type == 'Plugin':
-            self._print('Plugin Event...')
+            self.print('Plugin Event...')
             self.network.plugin(event.ev, event.ev.station_id)
             self.ev_history[event.ev.session_id] = event.ev
             self.event_queue.add_event(Departure(event.ev.departure, event.ev))
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.type == 'Unplug':
-            self._print('Unplug Event...')
+            self.print('Unplug Event...')
             self.network.unplug(event.station_id)
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.type == 'Recompute':
-            self._print('Recompute Event...')
+            self.print('Recompute Event...')
             self._resolve = True
 
     def _update_schedules(self, new_schedule):
@@ -140,6 +140,9 @@ class Simulator:
             KeyError: Raised when station_id is in the new_schedule but not registered in the Network.
         """
         if len(new_schedule) == 0:
+            if self._iteration >= len(self.pilot_signals[0]):
+                self.pilot_signals = _increase_width(self.pilot_signals,
+                                                     max(self.event_queue.get_last_timestamp() + 1, self._iteration))
             return
 
         for station_id in new_schedule:
