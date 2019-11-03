@@ -1,9 +1,6 @@
-import math
-from datetime import datetime
-
 from ..models.ev import EV
 from ..models.battery import Battery
-from . import PluginEvent
+from . import Arrival
 from .event_queue import EventQueue
 import numpy as np
 
@@ -33,16 +30,17 @@ def gmm_events(gmm, arrivals_per_day, period, voltage, max_battery_power, **kwar
     Returns:
         EventQueue: An EventQueue filled with Events gathered through the acndata API.
     """
-    periods_per_day = 24 * 60 / period
-    total_evs = sum(arrivals_per_day[d])
+    total_evs = sum(arrivals_per_day)
     ev_matrix = np.zeros(shape=(total_evs,3))
     working_head = 0
     for d in range(len(arrivals_per_day)):
-        daily_arrivals = gmm.sample(arrivals_per_day[d])
-        daily_arrivals[:, 0] += periods_per_day * d
-        ev_matrix[working_head:working_head+arrivals_per_day[d], :] = daily_arrivals
+        if arrivals_per_day[d] > 0:
+            daily_arrivals, _ = gmm.sample(arrivals_per_day[d])
+            daily_arrivals[:, 0] += 24 * d
+            ev_matrix[working_head:working_head+arrivals_per_day[d], :] = daily_arrivals
+            working_head += arrivals_per_day[d]
     evs = _convert_ev_matrix(ev_matrix, period, voltage, max_battery_power, **kwargs)
-    events = [PluginEvent(sess.arrival, sess) for sess in evs]
+    events = [Arrival(sess.arrival, sess) for sess in evs]
     return EventQueue(events)
 
 
@@ -56,11 +54,11 @@ def assign_random_stations(events):
         EventQueue: An EventQueue with random spaces assigned.
 
     """
-    T = max(event.ev.departure for timestamp, event in events._queue if isinstance(events, PluginEvent))
+    T = max(event.ev.departure for timestamp, event in events._queue if isinstance(events, Arrival))
     assignment_matrix = np.ones(shape=(1, T))
     evs = []
     for arrival, event in events._queue:
-        if isinstance(events, PluginEvent):
+        if isinstance(events, Arrival):
             ev = event.ev
             available = np.all(assignment_matrix[:, ev.arrival:ev.departure], axis=1)
             if not np.any(available):
@@ -71,7 +69,7 @@ def assign_random_stations(events):
             ev.station_id = 'station_{0}'.format(assignment)
             evs.append(ev)
             assignment_matrix[assignment, ev.arrival:ev.departure] = 0
-    return EventQueue([PluginEvent(ev.arrival, ev) for ev in evs])
+    return EventQueue([Arrival(ev.arrival, ev) for ev in evs])
 
 
 def _convert_ev_matrix(ev_matrix, period, voltage, max_battery_power, max_len=None, battery_params=None,
@@ -114,6 +112,12 @@ def _convert_ev_matrix(ev_matrix, period, voltage, max_battery_power, max_len=No
     evs = []
     for row_idx, row in enumerate(ev_matrix):
         arrival, sojourn, kWh_delivered = row
+        arrival = int(arrival)
+        sojourn = int(sojourn)
+
+        if arrival < 0 or sojourn <= 0 or kWh_delivered <= 0:
+            print('Invalid session.')
+            continue
         departure = arrival + sojourn
 
         session_id = 'session_{0}'.format(row_idx)
