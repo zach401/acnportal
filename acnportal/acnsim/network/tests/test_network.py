@@ -136,6 +136,12 @@ class TestChargingNetworkConstraints(TestCase):
                 columns=['PS-001', 'PS-004', 'PS-003', 'PS-002', 'PS-006'],
                 index=['first_constraint', '_const_1']))
 
+    def test_add_constraint_unregistered_evse(self):
+        curr_dict3 = {'PS-001' : -0.25, 'PS-005' : -0.50, 'PS-003' : 0.25}
+        current3 = Current(curr_dict3)
+        with self.assertRaises(KeyError):
+            self.network.add_constraint(current3, 25, name='_bad_const')
+
     def test_add_constraint(self):
         np.testing.assert_allclose(self.network.magnitudes, np.array([50, 10]))
         np.testing.assert_allclose(
