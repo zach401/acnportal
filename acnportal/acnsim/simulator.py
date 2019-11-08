@@ -7,7 +7,7 @@ import warnings
 from .events import UnplugEvent
 from .interface import Interface, InvalidScheduleError
 
-
+# TODO: Name or info attribute for simulator
 class Simulator:
     """ Central class of the acnsim package.
 
@@ -149,7 +149,7 @@ class Simulator:
         if len(schedule_lengths) > 1:
             raise InvalidScheduleError('All schedules should have the same length.')
         schedule_length = schedule_lengths.pop()
-
+        # TODO: test 0 case here
         schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
         if not self.network.is_feasible(schedule_matrix):
             warnings.warn("Invalid schedule provided at iteration {0}".format(self._iteration), UserWarning)
