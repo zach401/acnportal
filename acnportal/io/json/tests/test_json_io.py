@@ -3,7 +3,7 @@ from unittest.mock import create_autospec
 
 from acnportal import acnsim
 from acnportal.algorithms import BaseAlgorithm
-from acnportal.acnsim import io
+from acnportal import io
 
 import numpy as np
 
