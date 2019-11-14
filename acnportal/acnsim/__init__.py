@@ -5,7 +5,6 @@ from .analysis import *
 from .events import *
 from .models import *
 from .network import *
-from .io import *
 
 del simulator
 del interface

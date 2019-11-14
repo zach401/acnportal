@@ -1,3 +1,5 @@
+import json
+
 class BaseAlgorithm:
     """ Abstract base class meant to be inherited from to implement new algorithms.
 
@@ -11,6 +13,10 @@ class BaseAlgorithm:
     def __init__(self):
         self._interface = None
         self.max_recompute = None
+
+    def __repr__(self):
+        arg_str = ", ".join([f"{key}={value}" for key, value in self.__dict__.items()])
+        return f"{self.__class__.__name__}({arg_str})"
 
     @property
     def interface(self):
@@ -71,3 +77,7 @@ class BaseAlgorithm:
         """
         schedules = self.schedule(self.interface.active_evs)
         return schedules
+
+    def to_json(self):
+        """ Returns a JSON dump of the algorithm's representation """
+        return json.dumps(repr(self))

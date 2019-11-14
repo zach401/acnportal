@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 import warnings
-from .. import io
+from ... import io
 
 class ChargingNetwork:
     """

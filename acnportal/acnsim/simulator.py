@@ -8,7 +8,7 @@ import json
 from .events import UnplugEvent
 from .interface import Interface
 from .interface import InvalidScheduleError
-from . import io
+from .. import io
 
 
 class Simulator:

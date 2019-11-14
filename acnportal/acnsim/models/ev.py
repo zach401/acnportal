@@ -1,5 +1,5 @@
 from builtins import property
-from .. import io
+from ... import io
 
 class EV:
     """Class to model the behavior of an Electrical Vehicle (ev).
