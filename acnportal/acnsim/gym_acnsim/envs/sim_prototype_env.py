@@ -12,7 +12,6 @@ from acnportal import algorithms
 from acnportal.acnsim import events
 from acnportal.acnsim import models
 from acnportal.acnsim import gym_acnsim
-from gym_acnsim import *
 
 from gym.wrappers import FlattenDictWrapper
 from gym.wrappers import ClipAction
