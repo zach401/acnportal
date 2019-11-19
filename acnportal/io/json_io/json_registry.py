@@ -1,39 +1,12 @@
 from .json_encoders import *
 from .json_decoders import *
 
-# __all__ = [ENCODER_REGISTRY, DECODER_REGISTRY,]
-
-ENCODER_REGISTRY = {
-    'Simulator' : simulator_to_json,
-    'Network' : network_to_json,
-    'EventQueue' : event_queue_to_json,
-    'Event' : event_to_json,
-    'PluginEvent' : plugin_event_to_json,
-    'UnplugEvent' : unplug_event_to_json,
-    'RecomputeEvent' : recompute_event_to_json,
-    'EVSE' : evse_to_json,
-    'DeadbandEVSE' : deadband_evse_to_json,
-    'FiniteRatesEVSE' : finite_rates_evse_to_json,
-    'EV' : ev_to_json,
-    'Battery' : battery_to_json,
-    'Linear2StageBattery' : linear_2_stage_battery_to_json
-}
-
-DECODER_REGISTRY = {
-    'Simulator' : simulator_from_json,
-    'Network' : network_from_json,
-    'EventQueue' : event_queue_from_json,
-    'Event' : event_from_json,
-    'PluginEvent' : plugin_event_from_json,
-    'UnplugEvent' : unplug_event_from_json,
-    'RecomputeEvent' : recompute_event_from_json,
-    'EVSE' : evse_from_json,
-    'DeadbandEVSE' : deadband_evse_from_json,
-    'FiniteRatesEVSE' : finite_rates_evse_from_json,
-    'EV' : ev_from_json,
-    'Battery' : battery_from_json,
-    'Linear2StageBattery' : linear_2_stage_battery_from_json
-}
+class RegistrationError(Exception):
+    """
+    Exception which is raised when trying to register a class with
+    invalid parameters.
+    """
+    pass
 
 def register_json_class(reg_cls, encoder=None, decoder=None):
     """

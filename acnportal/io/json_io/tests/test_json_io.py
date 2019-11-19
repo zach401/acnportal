@@ -318,10 +318,13 @@ class TestJSONIO(TestCase):
             self.assertEqual(event.type, event_loaded.type)
             self.assertEqual(event.timestamp, event_loaded.timestamp)
 
-class TestJSONIOObjExtension(TestCase):
-    class HalfBattery(acnsim.Battery):
-        pass
+        for (ts, event), (tsl, event_loaded) in \
+            zip(self.simulator.event_history, 
+                simulator_loaded.event_history):
+            self.assertEqual(ts, tsl)
+            self.assertEqual(event.type, event_loaded.type)
+            self.assertEqual(event.timestamp, event_loaded.timestamp)
 
-
-    def test_non_nested_obj_extension(self):
-        pass
+        for station_id, ev in self.simulator.ev_history.items():
+            self.assertEqual(ev.session_id, 
+                simulator_loaded.ev_history[station_id].session_id)

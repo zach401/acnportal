@@ -1,6 +1,7 @@
 import json
 from acnportal import acnsim
 from copy import deepcopy
+from .json_decoders import InvalidJSONError
 
 ENCODER_REGISTRY = {}
 

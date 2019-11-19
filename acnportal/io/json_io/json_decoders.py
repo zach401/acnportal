@@ -12,13 +12,6 @@ class InvalidJSONError(Exception):
     """
     pass
 
-class RegistrationError(Exception):
-    """
-    Exception which is raised when trying to register a class with
-    invalid parameters.
-    """
-    pass
-
 DECODER_REGISTRY = {}
 
 def from_json(in_json):
