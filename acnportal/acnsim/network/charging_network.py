@@ -310,7 +310,7 @@ class ChargingNetwork:
         Returns:
             JSON serializable
         """
-        return io.to_json(self, typ='network')
+        return io.to_json(self)
 
 class StationOccupiedError(Exception):
     """ Exception which is raised when trying to add an EV to an EVSE which is already occupied."""

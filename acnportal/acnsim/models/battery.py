@@ -85,7 +85,7 @@ class Battery:
         Returns:
             JSON serializable
         """
-        return io.to_json(self, typ='battery')
+        return io.to_json(self)
 
 
 class Linear2StageBattery(Battery):

@@ -141,4 +141,4 @@ class EV:
         Returns:
             JSON serializable
         """
-        return io.to_json(self, typ='ev')
+        return io.to_json(self)

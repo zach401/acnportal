@@ -131,6 +131,7 @@ class EVSE:
         Raises:
             StationOccupiedError: Exception raised when plugin is called by an EV is already attached to the EVSE.
         """
+        # assert ev.station_id == self.station_id
         if self.ev is None:
             self._ev = ev
         else:
@@ -154,7 +155,7 @@ class EVSE:
         Returns:
             JSON serializable
         """
-        return io.to_json(self, typ='evse')
+        return io.to_json(self)
 
 
 class DeadbandEVSE(EVSE):

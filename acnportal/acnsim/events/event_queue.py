@@ -93,4 +93,4 @@ class EventQueue:
         Returns:
             JSON serializable
         """
-        return io.to_json(self, typ='event_queue')
+        return io.to_json(self)

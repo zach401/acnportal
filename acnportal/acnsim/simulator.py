@@ -210,7 +210,7 @@ class Simulator:
         Returns:
             JSON serializable
         """
-        return io.to_json(self, typ='simulator')
+        return io.to_json(self)
 
 def _increase_width(a, target_width):
     """ Returns a new 2-D numpy array with target_width number of columns, with the contents

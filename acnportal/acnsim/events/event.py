@@ -15,6 +15,8 @@ class Event:
     """
     def __init__(self, timestamp):
         self.timestamp = timestamp
+        # TODO: type is a builtin, use different name.
+        # Keep a type accessor w deprecation warning.
         self.type = ''
         self.precedence = float('inf')
 
@@ -35,7 +37,7 @@ class Event:
         Returns:
             JSON serializable
         """
-        return io.to_json(self, typ='event')
+        return io.to_json(self)
 
 
 class PluginEvent(Event):
