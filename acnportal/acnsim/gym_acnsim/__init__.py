@@ -9,3 +9,5 @@ register(
     id='rebuilding-acnsim-v0',
     entry_point='acnportal.acnsim.gym_acnsim.envs:RebuildingEnv',
 )
+
+from .reward_functions import *
