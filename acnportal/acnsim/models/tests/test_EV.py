@@ -25,8 +25,6 @@ class TestEV(TestCase):
         self.ev._battery.charge.assert_called_once()
 
     def test_reset(self):
-        self.ev._battery.reset = Mock()
-        self.ev._battery.reset = Mock()
         self.ev.reset()
         self.assertEqual(self.ev.energy_delivered, 0)
         self.ev._battery.reset.assert_called_once()
