@@ -77,7 +77,7 @@ class Battery:
             None
         """
         if init_charge is None:
-            self.current_charge = self._init_charge
+            self._current_charge = self._init_charge
         else:
             if init_charge > self._capacity:
                 raise ValueError('Initial Charge cannot be greater than capacity.')
