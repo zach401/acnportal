@@ -7,7 +7,8 @@ from acnportal.acnsim.models import Battery, Linear2StageBattery
 
 class TestBatteryBase(TestCase):
     def setUp(self):
-        self.batt = Battery(100, 50, 32)
+        self.init_charge = 50
+        self.batt = Battery(100, self.init_charge, 32)
 
     def test_charge_negative_voltage(self):
         with self.assertRaises(ValueError):
@@ -16,6 +17,12 @@ class TestBatteryBase(TestCase):
     def test_charge_negative_period(self):
         with self.assertRaises(ValueError):
             self.batt.charge(32, 240, -5)
+
+    def test_valid_reset_default(self):
+        self.batt.charge(16, 240, 5)
+        self.batt.reset()
+        self.assertEqual(self.batt.current_charging_power, 0)
+        self.assertEqual(self.batt._current_charge, self.init_charge)
 
     def test_valid_reset(self):
         self.batt.charge(16, 240, 5)
@@ -30,7 +37,8 @@ class TestBatteryBase(TestCase):
 
 class TestBattery(TestBatteryBase):
     def setUp(self):
-        self.batt = Battery(100, 50, 7.68)
+        self.init_charge = 50
+        self.batt = Battery(100, self.init_charge, 7.68)
 
     def test_valid_charge(self):
         rate = self.batt.charge(16, 240, 5)
@@ -54,7 +62,9 @@ class TestBattery(TestBatteryBase):
 
 class TestLinear2StageBattery(TestBatteryBase):
     def setUp(self):
-        self.batt = Linear2StageBattery(100, 0, 7.68, 0)
+        self.init_charge = 0
+        self.batt = Linear2StageBattery(
+            100, self.init_charge, 7.68, 0)
 
     def test_valid_charge_no_noise_not_tail(self):
         self.batt = Linear2StageBattery(100, 0, 7.68, 0)
