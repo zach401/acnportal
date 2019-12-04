@@ -4,6 +4,108 @@ from acnportal import algorithms
 import numpy as np
 from datetime import datetime
 
+class JSONReader:
+    """
+    Class that handles reading an input JSON string into an ACN-Sim
+    object.
+
+    Args:
+        obj_json (JSON str): JSON str storing ACN-Sim object.
+    """
+
+    def __init__(self, obj_reg):
+        self.obj_loaded = obj_loaded
+
+    def read(self):
+        """
+        Reads an object from an object's JSON string.
+
+        Returns:
+            ACN-Sim obj: JSON string representing serialized object.
+        """
+
+    def _read(self, obj_id):
+        """
+        This method reads a JSON representation of an object and
+        constructs an 
+
+        Tries the following cases before throwing an error:
+        - Python's native serialization (json.dumps)
+        - Object's to_json method (all ACN-Sim objects have this)
+        - Recursive serialization of the object's dict using _write on
+            each attribute
+        - If object is a list, builds a new list in which each
+            element is JSON serializable and uses json.dumps
+        - If object is a dict, builds a new dict in which each
+            element is JSON serializable and uses json.dumps
+        - If object is a numpy array, calls the to_list method and
+            uses json.dumps
+
+        In all cases, a serializable version of obj is added to the
+        object registry, not a JSON string. Also, the class name is
+        included with the object's representation, so each value
+        in the object registry is a tuple.
+
+        Args:
+            obj (ACN-Sim object): Object to serialize.
+
+        Returns:
+            int: int id for the object in the Writer's object 
+                registry.
+
+        """
+        # Check if this object has already been loaded.
+        if obj_id in self.obj_loaded:
+            return obj_id
+
+        # Try native JSON serialization.
+        try:
+            out_json = json.dumps(obj)
+        except TypeError:
+            pass
+        else:
+            self.obj_reg[id(obj)] = (type(obj), obj)
+            return id(obj)
+
+        # Try object's to_json method.
+        try:
+            out_json = obj.to_json()
+        except AttributeError:
+            pass
+        else:
+            self.obj_reg[id(obj)] = (type(obj), out_json)
+            return id(obj)
+
+        # Try recursive serialization of object's attributes.
+        try:
+            obj_dict = obj.__dict__
+        except AttributeError:
+            pass
+        else:
+            new_dict = {}
+            for name, value in obj_dict.items():
+                new_dict[name] = self._write(value)
+            self.obj_reg[id(obj)] = (type(obj), new_dict)
+
+        # Try unwrapping a list of objects
+        if isinstance(obj, list):
+            new_lst = [self._write(elt) for elt in obj]
+            self.obj_reg[id(obj)] = (type(obj), new_lst)
+            return id(obj)
+        elif isinstance(obj, dict):
+            new_dict = {self._write(key): self._write(value)
+                for key, value in obj.items()}
+            self.obj_reg[id(obj)] = (type(obj), new_dict)
+            return id(obj)
+        elif isinstance(obj, np.ndarray):
+            new_lst = obj.to_list()
+            self.obj_reg[id(obj)] = (type(obj), new_lst)
+            return id(obj)
+        else:
+            # TODO: raise error
+            pass
+
+
 # TODO: load JSON from file instead of just from JSON string.
 class InvalidJSONError(Exception):
     """

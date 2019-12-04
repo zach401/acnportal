@@ -1,5 +1,6 @@
 from .json_encoders import *
 from .json_decoders import *
+import json
 
 class RegistrationError(Exception):
     """
@@ -7,6 +8,22 @@ class RegistrationError(Exception):
     invalid parameters.
     """
     pass
+
+def recursive_serializer(obj, obj_reg):
+    """
+
+    A recursive serializer that attempts to serialize complex
+    simulator objects by trying different serialization methods.
+
+    Tries 5 cases before throwing an error:
+    - Python's native serialization (json.dumps)
+    - Object's to_json method (all ACN-Sim objects have this)
+    - If object is iterable, builds a new iterable in which each
+        element is JSON serializable and uses json.dumps
+    - If object is a numpy array, calls the to_list method and uses
+        json.dumps
+    
+    """
 
 def register_json_class(reg_cls, encoder=None, decoder=None):
     """

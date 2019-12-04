@@ -1,7 +1,114 @@
 import json
 from acnportal import acnsim
 from copy import deepcopy
-from .json_decoders import InvalidJSONError
+
+class JSONWriter:
+    """
+    Class that handles writing an input ACN-Sim object to a JSON
+    serializable object. The JSON representation of the object is such
+    that using JSONReader to load this representation will result in
+    an identical object graph.
+
+    Args:
+        obj_reg (Dict[int, JSON-able]): registry of all objects
+            serialized by this Writer, stored in object id, JSON
+            string pairs.
+    """
+
+    def __init__(self, obj_reg):
+        self.obj_reg = obj_reg
+
+    def write(self, obj):
+        """
+        Writes obj to a JSON string.
+
+        Args:
+            obj (ACN-Sim object): Object to serialize.
+
+        Returns:
+            JSON str: JSON string representing serialized object.
+        """
+
+    def _write(self, obj):
+        """
+        This method adds a serializable version of obj to the Writer's
+        object registry.
+
+        Tries the following cases before throwing an error:
+        - Python's native serialization (json.dumps)
+        - Object's to_json method (all ACN-Sim objects have this)
+        - Recursive serialization of the object's dict using _write on
+            each attribute
+        - If object is a list, builds a new list in which each
+            element is JSON serializable and uses json.dumps
+        - If object is a dict, builds a new dict in which each
+            element is JSON serializable and uses json.dumps
+        - If object is a numpy array, calls the to_list method and
+            uses json.dumps
+
+        In all cases, a serializable version of obj is added to the
+        object registry, not a JSON string. Also, the class name is
+        included with the object's representation, so each value
+        in the object registry is a tuple.
+
+        Args:
+            obj (ACN-Sim object): Object to serialize.
+
+        Returns:
+            int: int id for the object in the Writer's object 
+                registry.
+
+        """
+        # Check if this object has already been serialized.
+        if id(obj) in self.obj_reg:
+            return id(obj)
+
+        # Try native JSON serialization.
+        try:
+            out_json = json.dumps(obj)
+        except TypeError:
+            pass
+        else:
+            self.obj_reg[id(obj)] = (type(obj), obj)
+            return id(obj)
+
+        # Try object's to_json method.
+        try:
+            out_json = obj.to_json()
+        except AttributeError:
+            pass
+        else:
+            self.obj_reg[id(obj)] = (type(obj), out_json)
+            return id(obj)
+
+        # Try recursive serialization of object's attributes.
+        try:
+            obj_dict = obj.__dict__
+        except AttributeError:
+            pass
+        else:
+            new_dict = {}
+            for name, value in obj_dict.items():
+                new_dict[name] = self._write(value)
+            self.obj_reg[id(obj)] = (type(obj), new_dict)
+
+        # Try unwrapping a list of objects
+        if isinstance(obj, list):
+            new_lst = [self._write(elt) for elt in obj]
+            self.obj_reg[id(obj)] = (type(obj), new_lst)
+            return id(obj)
+        elif isinstance(obj, dict):
+            new_dict = {self._write(key): self._write(value)
+                for key, value in obj.items()}
+            self.obj_reg[id(obj)] = (type(obj), new_dict)
+            return id(obj)
+        elif isinstance(obj, np.ndarray):
+            new_lst = obj.to_list()
+            self.obj_reg[id(obj)] = (type(obj), new_lst)
+            return id(obj)
+        else:
+            # TODO: raise error
+            pass
 
 ENCODER_REGISTRY = {}
 
