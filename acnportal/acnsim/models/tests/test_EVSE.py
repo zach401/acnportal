@@ -9,6 +9,10 @@ class TestEVSE(TestCase):
     def setUp(self):
         self.evse = EVSE('0001')
 
+    def test_allowable_pilot_signals(self):
+        self.assertEqual(self.evse.allowable_pilot_signals,
+            [0, float('inf')])
+
     def test_plugin_unoccupied(self):
         ev = create_autospec(EV)
         self.evse.plugin(ev)
@@ -54,6 +58,10 @@ class TestDeadbandEVSE(TestEVSE):
     def setUp(self):
         self.evse = DeadbandEVSE('0001', 6, max_rate=8, min_rate=0)
 
+    def test_allowable_pilot_signals(self):
+        self.assertEqual(self.evse.allowable_pilot_signals,
+            [6, 8])
+
     def test_set_pilot_has_ev_invalid_rate(self):
         ev = create_autospec(EV)
         self.evse.plugin(ev)
@@ -68,6 +76,10 @@ class TestDeadbandEVSE(TestEVSE):
 class TestFiniteRatesEVSE(TestEVSE):
     def setUp(self):
         self.evse = FiniteRatesEVSE('0001', [0, 8, 16, 24, 32])
+
+    def test_allowable_pilot_signals(self):
+        self.assertEqual(self.evse.allowable_pilot_signals,
+            [0, 8, 16, 24, 32])
 
     def test_set_pilot_has_ev_invalid_rate(self):
         ev = create_autospec(EV)
