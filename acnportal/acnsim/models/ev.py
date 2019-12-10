@@ -1,5 +1,6 @@
 from builtins import property
-from ... import io
+from acnportal import acnsim_io
+from acnportal.acnsim_io import json_writer, json_reader
 
 class EV:
     """Class to model the behavior of an Electrical Vehicle (ev).
@@ -135,10 +136,44 @@ class EV:
         self._energy_delivered = 0
         self._battery.reset()
 
-    def to_json(self):
-        """ Converts the EV into a JSON serializable dict
+    @json_writer
+    def to_json(self, context_dict={}):
+        """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
-        return io.to_json(self)
+        args_dict = {}
+    
+        nn_attr_lst = [
+            '_arrival', '_departure', '_session_id', '_station_id',
+            '_requested_energy', '_estimated_departure',
+            '_energy_delivered', '_current_charging_rate'
+        ]
+        for attr in nn_attr_lst:
+            args_dict[attr] = getattr(self, attr)
+
+        args_dict['_battery'], _ = self._battery.to_json(context_dict=context_dict)
+
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        battery = acnsim_io.read_from_id(in_dict['_battery'], context_dict, loaded_dict)
+        out_obj = cls(
+            in_dict['_arrival'],
+            in_dict['_departure'],
+            in_dict['_requested_energy'],
+            in_dict['_station_id'],
+            in_dict['_session_id'],
+            battery,
+            estimated_departure=in_dict['_estimated_departure'],
+            **cls_kwargs
+        )
+
+        out_obj._energy_delivered = in_dict['_energy_delivered']
+        out_obj._current_charging_rate = \
+            in_dict['_current_charging_rate']
+
+        return out_obj

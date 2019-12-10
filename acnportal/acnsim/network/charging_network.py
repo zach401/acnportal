@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 import warnings
-from ... import io
+from acnportal import acnsim_io
+from acnportal.acnsim_io import json_writer, json_reader
 
 class ChargingNetwork:
     """
@@ -304,13 +305,45 @@ class ChargingNetwork:
             schedule_length = len(schedule_matrix[0])
             return np.all(np.tile(self.magnitudes + 1e-5, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
-    def to_json(self):
+    @json_writer
+    def to_json(self, context_dict={}):
         """ Converts the network into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
-        return io.to_json(self)
+        args_dict = {}
+
+        args_dict['_EVSEs'] = {station_id : evse.to_json(context_dict=context_dict)[0] 
+            for station_id, evse in self._EVSEs.items()}
+
+        args_dict['constraint_matrix'] = self.constraint_matrix.tolist()
+        args_dict['magnitudes'] = self.magnitudes.tolist()
+        args_dict['_voltages'] = self._voltages.tolist()
+        args_dict['_phase_angles'] = self._phase_angles.tolist()
+
+        args_dict['constraint_index'] = self.constraint_index
+
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        out_obj = cls(**cls_kwargs)
+
+        out_obj._EVSEs = {station_id : acnsim_io.read_from_id(evse, context_dict=context_dict, loaded_dict=loaded_dict)
+            for station_id, evse in in_dict['_EVSEs'].items()}
+
+        out_obj.constraint_matrix = \
+            np.array(in_dict['constraint_matrix'])
+        out_obj.magnitudes = \
+            np.array(in_dict['magnitudes'])
+
+        out_obj.constraint_index = in_dict['constraint_index']
+        out_obj._voltages = np.array(in_dict['_voltages'])
+        out_obj._phase_angles = np.array(in_dict['_phase_angles'])
+
+        return out_obj
 
 class StationOccupiedError(Exception):
     """ Exception which is raised when trying to add an EV to an EVSE which is already occupied."""

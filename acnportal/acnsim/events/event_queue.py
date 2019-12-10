@@ -1,6 +1,7 @@
 import heapq
 from .event import Event
-from ... import io
+from acnportal import acnsim_io
+from acnportal.acnsim_io import json_writer, json_reader
 
 class EventQueue:
     """ Queue which stores simulation events.
@@ -87,10 +88,26 @@ class EventQueue:
             return -1
         return max(self._queue, key=lambda x: x[0])[0]
 
-    def to_json(self):
+    @json_writer
+    def to_json(self, context_dict={}):
         """ Converts the event queue into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
-        return io.to_json(self)
+        args_dict = {}
+
+        args_dict['_queue'] = [(ts, event.to_json(context_dict=context_dict)[0]) 
+            for (ts, event) in self._queue]
+        args_dict['_timestep'] = self._timestep
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        out_obj = cls(**cls_kwargs)
+        out_obj._queue = [(ts, acnsim_io.read_from_id(event, context_dict=context_dict, loaded_dict=loaded_dict))
+            for (ts, event) in in_dict['_queue']]
+        out_obj._timestep = in_dict['_timestep']
+
+        return out_obj

@@ -5,10 +5,15 @@ import numpy as np
 import warnings
 import json
 
+from .network import ChargingNetwork
+from .events import *
+from .models import EV
 from .events import UnplugEvent
 from .interface import Interface
 from .interface import InvalidScheduleError
-from .. import io
+from acnportal.algorithms import BaseAlgorithm
+from acnportal import acnsim_io
+from acnportal.acnsim_io import json_writer, json_reader
 
 
 class Simulator:
@@ -20,7 +25,7 @@ class Simulator:
 
     Args:
         network (ChargingNetwork): The charging network which the simulation will use.
-        scheduler (BasicAlgorithm): The scheduling algorithm used in the simulation.
+        scheduler (BaseAlgorithm): The scheduling algorithm used in the simulation.
         events (EventQueue): Queue of events which will occur in the simulation.
         start (datetime): Date and time of the first period of the simulation.
         period (int): Length of each time interval in the simulation in minutes. Default: 1
@@ -88,6 +93,10 @@ class Simulator:
                     self.schedule_history[self._iteration] = new_schedule
                 self._last_schedule_update = self._iteration
                 self._resolve = False
+            # Ensure that pilot_signals and charging_rates have enough
+            # Space to at least accommodate this iteration's values.
+            self.pilot_signals = _increase_width(self.pilot_signals, self._iteration + 1)
+            self.charging_rates = _increase_width(self.charging_rates, self._iteration + 1)
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
@@ -140,7 +149,7 @@ class Simulator:
 
         Raises:
             KeyError: Raised when station_id is in the new_schedule but not registered in the Network.
-        """
+        """ 
         if len(new_schedule) == 0:
             return
 
@@ -171,7 +180,7 @@ class Simulator:
         if self.iteration < len(self.charging_rates[0]):
             self.charging_rates[:, self.iteration] = current_rates.T
         else:
-            self.charging_rates = _increase_width(self.charging_rates, self.event_queue.get_last_timestamp() + 1)
+            self.charging_rates = _increase_width(self.charging_rates, max(self.event_queue.get_last_timestamp() + 1, self._iteration + 1))
             self.charging_rates[:, self._iteration] = current_rates.T
         self.peak = max(self.peak, agg)
 
@@ -204,13 +213,92 @@ class Simulator:
             raise KeyError("EVSE {0} not found in network.".format(station_id))
         return self.network.station_ids.index(station_id)
 
-    def to_json(self):
+    @json_writer
+    def to_json(self, context_dict={}):
         """ Converts the simulator into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
-        return io.to_json(self)
+        args_dict = {}
+
+        # Serialize non-nested attributes.
+        nn_attr_lst = [
+            'period', 'max_recompute', 'verbose', 'peak',
+            '_iteration', '_resolve', '_last_schedule_update'
+        ]
+        for attr in nn_attr_lst:
+            args_dict[attr] = getattr(self, attr)
+
+        args_dict['network'], _ = \
+            self.network.to_json(context_dict=context_dict)
+        args_dict['scheduler'] = repr(self.scheduler)
+        args_dict['event_queue'], _ = \
+            self.event_queue.to_json(context_dict=context_dict)
+
+        args_dict['start'] = self.start.isoformat()
+
+        # TODO: Serialize signals
+        args_dict['signals'] = {}
+
+        args_dict['pilot_signals'] = self.pilot_signals.tolist()
+        args_dict['charging_rates'] = self.charging_rates.tolist()
+
+        args_dict['ev_history'] = {
+            session_id : ev.to_json(context_dict=context_dict)[0] 
+            for session_id, ev in self.ev_history.items()
+        }
+        args_dict['event_history'] = [
+            event.to_json(context_dict=context_dict)[0] 
+            for event in self.event_history
+        ]
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        network = acnsim_io.read_from_id(in_dict['network'], context_dict, loaded_dict=loaded_dict)
+        assert isinstance(network, ChargingNetwork)
+
+        events = acnsim_io.read_from_id(in_dict['event_queue'], context_dict=context_dict, loaded_dict=loaded_dict)
+        assert isinstance(events, EventQueue)
+
+        # TODO: Add option to actually initialize scheduler.
+        # scheduler = in_dict['scheduler']
+
+        out_obj = cls(
+            network,
+            BaseAlgorithm(),
+            events,
+            datetime.fromisoformat(in_dict['start']),
+            period=in_dict['period'],
+            signals=in_dict['signals'],
+            verbose=in_dict['verbose'],
+            **cls_kwargs
+        )
+
+        # TODO: Overwriting scheduler with string. Have an info attr in
+        # Simulator instead.
+        # out_obj.scheduler = scheduler
+
+        attr_lst = ['max_recompute', 'peak', '_iteration', '_resolve', '_last_schedule_update']
+        for attr in attr_lst:
+            setattr(out_obj, attr, in_dict[attr])
+
+        out_obj.pilot_signals = np.array(in_dict['pilot_signals'])
+        out_obj.charging_rates = np.array(in_dict['charging_rates'])
+
+        out_obj.ev_history = {session_id : acnsim_io.read_from_id(ev, context_dict=context_dict, loaded_dict=loaded_dict) 
+            for session_id, ev in in_dict['ev_history'].items()}
+        out_obj.event_history = [acnsim_io.read_from_id(event, context_dict=context_dict, loaded_dict=loaded_dict) 
+            for event in in_dict['event_history']]
+        return out_obj
+
+    def update_scheduler(self, new_scheduler):
+        # Call this when a simulator is loaded to set a scheduler.
+        self.scheduler = scheduler
+        self.scheduler.register_interface(Interface(self))
+        self.max_recompute = scheduler.max_recompute
 
 def _increase_width(a, target_width):
     """ Returns a new 2-D numpy array with target_width number of columns, with the contents
@@ -222,6 +310,8 @@ def _increase_width(a, target_width):
     Returns:
         numpy.Array
     """
+    if target_width <= len(a[0]):
+        return a
     new_matrix = np.zeros((len(a), target_width))
     new_matrix[:, :len(a[0])] = a
     return new_matrix

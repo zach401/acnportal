@@ -1,5 +1,6 @@
 import numpy as np
-from ... import io
+from acnportal import acnsim_io
+from acnportal.acnsim_io import json_writer, json_reader
 
 BASIC = 'BASIC'
 AV = 'AeroVironment'
@@ -149,13 +150,47 @@ class EVSE:
         self._ev = None
         self._current_pilot = 0
 
-    def to_json(self):
-        """ Converts the EVSE into a JSON serializable dict
+    @json_writer
+    def to_json(self, context_dict={}):
+        """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
-        return io.to_json(self)
+        args_dict = {}
+
+        nn_attr_lst = [
+            '_station_id', '_max_rate', '_min_rate', '_current_pilot',
+            'is_continuous'
+        ]
+        for attr in nn_attr_lst:
+            args_dict[attr] = getattr(self, attr)
+
+        if self._ev is not None:
+            args_dict['_ev'], _ = self.ev.to_json(context_dict=context_dict)
+        else:
+            args_dict['_ev'] = None
+
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        if in_dict['_ev'] is not None:
+            ev = acnsim_io.read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
+        else:
+            ev = None
+        out_obj = cls(
+            in_dict['_station_id'],
+            max_rate=in_dict['_max_rate'],
+            min_rate=in_dict['_min_rate'],
+            **cls_kwargs
+        )
+        out_obj._current_pilot = in_dict['_current_pilot']
+        out_obj._ev = ev
+        out_obj.is_continuous = True
+
+        return out_obj
 
 
 class DeadbandEVSE(EVSE):
@@ -181,6 +216,24 @@ class DeadbandEVSE(EVSE):
         """
         return np.isclose(pilot, 0, atol) or pilot > self._deadband_end
 
+    @json_writer
+    def to_json(self, context_dict={}):
+        """ Converts the event into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        # TODO: pre/post here could be done with a decorator and a base sim obj class.
+        args_dict = super().to_json.__wrapped__(self, context_dict)
+        args_dict['_deadband_end'] = self._deadband_end
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        cls_kwargs = {'deadband_end': in_dict['_deadband_end']}
+        out_obj = super().from_json.__wrapped__(cls, in_dict, context_dict, loaded_dict, cls_kwargs)
+        return out_obj
 
 class FiniteRatesEVSE(EVSE):
     """ Subclass of EVSE which allows for finite allowed rate sets.
@@ -207,3 +260,38 @@ class FiniteRatesEVSE(EVSE):
             bool: True if the proposed pilot signal is valid. False otherwise.
         """
         return np.any(np.isclose(pilot, self.allowable_rates, atol=1e-3))
+
+    @json_writer
+    def to_json(self, context_dict={}):
+        """ Converts the event into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        args_dict = super().to_json.__wrapped__(self, context_dict)
+        args_dict['allowable_rates'] = self.allowable_rates
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        # TODO: FREVSE constructor doesn't accept args that parent class would
+        # So can't use super here. Maybe should change FREVSE constructor?
+        if in_dict['_ev'] is not None:
+            ev = acnsim_io.read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
+        else:
+            ev = None
+        # TODO: Should we actually use the constructor? or just
+        # manually set class name and attribute.
+        out_obj = cls(
+            in_dict['_station_id'],
+            in_dict['allowable_rates'],
+            **cls_kwargs
+        )
+        out_obj._max_rate = in_dict['_max_rate']
+        out_obj._min_rate = in_dict['_min_rate']
+        out_obj._current_pilot = in_dict['_current_pilot']
+        out_obj._ev = ev
+        out_obj.is_continuous = in_dict['is_continuous']
+
+        return out_obj

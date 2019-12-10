@@ -1,4 +1,5 @@
-from ... import io
+from acnportal import acnsim_io
+from acnportal.acnsim_io import json_writer, json_reader
 
 class Event:
     """ Base class for all events.
@@ -31,13 +32,28 @@ class Event:
         """
         return self.precedence < other.precedence
 
-    def to_json(self):
+    @json_writer
+    def to_json(self, context_dict={}):
         """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
-        return io.to_json(self)
+        args_dict = {}
+
+        args_dict['timestamp'] = self.timestamp
+        args_dict['type'] = self.type
+        args_dict['precedence'] = self.precedence
+
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        out_obj = cls(in_dict['timestamp'], **cls_kwargs)
+        out_obj.type = in_dict['type']
+        out_obj.precedence = in_dict['precedence']
+        return out_obj
 
 
 class PluginEvent(Event):
@@ -53,6 +69,27 @@ class PluginEvent(Event):
         self.ev = ev
         self.precedence = 10
 
+    @json_writer
+    def to_json(self, context_dict={}):
+        """ Converts the event into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        args_dict = super().to_json.__wrapped__(self, context_dict)
+        # Plugin-specific attributes
+        args_dict['ev'], _ = self.ev.to_json(context_dict=context_dict)
+
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        # TODO: standardize acnsim_io.read_from_id inputs (use = or not)
+        ev = acnsim_io.read_from_id(in_dict['ev'], context_dict, loaded_dict)
+        cls_kwargs = {'ev': ev}
+        out_obj = super().from_json.__wrapped__(cls, in_dict, context_dict, loaded_dict, cls_kwargs)
+        return out_obj
 
 class UnplugEvent(Event):
     """ Subclass of Event for EV unplugs.
@@ -69,6 +106,27 @@ class UnplugEvent(Event):
         self.session_id = session_id
         self.precedence = 0
 
+    @json_writer
+    def to_json(self, context_dict={}):
+        """ Converts the event into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        args_dict = super().to_json.__wrapped__(self, context_dict)
+
+        # Unplug-specific attributes
+        args_dict['station_id'] = self.station_id
+        args_dict['session_id'] = self.session_id
+
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        cls_kwargs = {'station_id': in_dict['station_id'], 'session_id': in_dict['session_id']}
+        out_obj = super().from_json.__wrapped__(cls, in_dict, context_dict, loaded_dict, cls_kwargs)
+        return out_obj
 
 class RecomputeEvent(Event):
     """ Subclass of Event for when the algorithm should be recomputed."""

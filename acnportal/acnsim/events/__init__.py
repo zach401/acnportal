@@ -5,6 +5,6 @@ from .event import RecomputeEvent
 from .event_queue import EventQueue
 from .acndata_events import *
 
-del event
-del event_queue
+# del event
+# del event_queue
 

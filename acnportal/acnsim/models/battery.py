@@ -1,5 +1,6 @@
 import numpy as np
-from ... import io
+from acnportal import acnsim_io
+from acnportal.acnsim_io import json_writer, json_reader
 
 IDEAL = 'Ideal'
 NOISY = 'Noisy'
@@ -79,13 +80,34 @@ class Battery:
         self._current_charge = init_charge
         self._current_charging_power = 0
 
-    def to_json(self):
+    @json_writer
+    def to_json(self, context_dict={}):
         """ Converts the battery into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
-        return io.to_json(self)
+        args_dict = {}
+
+        nn_attr_lst = [
+            '_max_power', '_current_charging_power', '_current_charge',
+            '_capacity'
+        ]
+
+        for attr in nn_attr_lst:
+            args_dict[attr] = getattr(self, attr)
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        out_obj = cls(
+            in_dict['_capacity'], 0, in_dict['_max_power'], **cls_kwargs)
+
+        out_obj._current_charging_power = \
+            in_dict['_current_charging_power']
+        out_obj._current_charge = in_dict['_current_charge']
+        return out_obj
 
 
 class Linear2StageBattery(Battery):
@@ -144,3 +166,32 @@ class Linear2StageBattery(Battery):
         self._current_charge += charge_power * (period / 60)
         self._current_charging_power = charge_power
         return charge_power * 1000 / voltage
+
+    @json_writer
+    def to_json(self, context_dict={}):
+        """ Converts the battery into a JSON serializable dict
+
+        Returns:
+            JSON serializable
+        """
+        args_dict = super().to_json.__wrapped__(self, context_dict)
+        args_dict['_noise_level'] = self._noise_level
+        args_dict['_transition_soc'] = self._transition_soc
+        return args_dict
+
+    @classmethod
+    @json_reader
+    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        
+        # Note second arg in below construction is a placeholder
+        out_obj = cls(
+            in_dict['_capacity'], 0, in_dict['_max_power'],
+            noise_level=in_dict['_noise_level'],
+            transition_soc=in_dict['_transition_soc'],
+            **cls_kwargs
+        )
+
+        out_obj._current_charging_power = \
+            in_dict['_current_charging_power']
+        out_obj._current_charge = in_dict['_current_charge']
+        return out_obj
