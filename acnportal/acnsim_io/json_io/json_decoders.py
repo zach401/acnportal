@@ -1,6 +1,9 @@
 from functools import wraps
 from pydoc import locate
 
+def decode_remaining(in_dict, out_obj):
+    pass
+
 def json_reader(from_json):
     # TODO: Class kwargs for all from_jsons
     @wraps(from_json)
@@ -23,6 +26,8 @@ def json_reader(from_json):
         in_dict = obj_dict['args']
 
         out_obj = from_json(inclass, in_dict, context_dict, loaded_dict, cls_kwargs)
+
+        decode_remaining(in_dict, out_obj)
 
         if obj_id is not None:
             loaded_dict[obj_id] = out_obj

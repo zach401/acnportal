@@ -238,8 +238,9 @@ class Simulator:
 
         args_dict['start'] = self.start.isoformat()
 
-        # TODO: Serialize signals
+        # TODO: Serialize signals, schedule history
         args_dict['signals'] = {}
+        args_dict['schedule_history'] = None
 
         args_dict['pilot_signals'] = self.pilot_signals.tolist()
         args_dict['charging_rates'] = self.charging_rates.tolist()
@@ -281,7 +282,7 @@ class Simulator:
         # Simulator instead.
         # out_obj.scheduler = scheduler
 
-        attr_lst = ['max_recompute', 'peak', '_iteration', '_resolve', '_last_schedule_update']
+        attr_lst = ['max_recompute', 'peak', '_iteration', '_resolve', '_last_schedule_update', 'schedule_history']
         for attr in attr_lst:
             setattr(out_obj, attr, in_dict[attr])
 

@@ -323,7 +323,7 @@ class TestJSONIO(TestCase):
 
         simulator_fields = ['period', 'max_recompute', 'verbose',
             'peak', '_iteration', '_resolve', 'start',
-            '_last_schedule_update']
+            '_last_schedule_update', 'schedule_history']
 
         for field in simulator_fields:
             self.assertEqual(getattr(sim, field), 
