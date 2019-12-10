@@ -21,10 +21,11 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             sorted according to some metric.
     """
 
-    def __init__(self, sort_fn):
+    def __init__(self, sort_fn, J1772_deadband=False):
         super().__init__()
         self._sort_fn = sort_fn
         self.max_recompute = 1  # Call algorithm each period since it only returns a rate for the next period.
+        self.J1772_deadband = J1772_deadband
 
     def schedule(self, active_evs):
         """ Schedule EVs by first sorting them by sort_fn, then allocating them their maximum feasible rate.
@@ -41,6 +42,13 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         """
         ev_queue = self._sort_fn(active_evs, self.interface)
         schedule = {ev.station_id: [0] for ev in active_evs}
+        if self.J1772_deadband:
+            for ev in ev_queue:
+                continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
+                schedule[ev.station_id][0] = allowable_rates[0] if continuous else allowable_rates[1]
+                if not self.interface.is_feasible(schedule):
+                    schedule[ev.station_id][0] = 0
+                    break
         for ev in ev_queue:
             continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
             if continuous:
