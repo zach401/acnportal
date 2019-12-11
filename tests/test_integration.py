@@ -143,13 +143,6 @@ class TestIntegration(TestCase):
 
         self.assertDictEqual(self.edf_algo_true_cr, self.sch.polled_charging_rates)
 
-# TODO: Complete this case. Runs a simulation which all schedules
-# are empty to test the null edge case for simulator operations
-# Can also greatly simplify this case
-
-    # TODO: Make a new algorithm that always submits an empty schedule,
-    # Verify that without the fix this breaks the sim
-    # Then make sure it works with the fix.
 class EmptyScheduler(BaseAlgorithm):
     ''' Always submits an empty schedule (empty dict) as the output
     of its run function.
