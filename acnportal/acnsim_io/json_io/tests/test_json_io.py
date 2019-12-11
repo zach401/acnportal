@@ -155,8 +155,8 @@ class TestJSONIO(TestCase):
                 self.assertEqual(getattr(ev, field), 
                     getattr(ev_loaded, field))
             self.assertIsInstance(ev_loaded._battery, bat_type)
-            self.assertEqual(ev._battery.__dict__,
-                ev_loaded._battery.__dict__)
+            self.assertEqual(ev_loaded._battery.__dict__,
+                ev._battery.__dict__)
 
         _load_dump_compare_helper(self.ev1, acnsim.Battery)
         _load_dump_compare_helper(self.ev2, 
