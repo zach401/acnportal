@@ -157,26 +157,26 @@ class TestEmptyScheduleSim(TestCase):
     @classmethod
     def setUpClass(self):
         self.plugin_event = acnsim.PluginEvent(
-            10, 
+            10,
             acnsim.EV(
                 10, 20, 30, 'PS-001', 'EV-001',
                 acnsim.Battery(100, 50, 20)
             )
         )
 
-        self.evse = acnsim.EVSE('PS-001', max_rate=32, 
+        self.evse = acnsim.EVSE('PS-001', max_rate=32,
             min_rate=0)
 
         self.event_queue = acnsim.EventQueue()
         self.event_queue.add_event(self.plugin_event)
-        
+
         self.network = acnsim.ChargingNetwork()
         self.network.register_evse(self.evse, 220, 30)
 
         # Simulator with scheduler that always returns an empty
         # schedule.
         self.simulator = acnsim.Simulator(
-            self.network, EmptyScheduler(), 
+            self.network, EmptyScheduler(),
             self.event_queue, datetime(2019, 1, 1)
         )
 
