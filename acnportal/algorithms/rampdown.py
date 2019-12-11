@@ -67,7 +67,7 @@ class SimpleRampdown(Rampdown):
      up_threshold of the pilot signal.
     """
 
-    def __init__(self, up_threshold, down_threshold, up_increment):
+    def __init__(self, up_threshold=2, down_threshold=1, up_increment=1):
         super().__init__()
         self.up_threshold = up_threshold
         self.down_threshold = down_threshold
