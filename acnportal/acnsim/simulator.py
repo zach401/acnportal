@@ -289,9 +289,13 @@ class Simulator:
         # out_obj.scheduler = scheduler
 
         attr_lst = ['max_recompute', 'peak', '_iteration', 
-            '_resolve', '_last_schedule_update', 'schedule_history']
+            '_resolve', '_last_schedule_update']
         for attr in attr_lst:
             setattr(out_obj, attr, in_dict[attr])
+
+        # JSON converts int keys to strings in dumps(), so we
+        # must convert back to ints keys.
+        out_obj.schedule_history = {int(key): value for key, value in in_dict['schedule_history'].items()}
 
         out_obj.pilot_signals = np.array(in_dict['pilot_signals'])
         out_obj.charging_rates = np.array(in_dict['charging_rates'])
