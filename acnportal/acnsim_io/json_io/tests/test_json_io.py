@@ -104,7 +104,8 @@ class TestJSONIO(TestCase):
         self.simulator = acnsim.Simulator(
             self.network, UncontrolledCharging(), 
             self.event_queue, datetime(2019, 1, 1),
-            verbose=False
+            verbose=False,
+            store_schedule_history=True
         )
 
         # Make a copy of the simulator to run

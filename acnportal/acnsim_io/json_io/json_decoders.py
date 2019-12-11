@@ -1,8 +1,6 @@
 from functools import wraps
 from pydoc import locate
-
-def decode_remaining(in_dict, out_obj):
-    pass
+import warnings
 
 def json_reader(from_json):
     # TODO: Class kwargs for all from_jsons
@@ -19,15 +17,16 @@ def json_reader(from_json):
         if obj_id is not None and obj_id in loaded_dict:
             return loaded_dict[obj_id]
 
-        # TODO: this might be overl restrictive
-        # assert obj_dict['class'] == \
-        #     f'{inclass.__module__}.{inclass.__name__}'
+        try:
+            assert obj_dict['class'] == \
+                f'{inclass.__module__}.{inclass.__name__}'
+        except AssertionError:
+            # TODO: Better message here.
+            warnings.warn("Deserializing subtype.")
 
         in_dict = obj_dict['args']
 
         out_obj = from_json(inclass, in_dict, context_dict, loaded_dict, cls_kwargs)
-
-        decode_remaining(in_dict, out_obj)
 
         if obj_id is not None:
             loaded_dict[obj_id] = out_obj
@@ -39,7 +38,7 @@ def read_from_id(obj_id, context_dict, loaded_dict={}):
         return loaded_dict[obj_id]
     if obj_id not in context_dict:
         # TODO: Throw a missing object error.
-        raise KeyError("missing object")
+        raise KeyError(f"Object ID {obj_id} not found in context_dict.")
     obj_type = context_dict[obj_id]['class']
     # pydoc.locate safely imports a function given its . delimited
     # location.
