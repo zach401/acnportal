@@ -97,7 +97,7 @@ class EventQueue:
         """
         args_dict = {}
 
-        args_dict['_queue'] = [(ts, event.to_json(context_dict=context_dict)[0]) 
+        args_dict['_queue'] = [(ts, event.to_json(context_dict=context_dict)['id']) 
             for (ts, event) in self._queue]
         args_dict['_timestep'] = self._timestep
         return args_dict

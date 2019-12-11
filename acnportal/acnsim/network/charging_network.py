@@ -314,7 +314,7 @@ class ChargingNetwork:
         """
         args_dict = {}
 
-        args_dict['_EVSEs'] = {station_id : evse.to_json(context_dict=context_dict)[0] 
+        args_dict['_EVSEs'] = {station_id : evse.to_json(context_dict=context_dict)['id'] 
             for station_id, evse in self._EVSEs.items()}
 
         args_dict['constraint_matrix'] = self.constraint_matrix.tolist()

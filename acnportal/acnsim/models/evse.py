@@ -177,7 +177,7 @@ class EVSE:
             args_dict[attr] = getattr(self, attr)
 
         if self._ev is not None:
-            args_dict['_ev'], _ = self.ev.to_json(context_dict=context_dict)
+            args_dict['_ev'] = self.ev.to_json(context_dict=context_dict)['id']
         else:
             args_dict['_ev'] = None
 

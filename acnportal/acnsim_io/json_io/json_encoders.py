@@ -5,7 +5,7 @@ def json_writer(to_json):
     def edit_context(obj, context_dict={}):
         obj_id = f'{id(obj)}'
         if obj_id in context_dict:
-            return obj_id, context_dict
+            return {'id': obj_id, 'context_dict': context_dict}
 
         obj_type = f'{obj.__module__}.{obj.__class__.__name__}'
 
@@ -17,5 +17,5 @@ def json_writer(to_json):
         # after decorator, which is confusing.
         # TODO: Maybe should be a dict return type? Need to change
         # unpacking then.
-        return obj_id, context_dict
+        return {'id': obj_id, 'context_dict': context_dict}
     return edit_context

@@ -78,7 +78,7 @@ class PluginEvent(Event):
         """
         args_dict = super().to_json.__wrapped__(self, context_dict)
         # Plugin-specific attributes
-        args_dict['ev'], _ = self.ev.to_json(context_dict=context_dict)
+        args_dict['ev'] = self.ev.to_json(context_dict=context_dict)['id']
 
         return args_dict
 

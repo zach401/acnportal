@@ -6,7 +6,7 @@ def json_reader(from_json):
     # TODO: Class kwargs for all from_jsons
     @wraps(from_json)
     def edit_loaded(inclass, in_json, loaded_dict={}, cls_kwargs={}):
-        obj_id, context_dict = in_json
+        obj_id, context_dict = in_json['id'], in_json['context_dict']
         try:
             obj_dict = context_dict[obj_id]
         except KeyError:
@@ -43,6 +43,6 @@ def read_from_id(obj_id, context_dict, loaded_dict={}):
     # pydoc.locate safely imports a function given its . delimited
     # location.
     obj_class = locate(obj_type)
-    obj = obj_class.from_json((obj_id, context_dict), loaded_dict)
+    obj = obj_class.from_json({'id': obj_id, 'context_dict': context_dict}, loaded_dict)
     loaded_dict[obj_id] = obj
     return obj

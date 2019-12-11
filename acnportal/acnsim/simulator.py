@@ -230,12 +230,11 @@ class Simulator:
         ]
         for attr in nn_attr_lst:
             args_dict[attr] = getattr(self, attr)
-
-        args_dict['network'], _ = \
-            self.network.to_json(context_dict=context_dict)
+        args_dict['network'] = \
+            self.network.to_json(context_dict=context_dict)['id']
         args_dict['scheduler'] = repr(self.scheduler)
-        args_dict['event_queue'], _ = \
-            self.event_queue.to_json(context_dict=context_dict)
+        args_dict['event_queue'] = \
+            self.event_queue.to_json(context_dict=context_dict)['id']
 
         args_dict['start'] = self.start.isoformat()
         try:
@@ -252,11 +251,11 @@ class Simulator:
         args_dict['charging_rates'] = self.charging_rates.tolist()
 
         args_dict['ev_history'] = {
-            session_id : ev.to_json(context_dict=context_dict)[0] 
+            session_id : ev.to_json(context_dict=context_dict)['id'] 
             for session_id, ev in self.ev_history.items()
         }
         args_dict['event_history'] = [
-            event.to_json(context_dict=context_dict)[0] 
+            event.to_json(context_dict=context_dict)['id'] 
             for event in self.event_history
         ]
         return args_dict

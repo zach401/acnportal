@@ -153,7 +153,7 @@ class EV:
         for attr in nn_attr_lst:
             args_dict[attr] = getattr(self, attr)
 
-        args_dict['_battery'], _ = self._battery.to_json(context_dict=context_dict)
+        args_dict['_battery'] = self._battery.to_json(context_dict=context_dict)['id']
 
         return args_dict
 
