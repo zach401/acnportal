@@ -21,6 +21,7 @@ class Battery:
             raise ValueError('Initial Charge cannot be greater than capacity.')
         self._capacity = capacity
         self._current_charge = init_charge
+        self._init_charge = init_charge
         self._max_power = max_power
         self._current_charging_power = 0
 
@@ -66,8 +67,10 @@ class Battery:
         self._current_charging_power = charge_power
         return charge_power * 1000 / voltage
 
-    def reset(self, init_charge):
-        """ Reset battery to initial state.
+    def reset(self, init_charge=None):
+        """ Reset battery to initial state. If init_charge is not
+        given (is None), the battery is reset to its initial charge
+        on initialization.
 
         Args:
             init_charge (float): charge battery should be reset to. [acnsim units]
@@ -75,9 +78,12 @@ class Battery:
         Returns:
             None
         """
-        if init_charge > self._capacity:
-            raise ValueError('Initial Charge cannot be greater than capacity.')
-        self._current_charge = init_charge
+        if init_charge is None:
+            self._current_charge = self._init_charge
+        else:
+            if init_charge > self._capacity:
+                raise ValueError('Initial Charge cannot be greater than capacity.')
+            self._current_charge = init_charge
         self._current_charging_power = 0
 
     @json_writer
