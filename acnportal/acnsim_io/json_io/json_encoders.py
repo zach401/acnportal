@@ -13,9 +13,6 @@ def json_writer(to_json):
 
         obj_dict = {'class' : obj_type, 'args' : args_dict}
         context_dict[obj_id] = obj_dict
-        # TODO: Nominal return type different from return type
-        # after decorator, which is confusing.
-        # TODO: Maybe should be a dict return type? Need to change
-        # unpacking then.
+        
         return {'id': obj_id, 'context_dict': context_dict}
     return edit_context
