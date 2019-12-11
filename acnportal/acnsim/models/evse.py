@@ -203,7 +203,7 @@ class FiniteRatesEVSE(EVSE):
     """
     def __init__(self, station_id, allowable_rates):
         super().__init__(station_id, max(allowable_rates))
-        self.allowable_rates = allowable_rates
+        self.allowable_rates = sorted(list(set(allowable_rates)))
         self.is_continuous = False
 
     @property
