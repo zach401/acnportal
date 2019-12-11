@@ -92,10 +92,10 @@ class SimpleRampdown(Rampdown):
         prev_rate = self.interface.last_actual_charging_rate
 
         for ev in evs:
-            if ev.session_id in prev_pilot:
-                if ev.session_id not in self.rampdown_rates:
-                    self.rampdown_rates[ev.session_id] = self.interface.max_pilot_signal(ev.station_id)
+            if ev.session_id not in self.rampdown_rates:
+                self.rampdown_rates[ev.session_id] = self.interface.max_pilot_signal(ev.station_id)
 
+            if ev.session_id in prev_pilot:
                 if prev_pilot[ev.session_id] - prev_rate[ev.session_id] > self.down_threshold:
                     self.rampdown_rates[ev.session_id] = prev_rate[ev.session_id] + self.up_increment
                 elif prev_pilot[ev.session_id] - prev_rate[ev.session_id] < self.up_threshold:
@@ -103,5 +103,4 @@ class SimpleRampdown(Rampdown):
                 self.rampdown_rates[ev.session_id] = np.clip(self.rampdown_rates[ev.session_id],
                                                              a_min=0,
                                                              a_max=self.interface.max_pilot_signal(ev.station_id))
-
         return self.rampdown_rates

@@ -33,8 +33,8 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i] for ev in self.active_evs if
-                ev.arrival <= i}
+            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i]
+                    for ev in self.active_evs if ev.arrival <= i}
         else:
             return {}
 
@@ -42,10 +42,17 @@ class Interface:
     def last_actual_charging_rate(self):
         """ Return the actual charging rates in the last period for all active EVs.
 
+        Does not include EVs that arrived in the current _iteration.
+
         Returns:
-            Dict[str, number]:  A dictionary with the session ID as key and actual charging rate as value.
+            Dict[str, number]: A dictionary with the session ID as key and the charging current as value.
         """
-        return {ev.session_id: ev.current_charging_rate for ev in self.active_evs}
+        i = self._simulator.iteration - 1
+        if i > 0:
+            return {ev.session_id: self._simulator.charging_rates[self._simulator.index_of_evse(ev.station_id), i]
+                    for ev in self.active_evs if ev.arrival <= i}
+        else:
+            return {}
 
     @property
     def current_time(self):
