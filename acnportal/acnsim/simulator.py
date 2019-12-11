@@ -238,9 +238,15 @@ class Simulator:
             self.event_queue.to_json(context_dict=context_dict)
 
         args_dict['start'] = self.start.isoformat()
-
-        # TODO: Serialize signals, schedule history
-        args_dict['signals'] = {}
+        try:
+            json.dumps(self.signals)
+        except TypeError:
+            warnings.warn("Not serializing signals as value types"
+                          "are not natively JSON serializable.",
+                          UserWarning)
+            args_dict['signals'] = None
+        else:
+            args_dict['signals'] = self.signals
 
         args_dict['pilot_signals'] = self.pilot_signals.tolist()
         args_dict['charging_rates'] = self.charging_rates.tolist()

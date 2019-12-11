@@ -109,13 +109,20 @@ class TestJSONIO(TestCase):
         )
 
         # Make a copy of the simulator to run
-        self.simulator_copy = deepcopy(self.simulator)
+        self.simulator_run = deepcopy(self.simulator)
         # Do necessary unplugs.
-        for station_id, evse in self.simulator_copy.network._EVSEs.items():
+        for station_id, evse in self.simulator_run.network._EVSEs.items():
             if evse.ev is not None:
                 evse.unplug()
         # Run simulation
-        self.simulator_copy.run()
+        self.simulator_run.run()
+
+        # Make a copy of the simulator with signals
+        self.simulator_signal = deepcopy(self.simulator)
+        self.simulator_signal.signals = {'a': [0, 1, 2], 'b': [3, 4]}
+
+        self.simulator_hard_signal = deepcopy(self.simulator)
+        self.simulator_hard_signal.signals = {'a': BaseAlgorithm()}
 
     def test_battery_json(self):
         battery_json = self.battery1.to_json()
@@ -333,6 +340,9 @@ class TestJSONIO(TestCase):
         # self.assertEqual(repr(sim.scheduler),
         #     simulator_loaded.scheduler)
 
+        if simulator_loaded.signals is not None:
+            self.assertEqual(sim.signals, simulator_loaded.signals)
+
         np.testing.assert_equal(sim.pilot_signals,
             simulator_loaded.pilot_signals)
         np.testing.assert_equal(sim.charging_rates,
@@ -368,12 +378,12 @@ class TestJSONIO(TestCase):
         self._sim_compare_helper(self.simulator)
 
     def test_run_simulator_json(self):
-        self._sim_compare_helper(self.simulator_copy)
+        self._sim_compare_helper(self.simulator_run)
 
     def test_object_equalities(self):
         # Tests that certain object equality invariants are preserved
         # after loading.
-        simulator_json = self.simulator_copy.to_json()
+        simulator_json = self.simulator_run.to_json()
         simulator_loaded = acnsim.Simulator.from_json(simulator_json)
 
         plugins = filter(lambda x: isinstance(x, acnsim.PluginEvent),
@@ -381,3 +391,10 @@ class TestJSONIO(TestCase):
         evs = list(simulator_loaded.ev_history.values())
         for plugin, ev in zip(plugins, evs):
             self.assertIs(plugin.ev, ev)
+
+    def test_sim_signal_json(self):
+        self._sim_compare_helper(self.simulator_signal)
+
+    def test_sim_signal_warning(self):
+        with self.assertWarns(UserWarning):
+            self._sim_compare_helper(self.simulator_hard_signal)
