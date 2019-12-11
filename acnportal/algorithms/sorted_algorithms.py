@@ -21,8 +21,8 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             sorted according to some metric.
     """
 
-    def __init__(self, sort_fn, minimum_charge=False):
-        super().__init__()
+    def __init__(self, sort_fn, minimum_charge=False, rampdown=None):
+        super().__init__(rampdown)
         self._sort_fn = sort_fn
         self.max_recompute = 1  # Call algorithm each period since it only returns a rate for the next period.
         self.minimum_charge = minimum_charge
@@ -48,11 +48,21 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 schedule[ev.station_id][0] = allowable_rates[0] if continuous else allowable_rates[1]
                 if not self.interface.is_feasible(schedule):
                     schedule[ev.station_id][0] = 0
+
+        if self.rampdown is not None:
+            rampdown_max = self.rampdown.get_maximum_rates(active_evs)
+
         for ev in ev_queue:
             continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
             if continuous:
-                charging_rate = self.max_feasible_rate(ev.station_id, allowable_rates[-1], schedule, eps=0.01)
+                if self.rampdown is not None:
+                    max_rate = min(rampdown_max[ev.session_id], allowable_rates[-1])
+                else:
+                    max_rate = allowable_rates[-1]
+                charging_rate = self.max_feasible_rate(ev.station_id, max_rate, schedule, eps=0.01)
             else:
+                if self.rampdown is not None:
+                    allowable_rates = [x for x in allowable_rates if x < rampdown_max[ev.session_id]]
                 charging_rate = self.discrete_max_feasible_rate(ev.station_id, allowable_rates, schedule)
             schedule[ev.station_id][0] = charging_rate
         return schedule

@@ -10,8 +10,8 @@ class UncontrolledCharging(BaseAlgorithm):
     All EVs will be charged as quickly as possible according to their maximum charging rate and their battery dynamics.
 
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, rampdown=None):
+        super().__init__(rampdown)
         self.max_recompute = 1  # Call algorithm each period since it only returns a rate for the next period.
 
     def schedule(self, active_evs):

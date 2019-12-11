@@ -4,13 +4,16 @@ class BaseAlgorithm:
     Subclassed must implement the schedule method.
 
     Attributes:
+        interface (Interface): An interface to the environment.
         max_recompute (int): Maximum number of periods between calling the scheduling algorithm even if no events occur.
             If None, the scheduling algorithm is only called when an event occurs. Default: None.
+        rampdown (Rampdown-like): Algorithm to use for rampdown. Default: None.
     """
 
-    def __init__(self):
+    def __init__(self, rampdown=None):
         self._interface = None
         self.max_recompute = None
+        self.rampdown = rampdown
 
     @property
     def interface(self):
@@ -42,6 +45,8 @@ class BaseAlgorithm:
             None
         """
         self._interface = interface
+        if self.rampdown is not None:
+            self.rampdown.register_interface(interface)
 
     def schedule(self, active_evs):
         """ Creates a schedule of charging rates for each ev in the active_evs list.
