@@ -337,8 +337,7 @@ class TestJSONIO(TestCase):
             self.assertEqual(getattr(sim, field), 
                 getattr(simulator_loaded, field))
 
-        # self.assertEqual(repr(sim.scheduler),
-        #     simulator_loaded.scheduler)
+        self.assertIsInstance(simulator_loaded.scheduler, UncontrolledCharging)
 
         if simulator_loaded.signals is not None:
             self.assertEqual(sim.signals, simulator_loaded.signals)

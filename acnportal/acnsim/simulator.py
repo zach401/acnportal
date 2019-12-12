@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import warnings
 import json
+from pydoc import locate
 
 from .network import ChargingNetwork
 from .events import *
@@ -230,9 +231,12 @@ class Simulator:
         ]
         for attr in nn_attr_lst:
             args_dict[attr] = getattr(self, attr)
+
         args_dict['network'] = \
             self.network.to_json(context_dict=context_dict)['id']
-        args_dict['scheduler'] = repr(self.scheduler)
+
+        args_dict['scheduler'] = f'{self.scheduler.__module__}.{self.scheduler.__class__.__name__}'
+
         args_dict['event_queue'] = \
             self.event_queue.to_json(context_dict=context_dict)['id']
 
@@ -269,12 +273,18 @@ class Simulator:
         events = acnsim_io.read_from_id(in_dict['event_queue'], context_dict=context_dict, loaded_dict=loaded_dict)
         assert isinstance(events, EventQueue)
 
-        # TODO: Add option to actually initialize scheduler.
-        # scheduler = in_dict['scheduler']
+        scheduler_cls = locate(in_dict['scheduler'])
+        try:
+            scheduler = scheduler_cls()
+        except TypeError:
+            warnings.warn(f"Scheduler {in_dict['scheduler']} requires "
+                           "constructor inputs. Setting scheduler to "
+                           "BaseAlgorithm instead.")
+            scheduler = BaseAlgorithm()
 
         out_obj = cls(
             network,
-            BaseAlgorithm(),
+            scheduler,
             events,
             datetime.fromisoformat(in_dict['start']),
             period=in_dict['period'],
@@ -283,17 +293,11 @@ class Simulator:
             **cls_kwargs
         )
 
-        # TODO: Overwriting scheduler with string. Have an info attr in
-        # Simulator instead.
-        # out_obj.scheduler = scheduler
-
         attr_lst = ['max_recompute', 'peak', '_iteration', 
             '_resolve', '_last_schedule_update']
         for attr in attr_lst:
             setattr(out_obj, attr, in_dict[attr])
 
-        # JSON converts int keys to strings in dumps(), so we
-        # must convert back to ints keys.
         out_obj.schedule_history = {int(key): value for key, value in in_dict['schedule_history'].items()}
 
         out_obj.pilot_signals = np.array(in_dict['pilot_signals'])
@@ -307,7 +311,7 @@ class Simulator:
 
     def update_scheduler(self, new_scheduler):
         # Call this when a simulator is loaded to set a scheduler.
-        self.scheduler = scheduler
+        self.scheduler = new_scheduler
         self.scheduler.register_interface(Interface(self))
         self.max_recompute = scheduler.max_recompute
 
