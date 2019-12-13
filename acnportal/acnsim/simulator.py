@@ -5,6 +5,7 @@ import numpy as np
 import warnings
 import json
 from pydoc import locate
+import sys
 
 from .network import ChargingNetwork
 from .events import *
@@ -240,6 +241,12 @@ class Simulator:
         args_dict['event_queue'] = \
             self.event_queue.to_json(context_dict=context_dict)['id']
 
+        if sys.version_info[1] < 7:
+            warnings.warn(f"Datetime {start} will not be loaded as "
+                           "datetime object. Use python 3.7 or "
+                           "higher to load this value after "
+                           "serialization.")
+
         args_dict['start'] = self.start.isoformat()
         try:
             json.dumps(self.signals)
@@ -282,11 +289,19 @@ class Simulator:
                            "BaseAlgorithm instead.")
             scheduler = BaseAlgorithm()
 
+        if sys.version_info[1] < 7:
+            warnings.warn(f"Datetime {start} cannot be loaded as "
+                           "datetime object. Use python 3.7 or "
+                           "higher to load this value.")
+            start = in_dict['start']
+        else:
+            start = datetime.fromisoformat(in_dict['start'])
+
         out_obj = cls(
             network,
             scheduler,
             events,
-            datetime.fromisoformat(in_dict['start']),
+            start,
             period=in_dict['period'],
             signals=in_dict['signals'],
             verbose=in_dict['verbose'],
@@ -310,7 +325,7 @@ class Simulator:
         return out_obj
 
     def update_scheduler(self, new_scheduler):
-        # Call this when a simulator is loaded to set a scheduler.
+        """ Updates a Simulator's schedule. """
         self.scheduler = new_scheduler
         self.scheduler.register_interface(Interface(self))
         self.max_recompute = scheduler.max_recompute
