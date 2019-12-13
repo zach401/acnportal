@@ -242,7 +242,7 @@ class Simulator:
             self.event_queue.to_json(context_dict=context_dict)['id']
 
         if sys.version_info[1] < 7:
-            warnings.warn(f"Datetime {start} will not be loaded as "
+            warnings.warn(f"Datetime {self.start} will not be loaded as "
                            "datetime object. Use python 3.7 or "
                            "higher to load this value after "
                            "serialization.")
@@ -290,7 +290,7 @@ class Simulator:
             scheduler = BaseAlgorithm()
 
         if sys.version_info[1] < 7:
-            warnings.warn(f"Datetime {start} cannot be loaded as "
+            warnings.warn(f"Datetime {in_dict['start']} cannot be loaded as "
                            "datetime object. Use python 3.7 or "
                            "higher to load this value.")
             start = in_dict['start']
