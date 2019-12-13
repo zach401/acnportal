@@ -6,6 +6,7 @@ from acnportal.algorithms import BaseAlgorithm, UncontrolledCharging
 from acnportal import acnsim_io
 
 import json
+import sys
 import numpy as np
 from copy import deepcopy
 from datetime import datetime
@@ -331,11 +332,16 @@ class TestJSONIO(TestCase):
         self.assertIsInstance(simulator_loaded, acnsim.Simulator)
 
         simulator_fields = ['period', 'max_recompute', 'verbose',
-            'peak', '_iteration', '_resolve', 'start',
+            'peak', '_iteration', '_resolve',
             '_last_schedule_update', 'schedule_history']
         for field in simulator_fields:
             self.assertEqual(getattr(sim, field), 
                 getattr(simulator_loaded, field))
+
+        if sys.version_info[1] < 7:
+            self.assertEqual(sim.start.isoformat(), simulator_loaded.start)
+        else:
+            self.assertEqual(sim.start, simulator_loaded.start)
 
         self.assertIsInstance(simulator_loaded.scheduler, UncontrolledCharging)
 

@@ -290,7 +290,7 @@ class Simulator:
             scheduler = BaseAlgorithm()
 
         if sys.version_info[1] < 7:
-            warnings.warn(f"Datetime {in_dict['start']} cannot be loaded as "
+            warnings.warn(f"ISO format {in_dict['start']} cannot be loaded as "
                            "datetime object. Use python 3.7 or "
                            "higher to load this value.")
             start = in_dict['start']
