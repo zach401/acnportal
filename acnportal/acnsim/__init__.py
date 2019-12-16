@@ -1,5 +1,6 @@
 from .simulator import Simulator
 from .interface import Interface, InvalidScheduleError
+from .base import BaseSimObj, read_from_id
 
 from .analysis import *
 from .events import *

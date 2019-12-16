@@ -14,11 +14,11 @@ from .events import UnplugEvent
 from .interface import Interface
 from .interface import InvalidScheduleError
 from acnportal.algorithms import BaseAlgorithm
-from acnportal import acnsim_io
-from acnportal.acnsim_io import json_writer, json_reader
+from .base import BaseSimObj, read_from_id
 
 
-class Simulator:
+
+class Simulator(BaseSimObj):
     """ Central class of the acnsim package.
 
     The Simulator class is the central place where everything about a particular simulation is stored including the
@@ -215,8 +215,8 @@ class Simulator:
             raise KeyError("EVSE {0} not found in network.".format(station_id))
         return self.network.station_ids.index(station_id)
 
-    @json_writer
-    def to_json(self, context_dict={}):
+    
+    def to_dict(self, context_dict={}):
         """ Converts the simulator into a JSON serializable dict
 
         Returns:
@@ -234,12 +234,12 @@ class Simulator:
             args_dict[attr] = getattr(self, attr)
 
         args_dict['network'] = \
-            self.network.to_json(context_dict=context_dict)['id']
+            self.network.to_registry(context_dict=context_dict)['id']
 
         args_dict['scheduler'] = f'{self.scheduler.__module__}.{self.scheduler.__class__.__name__}'
 
         args_dict['event_queue'] = \
-            self.event_queue.to_json(context_dict=context_dict)['id']
+            self.event_queue.to_registry(context_dict=context_dict)['id']
 
         if sys.version_info[1] < 7:
             warnings.warn(f"Datetime {self.start} will not be loaded as "
@@ -262,22 +262,21 @@ class Simulator:
         args_dict['charging_rates'] = self.charging_rates.tolist()
 
         args_dict['ev_history'] = {
-            session_id : ev.to_json(context_dict=context_dict)['id'] 
+            session_id : ev.to_registry(context_dict=context_dict)['id'] 
             for session_id, ev in self.ev_history.items()
         }
         args_dict['event_history'] = [
-            event.to_json(context_dict=context_dict)['id'] 
+            event.to_registry(context_dict=context_dict)['id'] 
             for event in self.event_history
         ]
         return args_dict
 
     @classmethod
-    @json_reader
-    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
-        network = acnsim_io.read_from_id(in_dict['network'], context_dict, loaded_dict=loaded_dict)
+    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        network = read_from_id(in_dict['network'], context_dict, loaded_dict=loaded_dict)
         assert isinstance(network, ChargingNetwork)
 
-        events = acnsim_io.read_from_id(in_dict['event_queue'], context_dict=context_dict, loaded_dict=loaded_dict)
+        events = read_from_id(in_dict['event_queue'], context_dict=context_dict, loaded_dict=loaded_dict)
         assert isinstance(events, EventQueue)
 
         scheduler_cls = locate(in_dict['scheduler'])
@@ -318,9 +317,9 @@ class Simulator:
         out_obj.pilot_signals = np.array(in_dict['pilot_signals'])
         out_obj.charging_rates = np.array(in_dict['charging_rates'])
 
-        out_obj.ev_history = {session_id : acnsim_io.read_from_id(ev, context_dict=context_dict, loaded_dict=loaded_dict) 
+        out_obj.ev_history = {session_id : read_from_id(ev, context_dict=context_dict, loaded_dict=loaded_dict) 
             for session_id, ev in in_dict['ev_history'].items()}
-        out_obj.event_history = [acnsim_io.read_from_id(event, context_dict=context_dict, loaded_dict=loaded_dict) 
+        out_obj.event_history = [read_from_id(event, context_dict=context_dict, loaded_dict=loaded_dict) 
             for event in in_dict['event_history']]
         return out_obj
 

@@ -1,13 +1,12 @@
 import numpy as np
-from acnportal import acnsim_io
-from acnportal.acnsim_io import json_writer, json_reader
+from ..base import BaseSimObj
 
 IDEAL = 'Ideal'
 NOISY = 'Noisy'
 TWO_STAGE = 'TwoStage'
 
 
-class Battery:
+class Battery(BaseSimObj):
     """This class models the behavior of a battery and battery management system (BMS).
 
     Args:
@@ -86,8 +85,7 @@ class Battery:
             self._current_charge = init_charge
         self._current_charging_power = 0
 
-    @json_writer
-    def to_json(self, context_dict={}):
+    def to_dict(self, context_dict={}):
         """ Converts the battery into a JSON serializable dict
 
         Returns:
@@ -105,8 +103,7 @@ class Battery:
         return args_dict
 
     @classmethod
-    @json_reader
-    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
         out_obj = cls(
             in_dict['_capacity'], in_dict['_init_charge'], in_dict['_max_power'], **cls_kwargs)
 
@@ -173,21 +170,20 @@ class Linear2StageBattery(Battery):
         self._current_charging_power = charge_power
         return charge_power * 1000 / voltage
 
-    @json_writer
-    def to_json(self, context_dict={}):
+    
+    def to_dict(self, context_dict={}):
         """ Converts the battery into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
-        args_dict = super().to_json.__wrapped__(self, context_dict)
+        args_dict = super().to_dict(context_dict)
         args_dict['_noise_level'] = self._noise_level
         args_dict['_transition_soc'] = self._transition_soc
         return args_dict
 
     @classmethod
-    @json_reader
-    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
         
         # Note second arg in below construction is a placeholder
         out_obj = cls(

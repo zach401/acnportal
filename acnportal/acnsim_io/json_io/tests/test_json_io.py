@@ -3,7 +3,6 @@ from unittest.mock import create_autospec
 
 from acnportal import acnsim
 from acnportal.algorithms import BaseAlgorithm, UncontrolledCharging
-from acnportal import acnsim_io
 
 import json
 import sys
@@ -13,7 +12,7 @@ from datetime import datetime
 
 # TODO: Integration test that completely compares simulator obj
 # before and after loading.
-# TODO: Call signature of from_json: Class.from_json()
+# TODO: Call signature of from_registry: Class.from_registry()
 # TODO: Equality of simulator objects.
 # TODO: Repr for simulator objects.
 # TODO: Equality tests of objects
@@ -127,16 +126,16 @@ class TestJSONIO(TestCase):
         self.simulator_hard_signal.signals = {'a': BaseAlgorithm()}
 
     def test_battery_json(self):
-        battery_json = json.dumps(self.battery1.to_json())
-        battery_loaded = acnsim.Battery.from_json(json.loads(battery_json))
+        battery_json = self.battery1.to_json()
+        battery_loaded = acnsim.Battery.from_json(battery_json)
         self.assertIsInstance(
             battery_loaded, acnsim.Battery)
         self.assertEqual(
             battery_loaded.__dict__, self.battery1.__dict__)
 
     def test_linear_2_stage_battery_json(self):
-        battery_json = json.dumps(self.battery2.to_json())
-        battery_loaded = acnsim.Linear2StageBattery.from_json(json.loads(battery_json))
+        battery_json = self.battery2.to_json()
+        battery_loaded = acnsim.Linear2StageBattery.from_json(battery_json)
         self.assertIsInstance(
             battery_loaded, acnsim.Linear2StageBattery)
         self.assertEqual(
@@ -149,8 +148,8 @@ class TestJSONIO(TestCase):
 
         def _load_dump_compare_helper(ev, bat_type):
             assert isinstance(ev._battery, bat_type)
-            ev_json = json.dumps(ev.to_json())
-            ev_loaded = acnsim.EV.from_json(json.loads(ev_json))
+            ev_json = ev.to_json()
+            ev_loaded = acnsim.EV.from_json(ev_json)
             self.assertIsInstance(ev_loaded, acnsim.EV)
             for field in ev_fields:
                 self.assertEqual(getattr(ev, field), 
@@ -166,8 +165,8 @@ class TestJSONIO(TestCase):
             acnsim.Linear2StageBattery)
 
     def test_evse_no_ev_json(self):
-        evse_json = json.dumps(self.evse0.to_json())
-        evse_loaded = acnsim.EVSE.from_json(json.loads(evse_json))
+        evse_json = self.evse0.to_json()
+        evse_loaded = acnsim.EVSE.from_json(evse_json)
         self.assertIsInstance(evse_loaded, acnsim.EVSE)
 
         evse_fields = ['_station_id', '_max_rate', 
@@ -179,8 +178,8 @@ class TestJSONIO(TestCase):
         self.assertEqual(getattr(evse_loaded, '_ev'), None)
 
     def test_evse_json(self):
-        evse_json = json.dumps(self.evse1.to_json())
-        evse_loaded = acnsim.EVSE.from_json(json.loads(evse_json))
+        evse_json = self.evse1.to_json()
+        evse_loaded = acnsim.EVSE.from_json(evse_json)
         self.assertIsInstance(evse_loaded, acnsim.EVSE)
 
         evse_fields = ['_station_id', '_max_rate', 
@@ -195,8 +194,8 @@ class TestJSONIO(TestCase):
         )
 
     def test_deadband_evse_json(self):
-        evse_json = json.dumps(self.evse2.to_json())
-        evse_loaded = acnsim.DeadbandEVSE.from_json(json.loads(evse_json))
+        evse_json = self.evse2.to_json()
+        evse_loaded = acnsim.DeadbandEVSE.from_json(evse_json)
         self.assertIsInstance(evse_loaded, 
             acnsim.DeadbandEVSE)
 
@@ -212,8 +211,8 @@ class TestJSONIO(TestCase):
         )
 
     def test_finite_rates_evse_json(self):
-        evse_json = json.dumps(self.evse3.to_json())
-        evse_loaded = acnsim.FiniteRatesEVSE.from_json(json.loads(evse_json))
+        evse_json = self.evse3.to_json()
+        evse_loaded = acnsim.FiniteRatesEVSE.from_json(evse_json)
         self.assertIsInstance(evse_loaded, 
             acnsim.FiniteRatesEVSE)
 
@@ -229,8 +228,8 @@ class TestJSONIO(TestCase):
         )
 
     def test_event_json(self):
-        event_json = json.dumps(self.event.to_json())
-        event_loaded = acnsim.Event.from_json(json.loads(event_json))
+        event_json = self.event.to_json()
+        event_loaded = acnsim.Event.from_json(event_json)
         self.assertIsInstance(event_loaded, acnsim.Event)
 
         event_fields = ['timestamp', 'type', 'precedence']
@@ -240,8 +239,8 @@ class TestJSONIO(TestCase):
                 getattr(event_loaded, field))
 
     def test_plugin_event_json(self):
-        event_json = json.dumps(self.plugin_event1.to_json())
-        event_loaded = acnsim.PluginEvent.from_json(json.loads(event_json))
+        event_json = self.plugin_event1.to_json()
+        event_loaded = acnsim.PluginEvent.from_json(event_json)
         self.assertIsInstance(event_loaded, acnsim.PluginEvent)
 
         event_fields = ['timestamp', 'type', 'precedence']
@@ -255,8 +254,8 @@ class TestJSONIO(TestCase):
         )
 
     def test_unplug_event_json(self):
-        event_json = json.dumps(self.unplug_event.to_json())
-        event_loaded = acnsim.UnplugEvent.from_json(json.loads(event_json))
+        event_json = self.unplug_event.to_json()
+        event_loaded = acnsim.UnplugEvent.from_json(event_json)
         self.assertIsInstance(event_loaded, acnsim.UnplugEvent)
 
         event_fields = ['timestamp', 'type', 'precedence',
@@ -267,8 +266,8 @@ class TestJSONIO(TestCase):
                 getattr(event_loaded, field))
 
     def test_recompute_event_json(self):
-        event_json = json.dumps(self.recompute_event.to_json())
-        event_loaded = acnsim.RecomputeEvent.from_json(json.loads(event_json))
+        event_json = self.recompute_event.to_json()
+        event_loaded = acnsim.RecomputeEvent.from_json(event_json)
         self.assertIsInstance(event_loaded, acnsim.RecomputeEvent)
 
         event_fields = ['timestamp', 'type', 'precedence']
@@ -278,8 +277,8 @@ class TestJSONIO(TestCase):
                 getattr(event_loaded, field))
 
     def test_event_queue_json(self):
-        event_queue_json = json.dumps(self.event_queue.to_json())
-        event_queue_loaded = acnsim.EventQueue.from_json(json.loads(event_queue_json))
+        event_queue_json = self.event_queue.to_json()
+        event_queue_loaded = acnsim.EventQueue.from_json(event_queue_json)
         self.assertIsInstance(event_queue_loaded, acnsim.EventQueue)
 
         self.assertEqual(self.event_queue._timestep, 
@@ -307,8 +306,8 @@ class TestJSONIO(TestCase):
                 )
 
     def test_charging_network_json(self):
-        network_json = json.dumps(self.network.to_json())
-        network_loaded = acnsim.ChargingNetwork.from_json(json.loads(network_json))
+        network_json = self.network.to_json()
+        network_loaded = acnsim.ChargingNetwork.from_json(network_json)
         self.assertIsInstance(network_loaded, acnsim.ChargingNetwork)
 
         network_np_fields = ['constraint_matrix', 'magnitudes', 
@@ -327,8 +326,8 @@ class TestJSONIO(TestCase):
             self.assertEqual(evse.station_id, evse_l.station_id)
 
     def _sim_compare_helper(self, sim):
-        simulator_json = json.dumps(sim.to_json())
-        simulator_loaded = acnsim.Simulator.from_json(json.loads(simulator_json))
+        simulator_json = sim.to_json()
+        simulator_loaded = acnsim.Simulator.from_json(simulator_json)
         self.assertIsInstance(simulator_loaded, acnsim.Simulator)
 
         simulator_fields = ['period', 'max_recompute', 'verbose',
@@ -388,8 +387,8 @@ class TestJSONIO(TestCase):
     def test_object_equalities(self):
         # Tests that certain object equality invariants are preserved
         # after loading.
-        simulator_json = json.dumps(self.simulator_run.to_json())
-        simulator_loaded = acnsim.Simulator.from_json(json.loads(simulator_json))
+        simulator_json = self.simulator_run.to_json()
+        simulator_loaded = acnsim.Simulator.from_json(simulator_json)
 
         plugins = filter(lambda x: isinstance(x, acnsim.PluginEvent),
             simulator_loaded.event_history)

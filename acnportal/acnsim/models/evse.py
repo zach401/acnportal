@@ -1,6 +1,5 @@
 import numpy as np
-from acnportal import acnsim_io
-from acnportal.acnsim_io import json_writer, json_reader
+from ..base import BaseSimObj, read_from_id
 
 BASIC = 'BASIC'
 AV = 'AeroVironment'
@@ -38,7 +37,7 @@ class StationOccupiedError(Exception):
     pass
 
 
-class EVSE:
+class EVSE(BaseSimObj):
     """ Class to model Electric Vehicle Supply Equipment (charging station).
 
     This base class allows for charging in a continuous range from min_rate to max_rate.
@@ -160,8 +159,8 @@ class EVSE:
         self._ev = None
         self._current_pilot = 0
 
-    @json_writer
-    def to_json(self, context_dict={}):
+    
+    def to_dict(self, context_dict={}):
         """ Converts the event into a JSON serializable dict
 
         Returns:
@@ -177,17 +176,16 @@ class EVSE:
             args_dict[attr] = getattr(self, attr)
 
         if self._ev is not None:
-            args_dict['_ev'] = self.ev.to_json(context_dict=context_dict)['id']
+            args_dict['_ev'] = self.ev.to_registry(context_dict=context_dict)['id']
         else:
             args_dict['_ev'] = None
 
         return args_dict
 
     @classmethod
-    @json_reader
-    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
         if in_dict['_ev'] is not None:
-            ev = acnsim_io.read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
+            ev = read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
         else:
             ev = None
         out_obj = cls(
@@ -236,23 +234,22 @@ class DeadbandEVSE(EVSE):
         """
         return np.isclose(pilot, 0, atol) or pilot > self._deadband_end
 
-    @json_writer
-    def to_json(self, context_dict={}):
+    
+    def to_dict(self, context_dict={}):
         """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
         # TODO: pre/post here could be done with a decorator and a base sim obj class.
-        args_dict = super().to_json.__wrapped__(self, context_dict)
+        args_dict = super().to_dict(context_dict)
         args_dict['_deadband_end'] = self._deadband_end
         return args_dict
 
     @classmethod
-    @json_reader
-    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
         cls_kwargs = {'deadband_end': in_dict['_deadband_end']}
-        out_obj = super().from_json.__wrapped__(cls, in_dict, context_dict, loaded_dict, cls_kwargs)
+        out_obj = super().from_dict(in_dict, context_dict, loaded_dict, cls_kwargs)
         return out_obj
 
 class FiniteRatesEVSE(EVSE):
@@ -290,24 +287,23 @@ class FiniteRatesEVSE(EVSE):
         """
         return np.any(np.isclose(pilot, self.allowable_rates, atol=1e-3))
 
-    @json_writer
-    def to_json(self, context_dict={}):
+    
+    def to_dict(self, context_dict={}):
         """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
-        args_dict = super().to_json.__wrapped__(self, context_dict)
+        args_dict = super().to_dict(context_dict)
         args_dict['allowable_rates'] = self.allowable_rates
         return args_dict
 
     @classmethod
-    @json_reader
-    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
         # TODO: FREVSE constructor doesn't accept args that parent class would
         # So can't use super here. Maybe should change FREVSE constructor?
         if in_dict['_ev'] is not None:
-            ev = acnsim_io.read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
+            ev = read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
         else:
             ev = None
         # TODO: Should we actually use the constructor? or just

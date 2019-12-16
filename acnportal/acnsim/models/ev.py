@@ -1,8 +1,8 @@
 from builtins import property
-from acnportal import acnsim_io
-from acnportal.acnsim_io import json_writer, json_reader
+from ..base import BaseSimObj, read_from_id
 
-class EV:
+
+class EV(BaseSimObj):
     """Class to model the behavior of an Electrical Vehicle (ev).
 
     Args:
@@ -136,8 +136,8 @@ class EV:
         self._energy_delivered = 0
         self._battery.reset()
 
-    @json_writer
-    def to_json(self, context_dict={}):
+    
+    def to_dict(self, context_dict={}):
         """ Converts the event into a JSON serializable dict
 
         Returns:
@@ -153,14 +153,13 @@ class EV:
         for attr in nn_attr_lst:
             args_dict[attr] = getattr(self, attr)
 
-        args_dict['_battery'] = self._battery.to_json(context_dict=context_dict)['id']
+        args_dict['_battery'] = self._battery.to_registry(context_dict=context_dict)['id']
 
         return args_dict
 
     @classmethod
-    @json_reader
-    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
-        battery = acnsim_io.read_from_id(in_dict['_battery'], context_dict, loaded_dict)
+    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+        battery = read_from_id(in_dict['_battery'], context_dict, loaded_dict)
         out_obj = cls(
             in_dict['_arrival'],
             in_dict['_departure'],

@@ -1,9 +1,9 @@
 import heapq
 from .event import Event
-from acnportal import acnsim_io
-from acnportal.acnsim_io import json_writer, json_reader
+from ..base import BaseSimObj, read_from_id
 
-class EventQueue:
+
+class EventQueue(BaseSimObj):
     """ Queue which stores simulation events.
 
     Args:
@@ -88,8 +88,8 @@ class EventQueue:
             return -1
         return max(self._queue, key=lambda x: x[0])[0]
 
-    @json_writer
-    def to_json(self, context_dict={}):
+    
+    def to_dict(self, context_dict={}):
         """ Converts the event queue into a JSON serializable dict
 
         Returns:
@@ -97,16 +97,15 @@ class EventQueue:
         """
         args_dict = {}
 
-        args_dict['_queue'] = [(ts, event.to_json(context_dict=context_dict)['id']) 
+        args_dict['_queue'] = [(ts, event.to_registry(context_dict=context_dict)['id']) 
             for (ts, event) in self._queue]
         args_dict['_timestep'] = self._timestep
         return args_dict
 
     @classmethod
-    @json_reader
-    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
         out_obj = cls(**cls_kwargs)
-        out_obj._queue = [(ts, acnsim_io.read_from_id(event, context_dict=context_dict, loaded_dict=loaded_dict))
+        out_obj._queue = [(ts, read_from_id(event, context_dict=context_dict, loaded_dict=loaded_dict))
             for (ts, event) in in_dict['_queue']]
         out_obj._timestep = in_dict['_timestep']
 

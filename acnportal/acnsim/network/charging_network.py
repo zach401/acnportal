@@ -3,10 +3,10 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 import warnings
-from acnportal import acnsim_io
-from acnportal.acnsim_io import json_writer, json_reader
+from ..base import BaseSimObj, read_from_id
 
-class ChargingNetwork:
+
+class ChargingNetwork(BaseSimObj):
     """
     The ChargingNetwork class describes the infrastructure of the charging network with
     information about the types of the charging station_schedule.
@@ -305,8 +305,8 @@ class ChargingNetwork:
             schedule_length = len(schedule_matrix[0])
             return np.all(np.tile(self.magnitudes + 1e-5, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
-    @json_writer
-    def to_json(self, context_dict={}):
+    
+    def to_dict(self, context_dict={}):
         """ Converts the network into a JSON serializable dict
 
         Returns:
@@ -314,7 +314,7 @@ class ChargingNetwork:
         """
         args_dict = {}
 
-        args_dict['_EVSEs'] = {station_id : evse.to_json(context_dict=context_dict)['id'] 
+        args_dict['_EVSEs'] = {station_id : evse.to_registry(context_dict=context_dict)['id'] 
             for station_id, evse in self._EVSEs.items()}
 
         args_dict['constraint_matrix'] = self.constraint_matrix.tolist()
@@ -327,11 +327,10 @@ class ChargingNetwork:
         return args_dict
 
     @classmethod
-    @json_reader
-    def from_json(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
         out_obj = cls(**cls_kwargs)
 
-        out_obj._EVSEs = {station_id : acnsim_io.read_from_id(evse, context_dict=context_dict, loaded_dict=loaded_dict)
+        out_obj._EVSEs = {station_id : read_from_id(evse, context_dict=context_dict, loaded_dict=loaded_dict)
             for station_id, evse in in_dict['_EVSEs'].items()}
 
         out_obj.constraint_matrix = \
@@ -347,14 +346,4 @@ class ChargingNetwork:
 
 class StationOccupiedError(Exception):
     """ Exception which is raised when trying to add an EV to an EVSE which is already occupied."""
-    pass
-
-def network_from_json_dict(in_dict):
-    """ Load a ChargingNetwork object from a dict specifying JSON-encoded fields
-
-    Args:
-        in_dict (Dict[str, JSON-serializable]): input dictionary from which to read object.
-
-    Returns: ChargingNetwork
-    """
     pass
