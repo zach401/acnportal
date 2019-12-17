@@ -76,24 +76,24 @@ class TestDeadbandEVSE(TestEVSE):
 class TestFiniteRatesEVSE(TestEVSE):
     def setUp(self):
         self.evse = FiniteRatesEVSE('0001', [0, 8, 16, 24, 32])
-        self.evse2 = FiniteRatesEVSE('0002', [32, 16, 8, 24, 0])
-        self.evse3 = FiniteRatesEVSE('0003', [0, 8, 8, 24, 16, 24, 32])
-        self.evse4 = FiniteRatesEVSE('0004', [8, 24, 16, 32])
 
     def test_allowable_pilot_signals(self):
         self.assertEqual(self.evse.allowable_pilot_signals,
             [0, 8, 16, 24, 32])
 
     def test_allowable_pilot_signals_unsorted(self):
-        self.assertEqual(self.evse2.allowable_pilot_signals,
+        evse2 = FiniteRatesEVSE('0002', [32, 16, 8, 24, 0])
+        self.assertEqual(evse2.allowable_pilot_signals,
             [0, 8, 16, 24, 32])
 
     def test_allowable_pilot_signals_duplicates(self):
-        self.assertEqual(self.evse3.allowable_pilot_signals,
+        evse3 = FiniteRatesEVSE('0003', [0, 8, 8, 24, 16, 24, 32])
+        self.assertEqual(evse3.allowable_pilot_signals,
             [0, 8, 16, 24, 32])
 
     def test_allowable_pilot_signals_no_zero(self):
-        self.assertEqual(self.evse4.allowable_pilot_signals,
+        evse4 = FiniteRatesEVSE('0004', [8, 24, 16, 32])
+        self.assertEqual(evse4.allowable_pilot_signals,
             [0, 8, 16, 24, 32])
 
     def test_set_pilot_has_ev_invalid_rate(self):
