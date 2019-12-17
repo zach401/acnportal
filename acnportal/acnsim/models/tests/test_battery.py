@@ -2,7 +2,7 @@ import unittest
 from unittest import TestCase
 from unittest.mock import patch
 
-from acnportal.acnsim.models import Battery, Linear2StageBattery
+from acnportal.acnsim.models import Battery, Linear2StageBattery, batt_cap_fn
 
 
 class TestBatteryBase(TestCase):
@@ -127,6 +127,30 @@ class TestLinear2StageBattery(TestBatteryBase):
         self.assertAlmostEqual(self.batt.current_charging_power, 0.384)
         self.assertAlmostEqual(self.batt._current_charge, 99.032)
 
+
+class TestBatteryFit(TestCase):
+    def battery_feasible(self, request, duration, voltage, period):
+        cap, init = batt_cap_fn(request, duration, voltage, period)
+        batt = Linear2StageBattery(cap, init, 32*voltage / 1000)
+        rates = []
+        for d in range(duration):
+            rates.append(batt.charge(32, voltage, period))
+        self.assertAlmostEqual((batt._current_charge - init), request)
+        self.assertAlmostEqual(request, sum(rates)*voltage/1000*(period/60))
+
+    def test_no_laxity(self):
+        voltage = 208
+        period = 5
+        max_power = 32*voltage / 1000
+        for dur in [12, 24, 32, 64]:
+            self.battery_feasible(max_power*dur/(60/period), dur, voltage, period)
+
+    def test_half_laxity(self):
+        voltage = 208
+        period = 5
+        max_power = 32*voltage / 1000
+        for dur in [12, 24, 32, 64]:
+            self.battery_feasible(max_power*dur/(60/period)/2, dur, voltage, period)
 
 if __name__ == '__main__':
     unittest.main()

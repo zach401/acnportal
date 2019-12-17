@@ -141,3 +141,30 @@ class Linear2StageBattery(Battery):
         self._current_charge += charge_power * (period / 60)
         self._current_charging_power = charge_power
         return charge_power * 1000 / voltage
+
+
+def batt_cap_fn(requested_energy, stay_dur, voltage, period):
+    def _get_init_cap(requested_energy, stay_dur, cap, voltage, period, max_rate=32):
+        batt = Linear2StageBattery(cap, 0, max_rate, noise_level=0)
+        actual_rates = []
+        while True:
+            actual_rates.append(batt.charge(max_rate, voltage, period))
+            if actual_rates[-1] < 0.1:
+                break
+
+        for t in range(len(actual_rates) - 1, -1, -1):
+            if t < 0:
+                raise ValueError('t should never go below 0')
+            if sum(actual_rates[t: max(len(actual_rates), t + stay_dur - 1)]) * voltage / 1000 / (
+                    60 / period) >= requested_energy:
+                return sum(actual_rates[:t]) * voltage / 1000 / (60 / period)
+        return -1
+
+    potential_caps = np.array([8, 24, 40, 60, 85, 100])
+    for cap in potential_caps:
+        if requested_energy > cap:
+            continue
+        init = _get_init_cap(requested_energy, stay_dur, cap, voltage, period)
+        if init >= 0:
+            return cap, init
+    raise ValueError('No feasible battery size found.')
