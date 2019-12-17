@@ -83,4 +83,7 @@ class EventQueue:
         Returns:
             int: Last timestamp in the event queue
         """
-        return max(self._queue, key=lambda x: x[0])[0]
+        if not self.empty():
+            return max(self._queue, key=lambda x: x[0])[0]
+        else:
+            return 0
