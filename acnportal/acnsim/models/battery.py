@@ -185,11 +185,14 @@ class Linear2StageBattery(Battery):
             curr_soc = 1 + np.exp(pilot_dsoc \
                                   / (pilot_transition_soc - 1)) \
                        * (self._soc - 1)
+        if self._noise_level > 0:
+            raw_noise = np.random.normal(0, self._noise_level)
+            scaled_noise = raw_noise * (period / 60) / self._capacity
+            curr_soc -= abs(scaled_noise)
         dsoc = curr_soc - self._soc
         self._current_charge = curr_soc * self._capacity
         # Average charging power over this period
         self._current_charging_power = dsoc * self._capacity / (period / 60)
-
         return self._current_charging_power * 1000 / voltage
 
 
