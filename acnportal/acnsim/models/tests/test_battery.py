@@ -74,7 +74,7 @@ class TestLinear2StageBattery(TestBatteryBase):
         self.assertAlmostEqual(self.batt.current_charging_power, 3.84)
         self.assertAlmostEqual(self.batt._current_charge, 0.32)
 
-    def test_valid_charge_positive_noise_not_tail(self):
+    def _valid_charge_positive_noise_not_tail(self):
         self.batt = Linear2StageBattery(100, 0, 7.68, 1)
         with patch('numpy.random.normal', return_value=0.288):
             rate = self.batt.charge(16, 240, 5)
@@ -82,7 +82,7 @@ class TestLinear2StageBattery(TestBatteryBase):
         self.assertAlmostEqual(self.batt.current_charging_power, 3.552)
         self.assertAlmostEqual(self.batt._current_charge, 0.296)
 
-    def test_valid_charge_negative_noise_not_tail(self):
+    def _valid_charge_negative_noise_not_tail(self):
         self.batt = Linear2StageBattery(100, 0, 7.68, 1)
         with patch('numpy.random.normal', return_value=-0.288):
             rate = self.batt.charge(16, 240, 5)
@@ -93,11 +93,11 @@ class TestLinear2StageBattery(TestBatteryBase):
     def test_valid_charge_no_noise_tail(self):
         self.batt = Linear2StageBattery(100, 85, 7.68, 0)
         rate = self.batt.charge(32, 240, 5)
-        self.assertAlmostEqual(rate, 24)
-        self.assertAlmostEqual(self.batt.current_charging_power, 5.76)
-        self.assertAlmostEqual(self.batt._current_charge, 85.48)
+        self.assertAlmostEqual(rate, 23.62006344060197)
+        self.assertAlmostEqual(self.batt.current_charging_power, 5.668815225744472)
+        self.assertAlmostEqual(self.batt._current_charge, 85.472401268812)
 
-    def test_valid_charge_positive_noise_tail(self):
+    def _valid_charge_positive_noise_tail(self):
         self.batt = Linear2StageBattery(100, 85, 7.68, 1)
         with patch('numpy.random.normal', return_value=0.288):
             rate = self.batt.charge(32, 240, 5)
@@ -105,7 +105,7 @@ class TestLinear2StageBattery(TestBatteryBase):
         self.assertAlmostEqual(self.batt.current_charging_power, 6.048)
         self.assertAlmostEqual(self.batt._current_charge, 85.504)
 
-    def test_valid_charge_negative_noise_tail(self):
+    def _valid_charge_negative_noise_tail(self):
         self.batt = Linear2StageBattery(100, 85, 7.68, 1)
         with patch('numpy.random.normal', return_value=-0.288):
             rate = self.batt.charge(32, 240, 5)
@@ -123,10 +123,23 @@ class TestLinear2StageBattery(TestBatteryBase):
     def test_charge_over_capacity(self):
         self.batt = Linear2StageBattery(100, 99, 7.68, 0)
         rate = self.batt.charge(32, 240, 5)
-        self.assertAlmostEqual(rate, 1.6)
-        self.assertAlmostEqual(self.batt.current_charging_power, 0.384)
-        self.assertAlmostEqual(self.batt._current_charge, 99.032)
+        self.assertAlmostEqual(rate, 1.574670896040131)
+        self.assertAlmostEqual(self.batt.current_charging_power, 0.3779210150496315)
+        self.assertAlmostEqual(self.batt._current_charge, 99.0314934179208)
 
+    def test_charge_at_threshold(self):
+        self.batt = Linear2StageBattery(100, 80, 7.68, 0)
+        rate = self.batt.charge(32, 240, 5)
+        self.assertAlmostEqual(rate, 31.49341792080207)
+        self.assertAlmostEqual(self.batt.current_charging_power, 7.558420300992497)
+        self.assertAlmostEqual(self.batt._current_charge, 80.629868358416)
+
+    def test_charge_cross_threshold(self):
+        self.batt = Linear2StageBattery(100, 79.9, 7.68, 0)
+        rate = self.batt.charge(32, 240, 5)
+        self.assertAlmostEqual(rate, 31.63875847566334)
+        self.assertAlmostEqual(self.batt.current_charging_power, 7.5933020341592)
+        self.assertAlmostEqual(self.batt._current_charge, 80.5327751695133)
 
 class TestBatteryFit(TestCase):
     def battery_feasible(self, request, duration, voltage, period):
@@ -151,6 +164,13 @@ class TestBatteryFit(TestCase):
         max_power = 32*voltage / 1000
         for dur in [12, 24, 32, 64]:
             self.battery_feasible(max_power*dur/(60/period)/2, dur, voltage, period)
+
+    def test_almost_no_laxity(self):
+        voltage = 208
+        period = 5
+        max_power = 32*voltage / 1000
+        for dur in [12, 24, 32, 64]:
+            self.battery_feasible(max_power*dur/(60/period)/1.001, dur, voltage, period)
 
 if __name__ == '__main__':
     unittest.main()
