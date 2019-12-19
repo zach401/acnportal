@@ -114,7 +114,7 @@ class TestIntegration(TestCase):
         np.testing.assert_allclose(
             acnsim.current_unbalance(self.sim, ['Secondary A', 'Secondary B', 'Secondary C']),
             np.array(self.edf_algo_true_analysis_dict['secondary_current_unbalance_nema']))
-    
+
     def test_tutorial_2(self):
         old_evse_keys = list(self.edf_algo_true_info_dict['pilot_signals'].keys())
         new_evse_keys = self.sim.network.station_ids
@@ -123,7 +123,7 @@ class TestIntegration(TestCase):
         edf_algo_new_info_dict = {field : self.sim.__dict__[field] for field in self.edf_algo_true_info_dict.keys()}
         edf_algo_new_info_dict['charging_rates'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['charging_rates'][i]) for i in range(len(self.sim.network.station_ids))}
         edf_algo_new_info_dict['pilot_signals'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['pilot_signals'][i]) for i in range(len(self.sim.network.station_ids))}
-        
+
         for evse_key in new_evse_keys:
             np.testing.assert_allclose(np.array(self.edf_algo_true_info_dict['pilot_signals'][evse_key]),
                 np.array(edf_algo_new_info_dict['pilot_signals'][evse_key])[:len(self.edf_algo_true_info_dict['pilot_signals'][evse_key])])
@@ -138,6 +138,11 @@ class TestIntegration(TestCase):
         self.assertDictEqual(self.edf_algo_true_lap, self.sch.polled_pilots)
 
     def test_cr_interface_func(self):
+        # TODO: last_actual_charging_rates has a new definition that
+        # doesn't include EVs that arrived in the current iteration.
+        # This test (namely edf_algo_true_cr) must change to reflect
+        # this.
+        self.maxDiff = None
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_charging_rates.json'), 'r') as infile:
             self.edf_algo_true_cr = json.load(infile)
 
