@@ -85,8 +85,12 @@ class Simulator:
                     self.schedule_history[self._iteration] = new_schedule
                 self._last_schedule_update = self._iteration
                 self._resolve = False
-            self.pilot_signals = _increase_width(self.pilot_signals, max(self.event_queue.get_last_timestamp() + 1, self._iteration + 1))
-            self.charging_rates = _increase_width(self.charging_rates, max(self.event_queue.get_last_timestamp() + 1, self._iteration + 1))
+            if self.event_queue.get_last_timestamp() is not None:
+                width_increase = max(self.event_queue.get_last_timestamp() + 1, self._iteration + 1)
+            else:
+                width_increase = self._iteration + 1
+            self.pilot_signals = _increase_width(self.pilot_signals, width_increase)
+            self.charging_rates = _increase_width(self.charging_rates, width_increase)
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
