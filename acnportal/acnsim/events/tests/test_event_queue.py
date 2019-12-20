@@ -51,4 +51,4 @@ class TestEventQueue(TestCase):
     def test_get_last_timestamp_no_events(self):
         events = []
         self.events.add_events(events)
-        self.assertIsNotNone(self.events.get_last_timestamp())
+        self.assertNotNone(self.events.get_last_timestamp())
