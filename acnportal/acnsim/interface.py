@@ -78,6 +78,8 @@ class Interface:
 
     def allowable_pilot_signals(self, station_id):
         """ Returns the allowable pilot signal levels for the specified EVSE.
+        One may assume an EVSE pilot signal of 0 is allowed regardless
+        of this function's return values.
 
         Args:
             station_id (str): The ID of the station for which the allowable rates should be returned.
@@ -88,11 +90,7 @@ class Interface:
                 the min and the max acceptable values. [A]
         """
         evse = self._simulator.network._EVSEs[station_id]
-        if evse.is_continuous:
-            rate_set = [evse.min_rate, evse.max_rate]
-        else:
-            rate_set = evse.allowable_rates
-        return evse.is_continuous, rate_set
+        return evse.is_continuous, evse.allowable_pilot_signals
 
     def max_pilot_signal(self, station_id):
         """ Returns the maximum allowable pilot signal level for the specified EVSE.

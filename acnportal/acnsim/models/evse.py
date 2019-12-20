@@ -81,6 +81,16 @@ class EVSE:
         """ Return pilot signal for the current time step. (float)"""
         return self._current_pilot
 
+    @property
+    def allowable_pilot_signals(self):
+        """ Returns the allowable pilot signal levels for this EVSE.
+
+        Returns:
+            list[float]: List of 2 values: the min and max
+                acceptable values.
+        """
+        return [self.min_rate, self.max_rate]
+
     def set_pilot(self, pilot, voltage, period):
         """ Apply a new pilot signal to the EVSE.
 
@@ -160,6 +170,16 @@ class DeadbandEVSE(EVSE):
         super().__init__(station_id, max_rate, min_rate)
         self._deadband_end = deadband_end
 
+    @property
+    def allowable_pilot_signals(self):
+        """ Returns the allowable pilot signal levels for this EVSE.
+
+        Returns:
+            list[float]: List of 2 values: the min and max
+                acceptable values.
+        """
+        return [self._deadband_end, self.max_rate]
+
     def _valid_rate(self, pilot, atol=1e-3):
         """ Overrides super class method. Disallows rates between 0 - 6 A as per the J1772 standard.
 
@@ -180,12 +200,25 @@ class FiniteRatesEVSE(EVSE):
 
     Attributes:
         allowable_rates (iterable): Iterable of rates which are allowed by the EVSE.
+            On initialization, allowable_rates is converted into a list of rates
+            in increasing order that includes 0 and contains no duplicate values.
 
     """
     def __init__(self, station_id, allowable_rates):
         super().__init__(station_id, max(allowable_rates))
-        self.allowable_rates = allowable_rates
+        allowable_rates = set(allowable_rates)
+        allowable_rates.add(0)
+        self.allowable_rates = sorted(list(allowable_rates))
         self.is_continuous = False
+
+    @property
+    def allowable_pilot_signals(self):
+        """ Returns the allowable pilot signal levels for this EVSE.
+
+        Returns:
+            list[float]: List of allowable pilot signals.
+        """
+        return self.allowable_rates
 
     def _valid_rate(self, pilot, atol=1e-3):
         """ Overrides super class method. Checks if pilot is close to being in the allowable set.
