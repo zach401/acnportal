@@ -199,11 +199,15 @@ class FiniteRatesEVSE(EVSE):
 
     Attributes:
         allowable_rates (iterable): Iterable of rates which are allowed by the EVSE.
+            On initialization, allowable_rates is converted into a list of rates
+            in increasing order that includes 0 and contains no duplicate values.
 
     """
     def __init__(self, station_id, allowable_rates):
         super().__init__(station_id, max(allowable_rates))
-        self.allowable_rates = allowable_rates
+        allowable_rates = set(allowable_rates)
+        allowable_rates.add(0)
+        self.allowable_rates = sorted(list(allowable_rates))
         self.is_continuous = False
 
     @property
