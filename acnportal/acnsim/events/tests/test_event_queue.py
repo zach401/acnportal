@@ -24,7 +24,7 @@ class TestEventQueue(TestCase):
     def test_len(self):
         events = [Event(i) for i in range(1, 6)]
         self.events.add_events(events)
-        self.assertEqual(5, len(self.events))
+        self.assertEqual(4, len(self.events))
 
     def test_get_event(self):
         self.events.add_event(Event(5))
