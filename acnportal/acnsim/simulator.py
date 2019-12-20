@@ -95,10 +95,12 @@ class Simulator(BaseSimObj):
                     self.schedule_history[self._iteration] = new_schedule
                 self._last_schedule_update = self._iteration
                 self._resolve = False
-            # Ensure that pilot_signals and charging_rates have enough
-            # Space to at least accommodate this iteration's values.
-            self.pilot_signals = _increase_width(self.pilot_signals, self._iteration + 1)
-            self.charging_rates = _increase_width(self.charging_rates, self._iteration + 1)
+            if self.event_queue.get_last_timestamp() is not None:
+                width_increase = max(self.event_queue.get_last_timestamp() + 1, self._iteration + 1)
+            else:
+                width_increase = self._iteration + 1
+            self.pilot_signals = _increase_width(self.pilot_signals, width_increase)
+            self.charging_rates = _increase_width(self.charging_rates, width_increase)
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
@@ -167,7 +169,7 @@ class Simulator(BaseSimObj):
         schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
         if not self.network.is_feasible(schedule_matrix):
             warnings.warn("Invalid schedule provided at iteration {0}".format(self._iteration), UserWarning)
-        if self._iteration + schedule_length <= len(self.pilot_signals[0]):
+        if self._iteration + schedule_length <= self.pilot_signals.shape[1]:
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
         else:
             # We've reached the end of pilot_signals, so double pilot_signal array width
@@ -179,7 +181,7 @@ class Simulator(BaseSimObj):
         """ Store actual charging rates from the network in the simulator for later analysis."""
         current_rates = self.network.current_charging_rates
         agg = np.sum(current_rates)
-        if self.iteration < len(self.charging_rates[0]):
+        if self.iteration < self.charging_rates.shape[1]:
             self.charging_rates[:, self.iteration] = current_rates.T
         else:
             self.charging_rates = _increase_width(self.charging_rates, max(self.event_queue.get_last_timestamp() + 1, self._iteration + 1))
@@ -209,7 +211,7 @@ class Simulator(BaseSimObj):
 
     def index_of_evse(self, station_id):
         """ Return the numerical index of the EVSE given by station_id in the (ordered) dictionary
-        of EVSEs. 
+        of EVSEs.
         """
         if station_id not in self.network.station_ids:
             raise KeyError("EVSE {0} not found in network.".format(station_id))
@@ -331,7 +333,7 @@ class Simulator(BaseSimObj):
 
 def _increase_width(a, target_width):
     """ Returns a new 2-D numpy array with target_width number of columns, with the contents
-    of a up to the first len(a[0]) columns and 0's thereafter.
+    of a up to the first a.shape[1] columns and 0's thereafter.
 
     Args:
         a (numpy.Array): 2-D numpy array to be expanded.
@@ -339,8 +341,8 @@ def _increase_width(a, target_width):
     Returns:
         numpy.Array
     """
-    if target_width <= len(a[0]):
+    if target_width <= a.shape[1]:
         return a
-    new_matrix = np.zeros((len(a), target_width))
-    new_matrix[:, :len(a[0])] = a
+    new_matrix = np.zeros((a.shape[0], target_width))
+    new_matrix[:, :a.shape[1]] = a
     return new_matrix

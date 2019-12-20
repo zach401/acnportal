@@ -82,11 +82,13 @@ class EventQueue(BaseSimObj):
         """ Return the timestamp of the last event (chronologically) in the event queue
 
         Returns:
-            int: Last timestamp in the event queue, or -1 if the queue is empty
+            int: Last timestamp in the event queue, or None if the
+                event queue is empty.
         """
-        if self.empty():
-            return -1
-        return max(self._queue, key=lambda x: x[0])[0]
+        if not self.empty():
+            return max(self._queue, key=lambda x: x[0])[0]
+        else:
+            return None
 
     
     def to_dict(self, context_dict={}):

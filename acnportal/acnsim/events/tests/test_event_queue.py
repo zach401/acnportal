@@ -47,3 +47,8 @@ class TestEventQueue(TestCase):
         self.assertEqual(8, self.events.get_last_timestamp())
         curr_events = self.events.get_current_events(3)
         self.assertEqual(8, self.events.get_last_timestamp())
+
+    def test_get_last_timestamp_no_events(self):
+        events = []
+        self.events.add_events(events)
+        self.assertIsNone(self.events.get_last_timestamp())
