@@ -116,13 +116,20 @@ class Linear2StageBattery(Battery):
             the charging process. This noise in the measurement of
             charging power. (kW)
         transition_soc (float): State of charging when transitioning
-            from constant current to constraint voltage.
+            from constant current to constraint voltage. Quantity is
+            < 1 and >= 0.
     """
 
     def __init__(self, capacity, init_charge, max_power, noise_level=0,
                  transition_soc=0.8):
         super().__init__(capacity, init_charge, max_power)
         self._noise_level = noise_level
+        if transition_soc < 0:
+            raise ValueError(
+                f"transition_soc must be nonnegative. Got {transition_soc}.")
+        elif transition_soc >= 1:
+            raise ValueError(
+                f"transition_soc must be less than 1. Got {transition_soc}.")
         self._transition_soc = transition_soc
 
     def charge(self, pilot, voltage, period):
