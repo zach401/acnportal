@@ -49,8 +49,11 @@ class Simulator(BaseSimObj):
         self.verbose = verbose
 
         # Information storage
-        self.pilot_signals = np.zeros((len(self.network.station_ids), self.event_queue.get_last_timestamp() + 1))
-        self.charging_rates = np.zeros((len(self.network.station_ids), self.event_queue.get_last_timestamp() + 1))
+        width = 1
+        if self.event_queue.get_last_timestamp() is not None:
+            width = self.event_queue.get_last_timestamp() + 1
+        self.pilot_signals = np.zeros((len(self.network.station_ids), width))
+        self.charging_rates = np.zeros((len(self.network.station_ids), width))
         self.peak = 0
         self.ev_history = {}
         self.event_history = []
@@ -153,7 +156,7 @@ class Simulator(BaseSimObj):
 
         Raises:
             KeyError: Raised when station_id is in the new_schedule but not registered in the Network.
-        """ 
+        """
         if len(new_schedule) == 0:
             return
 
@@ -168,6 +171,8 @@ class Simulator(BaseSimObj):
 
         schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
         if not self.network.is_feasible(schedule_matrix):
+            print(schedule_matrix)
+            print(self.scheduler)
             warnings.warn("Invalid schedule provided at iteration {0}".format(self._iteration), UserWarning)
         if self._iteration + schedule_length <= self.pilot_signals.shape[1]:
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
@@ -203,7 +208,7 @@ class Simulator(BaseSimObj):
 
     def pilot_signals_as_df(self):
         """ Return the pilot signals as a pandas DataFrame
-        
+
         Returns:
             pandas.DataFrame
         """
@@ -217,7 +222,7 @@ class Simulator(BaseSimObj):
             raise KeyError("EVSE {0} not found in network.".format(station_id))
         return self.network.station_ids.index(station_id)
 
-    
+
     def to_dict(self, context_dict={}):
         """ Converts the simulator into a JSON serializable dict
 
@@ -264,11 +269,11 @@ class Simulator(BaseSimObj):
         args_dict['charging_rates'] = self.charging_rates.tolist()
 
         args_dict['ev_history'] = {
-            session_id : ev.to_registry(context_dict=context_dict)['id'] 
+            session_id : ev.to_registry(context_dict=context_dict)['id']
             for session_id, ev in self.ev_history.items()
         }
         args_dict['event_history'] = [
-            event.to_registry(context_dict=context_dict)['id'] 
+            event.to_registry(context_dict=context_dict)['id']
             for event in self.event_history
         ]
         return args_dict
@@ -309,7 +314,7 @@ class Simulator(BaseSimObj):
             **cls_kwargs
         )
 
-        attr_lst = ['max_recompute', 'peak', '_iteration', 
+        attr_lst = ['max_recompute', 'peak', '_iteration',
             '_resolve', '_last_schedule_update']
         for attr in attr_lst:
             setattr(out_obj, attr, in_dict[attr])
@@ -319,9 +324,9 @@ class Simulator(BaseSimObj):
         out_obj.pilot_signals = np.array(in_dict['pilot_signals'])
         out_obj.charging_rates = np.array(in_dict['charging_rates'])
 
-        out_obj.ev_history = {session_id : read_from_id(ev, context_dict=context_dict, loaded_dict=loaded_dict) 
+        out_obj.ev_history = {session_id : read_from_id(ev, context_dict=context_dict, loaded_dict=loaded_dict)
             for session_id, ev in in_dict['ev_history'].items()}
-        out_obj.event_history = [read_from_id(event, context_dict=context_dict, loaded_dict=loaded_dict) 
+        out_obj.event_history = [read_from_id(event, context_dict=context_dict, loaded_dict=loaded_dict)
             for event in in_dict['event_history']]
         return out_obj
 

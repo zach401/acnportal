@@ -77,7 +77,7 @@ class BaseSimObj:
             unloaded_attrs = set(in_dict.keys()) - set(out_obj.__dict__.keys())
             warnings.warn(
                 f"Attributes {unloaded_attrs} present in object of type "
-                f"{obj_dict['class']} but not handled by object's to_dict "
+                f"{obj_dict['class']} but not handled by object's from_dict "
                  "method. Loaded object may have inaccurate attributes.",
                 UserWarning
             )

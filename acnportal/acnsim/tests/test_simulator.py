@@ -87,7 +87,7 @@ class TestEmptyScheduleSim(TestCase):
 
         # EVs
         self.ev1 = acnsim.EV(
-            10, 20, 30, 'PS-001', 'EV-001', deepcopy(self.battery1), 
+            10, 20, 30, 'PS-001', 'EV-001', deepcopy(self.battery1),
             estimated_departure=25
         )
         self.ev1._energy_delivered = 50
@@ -108,10 +108,10 @@ class TestEmptyScheduleSim(TestCase):
         self.ev3._current_charging_rate = 10
 
         # EVSEs
-        self.evse0 = acnsim.EVSE('PS-000', max_rate=32, 
+        self.evse0 = acnsim.EVSE('PS-000', max_rate=32,
             min_rate=0)
 
-        self.evse1 = acnsim.EVSE('PS-001', max_rate=32, 
+        self.evse1 = acnsim.EVSE('PS-001', max_rate=32,
             min_rate=0)
         self.evse1.plugin(self.ev1)
         self.evse1.set_pilot(30, 220, 1)
@@ -121,7 +121,7 @@ class TestEmptyScheduleSim(TestCase):
         self.evse2.plugin(self.ev2)
         self.evse2.set_pilot(30, 220, 1)
 
-        self.evse3 = acnsim.FiniteRatesEVSE('PS-003', 
+        self.evse3 = acnsim.FiniteRatesEVSE('PS-003',
             allowable_rates=[0, 8, 16, 24, 32])
         self.evse3.plugin(self.ev3)
         self.evse3.set_pilot(24, 220, 1)
@@ -129,7 +129,7 @@ class TestEmptyScheduleSim(TestCase):
         # Events
         self.event = acnsim.Event(0)
         self.plugin_event1 = acnsim.PluginEvent(10, self.ev1)
-        self.unplug_event = acnsim.UnplugEvent(20, 'PS-001', 
+        self.unplug_event = acnsim.UnplugEvent(20, 'PS-001',
             'EV-001')
         self.recompute_event = acnsim.RecomputeEvent(30)
         # Plugin with a previously-unseen ev.
@@ -140,21 +140,21 @@ class TestEmptyScheduleSim(TestCase):
 
         # EventQueue
         self.event_queue = acnsim.EventQueue()
-        self.event_queue.add_events([self.event, self.plugin_event1, 
+        self.event_queue.add_events([self.event, self.plugin_event1,
             self.recompute_event, self.plugin_event2,
             self.plugin_event3])
-        
+
         # Network
         self.network = acnsim.ChargingNetwork()
         self.network.register_evse(self.evse1, 220, 30)
         self.network.register_evse(self.evse2, 220, 150)
         self.network.register_evse(self.evse3, 220, -90)
         self.network.constraint_matrix = np.array([[1, 0], [0, 1]])
-        self.network.magnitude = np.array([30, 30])
+        self.network.magnitudes = np.array([30, 30])
         self.network.constraint_index = ['C1', 'C2']
 
         # Simulator
         self.simulator = acnsim.Simulator(
-            self.network, UncontrolledCharging(), 
+            self.network, UncontrolledCharging(),
             self.event_queue, datetime(2019, 1, 1)
         )

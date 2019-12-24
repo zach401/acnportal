@@ -305,7 +305,7 @@ class ChargingNetwork(BaseSimObj):
             schedule_length = schedule_matrix.shape[1]
             return np.all(np.tile(self.magnitudes + 1e-5, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
-    
+
     def to_dict(self, context_dict={}):
         """ Converts the network into a JSON serializable dict
 
@@ -314,7 +314,7 @@ class ChargingNetwork(BaseSimObj):
         """
         args_dict = {}
 
-        args_dict['_EVSEs'] = {station_id : evse.to_registry(context_dict=context_dict)['id'] 
+        args_dict['_EVSEs'] = {station_id : evse.to_registry(context_dict=context_dict)['id']
             for station_id, evse in self._EVSEs.items()}
 
         args_dict['constraint_matrix'] = self.constraint_matrix.tolist()
