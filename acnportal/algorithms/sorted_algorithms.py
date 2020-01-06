@@ -51,12 +51,12 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Returns:
             Dict[str, List[float]]: see BaseAlgorithm
         """
-        ev_queue = self._sort_fn(active_evs, self.interface)
         if self.minimum_charge:
+            active_evs = self.remove_active_evs_less_than_deadband(active_evs)
+            ev_queue = self._sort_fn(active_evs, self.interface)
             schedule, removed = self._find_minimum_charge(ev_queue)
-            # Remove those EVs for which it is not possible to deliver the minimum amount of energy.
-            ev_queue = [ev for ev in ev_queue if ev.station_id not in removed]
         else:
+            ev_queue = self._sort_fn(active_evs, self.interface)
             schedule = {ev.station_id: [0] for ev in ev_queue}
 
         if self.rampdown is not None:
@@ -175,6 +175,8 @@ class RoundRobin(SortedSchedulingAlgo):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         continuous_inc = 1
+        if self.minimum_charge:
+            active_evs = self.remove_active_evs_less_than_deadband(active_evs)
 
         ev_queue = deque(self._sort_fn(active_evs, self.interface))
         schedule = {ev.station_id: [0] for ev in active_evs}

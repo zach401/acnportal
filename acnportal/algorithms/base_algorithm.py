@@ -48,6 +48,23 @@ class BaseAlgorithm:
         if self.rampdown is not None:
             self.rampdown.register_interface(interface)
 
+    def remove_active_evs_less_than_deadband(self, active_evs):
+        """ Remove EVs from active_evs which have remaining demand less than the deadband limit of their EVSE.
+
+        Args:
+            active_evs (List[EV]): List of EV objects which are currently ready to be charged and not finished charging.
+
+        Returns:
+            List[EV]: List of EV objects which have remaining demand above the deadband limit of their EVSE.
+        """
+        new_active = []
+        for ev in active_evs:
+            continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
+            deadband_end = allowable_rates[0] if continuous else allowable_rates[1]
+            if self.interface.remaining_amp_periods(ev) >= deadband_end:
+                new_active.append(ev)
+        return new_active
+
     def schedule(self, active_evs):
         """ Creates a schedule of charging rates for each ev in the active_evs list.
 
