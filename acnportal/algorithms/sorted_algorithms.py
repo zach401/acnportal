@@ -27,6 +27,15 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         self.max_recompute = 1  # Call algorithm each period since it only returns a rate for the next period.
         self.minimum_charge = minimum_charge
 
+    def _find_minimum_charge(self, ev_queue):
+        schedule = {ev.station_id: [0] for ev in ev_queue}
+        for ev in ev_queue:
+            continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
+            schedule[ev.station_id][0] = allowable_rates[0] if continuous else allowable_rates[1]
+            if schedule[ev.station_id][0] > self.interface.remaining_amp_periods(ev) or not self.interface.is_feasible(schedule):
+                schedule[ev.station_id][0] = 0
+        return schedule
+
     def schedule(self, active_evs):
         """ Schedule EVs by first sorting them by sort_fn, then allocating them their maximum feasible rate.
 
@@ -41,13 +50,10 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         ev_queue = self._sort_fn(active_evs, self.interface)
-        schedule = {ev.station_id: [0] for ev in active_evs}
         if self.minimum_charge:
-            for ev in ev_queue:
-                continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
-                schedule[ev.station_id][0] = allowable_rates[0] if continuous else allowable_rates[1]
-                if not self.interface.is_feasible(schedule):
-                    schedule[ev.station_id][0] = 0
+            schedule = self._find_minimum_charge(ev_queue)
+        else:
+            schedule = {ev.station_id: [0] for ev in ev_queue}
 
         if self.rampdown is not None:
             rampdown_max = self.rampdown.get_maximum_rates(active_evs)
@@ -58,17 +64,18 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 max_rate = min(allowable_rates[-1], self.interface.remaining_amp_periods(ev))
                 if self.rampdown is not None:
                     max_rate = min(rampdown_max[ev.session_id], max_rate)
-                charging_rate = self.max_feasible_rate(ev.station_id, max_rate, schedule, eps=0.01)
+                charging_rate = self.max_feasible_rate(ev.station_id, max_rate, schedule, lb=schedule[ev.station_id][0],
+                                                       eps=0.01)
             else:
                 max_rate_limit = self.interface.remaining_amp_periods(ev)
                 if self.rampdown is not None:
                     max_rate_limit = min(rampdown_max[ev.session_id], max_rate_limit)
-                allowable_rates = [x for x in allowable_rates if x < max_rate_limit]
+                allowable_rates = [x for x in allowable_rates if schedule[ev.station_id][0] <= x <= max_rate_limit]
                 charging_rate = self.discrete_max_feasible_rate(ev.station_id, allowable_rates, schedule)
             schedule[ev.station_id][0] = charging_rate
         return schedule
 
-    def max_feasible_rate(self, station_id, ub, schedule, time=0, eps=0.01):
+    def max_feasible_rate(self, station_id, ub, schedule, lb=0, time=0, eps=0.01):
         """ Return the maximum feasible rate less than ub subject to the environment's constraints.
 
         If schedule contains non-zero elements at the given time, these are treated as fixed allocations and this
@@ -99,7 +106,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
 
         if not self.interface.is_feasible(schedule):
             raise ValueError('The initial schedule is not feasible.')
-        return bisection(station_id, 0, ub, schedule)
+        return bisection(station_id, lb, ub, schedule)
 
     def discrete_max_feasible_rate(self, station_id, allowable_rates, schedule, time=0):
         """ Return the maximum feasible allowable rate subject to the environment's constraints.
@@ -229,7 +236,7 @@ def least_laxity_first(evs, iface):
     """ Sort EVs by laxity in increasing order.
 
     Laxity is a measure of the charging flexibility of an EV. Here we define laxity as:
-        LAX_i(t) = (departure_i - t) - (remaining_demand_i(t) / max_rate_i)
+        LAX_i(t) = (departure_i - t) - ( _i(t) / max_rate_i)
 
     Args:
         evs (List[EV]): List of EVs to be sorted.
