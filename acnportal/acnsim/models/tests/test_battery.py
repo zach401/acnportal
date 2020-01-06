@@ -66,6 +66,21 @@ class TestLinear2StageBattery(TestBatteryBase):
         self.batt = Linear2StageBattery(
             100, self.init_charge, 7.68, 0)
 
+    def test_negative_transition_soc(self):
+        with self.assertRaises(ValueError):
+            self.batt = Linear2StageBattery(
+                100, 0, 7.68, 0, transition_soc=-0.1)
+
+    def test_one_transition_soc(self):
+        with self.assertRaises(ValueError):
+            self.batt = Linear2StageBattery(
+                100, 0, 7.68, 0, transition_soc=1)
+
+    def test_over_one_transitions_soc(self):
+        with self.assertRaises(ValueError):
+            self.batt = Linear2StageBattery(
+                100, 0, 7.68, 0, transition_soc=1.1)
+
     def test_valid_charge_no_noise_not_tail(self):
         self.batt = Linear2StageBattery(100, 0, 7.68, 0)
         with patch('numpy.random.normal', return_value=1.2):
