@@ -29,12 +29,14 @@ class SortedSchedulingAlgo(BaseAlgorithm):
 
     def _find_minimum_charge(self, ev_queue):
         schedule = {ev.station_id: [0] for ev in ev_queue}
+        removed = set()
         for ev in ev_queue:
             continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
             schedule[ev.station_id][0] = allowable_rates[0] if continuous else allowable_rates[1]
             if schedule[ev.station_id][0] > self.interface.remaining_amp_periods(ev) or not self.interface.is_feasible(schedule):
                 schedule[ev.station_id][0] = 0
-        return schedule
+                removed.add(ev.station_id)
+        return schedule, removed
 
     def schedule(self, active_evs):
         """ Schedule EVs by first sorting them by sort_fn, then allocating them their maximum feasible rate.
@@ -51,7 +53,9 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         """
         ev_queue = self._sort_fn(active_evs, self.interface)
         if self.minimum_charge:
-            schedule = self._find_minimum_charge(ev_queue)
+            schedule, removed = self._find_minimum_charge(ev_queue)
+            # Remove those EVs for which it is not possible to deliver the minimum amount of energy.
+            ev_queue = [ev for ev in ev_queue if ev.station_id not in removed]
         else:
             schedule = {ev.station_id: [0] for ev in ev_queue}
 
