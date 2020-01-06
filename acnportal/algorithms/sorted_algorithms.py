@@ -55,14 +55,15 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         for ev in ev_queue:
             continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
             if continuous:
+                max_rate = min(allowable_rates[-1], self.interface.remaining_amp_periods(ev))
                 if self.rampdown is not None:
-                    max_rate = min(rampdown_max[ev.session_id], allowable_rates[-1])
-                else:
-                    max_rate = allowable_rates[-1]
+                    max_rate = min(rampdown_max[ev.session_id], max_rate)
                 charging_rate = self.max_feasible_rate(ev.station_id, max_rate, schedule, eps=0.01)
             else:
+                max_rate_limit = self.interface.remaining_amp_periods(ev)
                 if self.rampdown is not None:
-                    allowable_rates = [x for x in allowable_rates if x < rampdown_max[ev.session_id]]
+                    max_rate_limit = min(rampdown_max[ev.session_id], max_rate_limit)
+                allowable_rates = [x for x in allowable_rates if x < max_rate_limit]
                 charging_rate = self.discrete_max_feasible_rate(ev.station_id, allowable_rates, schedule)
             schedule[ev.station_id][0] = charging_rate
         return schedule
