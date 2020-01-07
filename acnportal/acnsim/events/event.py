@@ -1,4 +1,4 @@
-from ..base import BaseSimObj, read_from_id
+from ..base import *
 
 class Event(BaseSimObj):
     """ Base class for all events.
@@ -31,13 +31,14 @@ class Event(BaseSimObj):
         """
         return self.precedence < other.precedence
 
-    
-    def to_dict(self, context_dict={}):
+
+    def to_dict(self, context_dict=None):
         """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
 
         args_dict['timestamp'] = self.timestamp
@@ -47,7 +48,9 @@ class Event(BaseSimObj):
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         out_obj = cls(in_dict['timestamp'], **cls_kwargs)
         out_obj.type = in_dict['type']
         out_obj.precedence = in_dict['precedence']
@@ -67,13 +70,14 @@ class PluginEvent(Event):
         self.ev = ev
         self.precedence = 10
 
-    
-    def to_dict(self, context_dict={}):
+
+    def to_dict(self, context_dict=None):
         """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
         # Plugin-specific attributes
         args_dict['ev'] = self.ev.to_registry(context_dict=context_dict)['id']
@@ -81,7 +85,9 @@ class PluginEvent(Event):
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         # TODO: standardize read_from_id inputs (use = or not)
         ev = read_from_id(in_dict['ev'], context_dict, loaded_dict)
         cls_kwargs = {'ev': ev}
@@ -103,13 +109,14 @@ class UnplugEvent(Event):
         self.session_id = session_id
         self.precedence = 0
 
-    
-    def to_dict(self, context_dict={}):
+
+    def to_dict(self, context_dict=None):
         """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
 
         # Unplug-specific attributes
@@ -119,7 +126,9 @@ class UnplugEvent(Event):
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         cls_kwargs = {'station_id': in_dict['station_id'], 'session_id': in_dict['session_id']}
         out_obj = super().from_dict(in_dict, context_dict, loaded_dict, cls_kwargs)
         return out_obj

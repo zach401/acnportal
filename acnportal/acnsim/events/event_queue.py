@@ -1,6 +1,6 @@
 import heapq
 from .event import Event
-from ..base import BaseSimObj, read_from_id
+from ..base import *
 
 
 class EventQueue(BaseSimObj):
@@ -90,22 +90,25 @@ class EventQueue(BaseSimObj):
         else:
             return None
 
-    
-    def to_dict(self, context_dict={}):
+
+    def to_dict(self, context_dict=None):
         """ Converts the event queue into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
 
-        args_dict['_queue'] = [(ts, event.to_registry(context_dict=context_dict)['id']) 
+        args_dict['_queue'] = [(ts, event.to_registry(context_dict=context_dict)['id'])
             for (ts, event) in self._queue]
         args_dict['_timestep'] = self._timestep
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         out_obj = cls(**cls_kwargs)
         out_obj._queue = [(ts, read_from_id(event, context_dict=context_dict, loaded_dict=loaded_dict))
             for (ts, event) in in_dict['_queue']]

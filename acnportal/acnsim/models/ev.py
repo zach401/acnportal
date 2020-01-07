@@ -1,5 +1,5 @@
 from builtins import property
-from ..base import BaseSimObj, read_from_id
+from ..base import *
 
 
 class EV(BaseSimObj):
@@ -136,15 +136,16 @@ class EV(BaseSimObj):
         self._energy_delivered = 0
         self._battery.reset()
 
-    
-    def to_dict(self, context_dict={}):
+
+    def to_dict(self, context_dict=None):
         """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
-    
+
         nn_attr_lst = [
             '_arrival', '_departure', '_session_id', '_station_id',
             '_requested_energy', '_estimated_departure',
@@ -158,7 +159,9 @@ class EV(BaseSimObj):
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         battery = read_from_id(in_dict['_battery'], context_dict, loaded_dict)
         out_obj = cls(
             in_dict['_arrival'],

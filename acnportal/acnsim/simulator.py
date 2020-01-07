@@ -14,7 +14,7 @@ from .events import UnplugEvent
 from .interface import Interface
 from .interface import InvalidScheduleError
 from acnportal.algorithms import BaseAlgorithm
-from .base import BaseSimObj, read_from_id
+from .base import *
 
 
 
@@ -223,12 +223,13 @@ class Simulator(BaseSimObj):
         return self.network.station_ids.index(station_id)
 
 
-    def to_dict(self, context_dict={}):
+    def to_dict(self, context_dict=None):
         """ Converts the simulator into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
 
         # Serialize non-nested attributes.
@@ -279,7 +280,9 @@ class Simulator(BaseSimObj):
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         network = read_from_id(in_dict['network'], context_dict, loaded_dict=loaded_dict)
         assert isinstance(network, ChargingNetwork)
 

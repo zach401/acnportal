@@ -1,5 +1,5 @@
 import numpy as np
-from ..base import BaseSimObj, read_from_id
+from ..base import *
 
 BASIC = 'BASIC'
 AV = 'AeroVironment'
@@ -159,13 +159,14 @@ class EVSE(BaseSimObj):
         self._ev = None
         self._current_pilot = 0
 
-    
-    def to_dict(self, context_dict={}):
+
+    def to_dict(self, context_dict=None):
         """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
 
         nn_attr_lst = [
@@ -183,7 +184,9 @@ class EVSE(BaseSimObj):
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         if in_dict['_ev'] is not None:
             ev = read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
         else:
@@ -234,20 +237,23 @@ class DeadbandEVSE(EVSE):
         """
         return np.isclose(pilot, 0, atol) or pilot > self._deadband_end
 
-    
-    def to_dict(self, context_dict={}):
+
+    def to_dict(self, context_dict=None):
         """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         # TODO: pre/post here could be done with a decorator and a base sim obj class.
         args_dict = super().to_dict(context_dict)
         args_dict['_deadband_end'] = self._deadband_end
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         cls_kwargs = {'deadband_end': in_dict['_deadband_end']}
         out_obj = super().from_dict(in_dict, context_dict, loaded_dict, cls_kwargs)
         return out_obj
@@ -291,19 +297,22 @@ class FiniteRatesEVSE(EVSE):
         """
         return np.any(np.isclose(pilot, self.allowable_rates, atol=1e-3))
 
-    
-    def to_dict(self, context_dict={}):
+
+    def to_dict(self, context_dict=None):
         """ Converts the event into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
         args_dict['allowable_rates'] = self.allowable_rates
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         # TODO: FREVSE constructor doesn't accept args that parent class would
         # So can't use super here. Maybe should change FREVSE constructor?
         if in_dict['_ev'] is not None:

@@ -1,5 +1,5 @@
 import numpy as np
-from ..base import BaseSimObj
+from ..base import *
 
 IDEAL = 'Ideal'
 NOISY = 'Noisy'
@@ -85,12 +85,13 @@ class Battery(BaseSimObj):
             self._current_charge = init_charge
         self._current_charging_power = 0
 
-    def to_dict(self, context_dict={}):
+    def to_dict(self, context_dict=None):
         """ Converts the battery into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
 
         nn_attr_lst = [
@@ -103,7 +104,9 @@ class Battery(BaseSimObj):
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         out_obj = cls(
             in_dict['_capacity'], in_dict['_init_charge'], in_dict['_max_power'], **cls_kwargs)
 
@@ -170,21 +173,24 @@ class Linear2StageBattery(Battery):
         self._current_charging_power = charge_power
         return charge_power * 1000 / voltage
 
-    
-    def to_dict(self, context_dict={}):
+
+    def to_dict(self, context_dict=None):
         """ Converts the battery into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
         args_dict['_noise_level'] = self._noise_level
         args_dict['_transition_soc'] = self._transition_soc
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
-        
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+
         # Note second arg in below construction is a placeholder
         out_obj = cls(
             in_dict['_capacity'], in_dict['_init_charge'], in_dict['_max_power'],

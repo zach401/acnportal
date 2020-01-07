@@ -3,6 +3,7 @@ from unittest.mock import create_autospec
 
 from acnportal import acnsim
 from acnportal.algorithms import BaseAlgorithm, UncontrolledCharging
+from .serialization_extensions import *
 
 import json
 import sys
@@ -35,8 +36,8 @@ class TestJSONIO(TestCase):
         staying_time = 10
         ev1_arrival = 10
         self.ev1 = acnsim.EV(
-            ev1_arrival, ev1_arrival+staying_time, 30, 'PS-001', 'EV-001', deepcopy(self.battery1),
-            estimated_departure=25
+            ev1_arrival, ev1_arrival+staying_time, 30, 'PS-001', 'EV-001',
+            deepcopy(self.battery1), estimated_departure=25
         )
         self.ev1._energy_delivered = 0.05
         self.ev1._current_charging_rate = 10
@@ -88,16 +89,22 @@ class TestJSONIO(TestCase):
 
         # EventQueue
         self.event_queue = acnsim.EventQueue()
-        self.event_queue.add_events([self.event, self.plugin_event1,
-            self.recompute_event, self.plugin_event2,
-            self.plugin_event3])
+        self.event_queue.add_events(
+            [self.event,
+             self.plugin_event1,
+             self.recompute_event,
+             self.plugin_event2,
+             self.plugin_event3]
+        )
 
         # Network
         self.network = acnsim.ChargingNetwork()
         self.network.register_evse(self.evse1, 220, 30)
         self.network.register_evse(self.evse2, 220, 150)
         self.network.register_evse(self.evse3, 220, -90)
-        self.network.constraint_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        self.network.constraint_matrix = np.array([[1, 0, 0],
+                                                   [0, 1, 0],
+                                                   [0, 0, 1]])
         self.network.magnitudes = np.array([32, 32, 32])
         self.network.constraint_index = ['C1', 'C2', 'C3']
 
@@ -135,6 +142,8 @@ class TestJSONIO(TestCase):
 
     def test_linear_2_stage_battery_json(self):
         battery_json = self.battery2.to_json()
+        self.assertEqual(len(json.loads(battery_json)['context_dict'].keys()),
+                         1)
         battery_loaded = acnsim.Linear2StageBattery.from_json(battery_json)
         self.assertIsInstance(
             battery_loaded, acnsim.Linear2StageBattery)
@@ -403,12 +412,149 @@ class TestJSONIO(TestCase):
         with self.assertWarns(UserWarning):
             self._sim_compare_helper(self.simulator_hard_signal)
 
-class NamedEvent(acnsim.Event):
-    """ An extension of Event that has a name. """
-    def __init__(self, timestamp, name):
-        super().__init__(timestamp)
-        self.name = name
+class TestExtObjJSONIO(TestJSONIO):
+    @classmethod
+    def setUpClass(self):
+        super().setUpClass()
 
-class TestExtObjSerialization(TestCase):
-    def setUp(self):
-        pass
+        self.set_batt_event = SetAttrEvent(5)
+        self.set_batt_event.set_extra_attr(self.battery1)
+
+        self.event_queue.add_event(self.set_batt_event)
+
+    def test_named_event_json(self):
+        named_event = NamedEvent(0, "my_event")
+        with self.assertWarns(UserWarning):
+            named_event_json = named_event.to_json()
+        with self.assertRaises(TypeError):
+            named_event_loaded = NamedEvent.from_json(named_event_json)
+
+    def test_default_named_event_json(self):
+        default_named_event = DefaultNamedEvent(5, "def_event")
+        with self.assertWarns(UserWarning):
+            default_named_event_json = default_named_event.to_json()
+        default_named_event_loaded = \
+            DefaultNamedEvent.from_json(default_named_event_json)
+        self.assertIsInstance(default_named_event_loaded,
+                              DefaultNamedEvent)
+
+        event_fields = ['timestamp', 'type', 'precedence']
+
+        for field in event_fields:
+            self.assertEqual(getattr(default_named_event, field),
+                getattr(default_named_event_loaded, field))
+
+        self.assertEqual(default_named_event_loaded.name, "my_event")
+
+    def test_set_named_event_json(self):
+        set_named_event = SetAttrEvent(5)
+        set_named_event.set_extra_attr("set_event")
+        with self.assertWarns(UserWarning):
+            set_named_event_json = set_named_event.to_json()
+        with self.assertWarns(UserWarning):
+            set_named_event_loaded = \
+                SetAttrEvent.from_json(set_named_event_json)
+        self.assertIsInstance(set_named_event_loaded,
+                              SetAttrEvent)
+
+        event_fields = ['timestamp', 'type', 'precedence', 'extra_attr']
+
+        for field in event_fields:
+            self.assertEqual(getattr(set_named_event, field),
+                getattr(set_named_event_loaded, field))
+
+    def test_set_list_event_json(self):
+        set_list_event = SetAttrEvent(5)
+        set_list_event.set_extra_attr(["set_event1", "set_event2"])
+        with self.assertWarns(UserWarning):
+            set_list_event_json = set_list_event.to_json()
+        with self.assertWarns(UserWarning):
+            set_list_event_loaded = \
+                SetAttrEvent.from_json(set_list_event_json)
+        self.assertIsInstance(set_list_event_loaded,
+                              SetAttrEvent)
+
+        event_fields = ['timestamp', 'type', 'precedence', 'extra_attr']
+
+        for field in event_fields:
+            self.assertEqual(getattr(set_list_event, field),
+                getattr(set_list_event_loaded, field))
+
+    def test_set_batt_event_json(self):
+        with self.assertWarns(UserWarning):
+            set_batt_event_json = self.set_batt_event.to_json()
+        with self.assertWarns(UserWarning):
+            set_batt_event_loaded = \
+                SetAttrEvent.from_json(set_batt_event_json)
+        self.assertIsInstance(set_batt_event_loaded,
+                              SetAttrEvent)
+
+        event_fields = ['timestamp', 'type', 'precedence']
+
+        for field in event_fields:
+            self.assertEqual(getattr(self.set_batt_event, field),
+                getattr(set_batt_event_loaded, field))
+
+        self.assertEqual(self.battery1.__dict__,
+                         set_batt_event_loaded.extra_attr.__dict__)
+
+    def test_set_np_event_json(self):
+        set_np_event = SetAttrEvent(5)
+        set_np_event.set_extra_attr(np.zeros((2, 2)))
+        with self.assertWarns(UserWarning):
+            set_np_event_json = set_np_event.to_json()
+        with self.assertWarns(UserWarning):
+            set_np_event_loaded = \
+                SetAttrEvent.from_json(set_np_event_json)
+        self.assertIsInstance(set_np_event_loaded,
+                              SetAttrEvent)
+
+        event_fields = ['timestamp', 'type', 'precedence']
+
+        for field in event_fields:
+            self.assertEqual(getattr(set_np_event, field),
+                getattr(set_np_event_loaded, field))
+
+        self.assertEqual(set_np_event_loaded.extra_attr,
+                         "array([[0., 0.],\n       [0., 0.]])")
+
+    def test_event_queue_json(self):
+        with self.assertWarns(UserWarning):
+            event_queue_json = self.event_queue.to_json()
+        with self.assertWarns(UserWarning):
+            event_queue_loaded = acnsim.EventQueue.from_json(event_queue_json)
+        self.assertIsInstance(event_queue_loaded, acnsim.EventQueue)
+
+        self.assertEqual(self.event_queue._timestep,
+            event_queue_loaded._timestep)
+
+        for (ts, event), (tsl, event_loaded) in \
+            zip(self.event_queue._queue, event_queue_loaded._queue):
+            self.assertEqual(ts, tsl)
+            self.assertIsInstance(event_loaded, acnsim.Event)
+            if isinstance(event_loaded, acnsim.PluginEvent):
+                for field in ['timestamp', 'type', 'precedence']:
+                    self.assertEqual(
+                        getattr(event, field),
+                        getattr(event_loaded, field)
+                    )
+                self.assertEqual(
+                    getattr(getattr(event_loaded, 'ev'),
+                        '_session_id'),
+                    getattr(getattr(event, 'ev'),
+                        '_session_id')
+                )
+            elif isinstance(event_loaded, SetAttrEvent):
+                for field in ['timestamp', 'type', 'precedence']:
+                    self.assertEqual(
+                        getattr(event, field),
+                        getattr(event_loaded, field)
+                    )
+                self.assertEqual(
+                    getattr(event_loaded, 'extra_attr').__dict__,
+                    getattr(event, 'extra_attr').__dict__
+                )
+            else:
+                self.assertEqual(type(event), type(event_loaded))
+                self.assertEqual(event.__dict__,
+                    event_loaded.__dict__)

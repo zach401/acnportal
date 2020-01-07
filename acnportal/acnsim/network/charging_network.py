@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 import warnings
-from ..base import BaseSimObj, read_from_id
+from ..base import *
 
 
 class ChargingNetwork(BaseSimObj):
@@ -306,12 +306,13 @@ class ChargingNetwork(BaseSimObj):
             return np.all(np.tile(self.magnitudes + 1e-5, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
 
-    def to_dict(self, context_dict={}):
+    def to_dict(self, context_dict=None):
         """ Converts the network into a JSON serializable dict
 
         Returns:
             JSON serializable
         """
+        context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
 
         args_dict['_EVSEs'] = {station_id : evse.to_registry(context_dict=context_dict)['id']
@@ -327,7 +328,9 @@ class ChargingNetwork(BaseSimObj):
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict={}, loaded_dict={}, cls_kwargs={}):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         out_obj = cls(**cls_kwargs)
 
         out_obj._EVSEs = {station_id : read_from_id(evse, context_dict=context_dict, loaded_dict=loaded_dict)
