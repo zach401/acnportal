@@ -1,4 +1,5 @@
 from acnportal import acnsim
+from acnportal.acnsim.base import *
 
 class NamedEvent(acnsim.Event):
     """ An extension of Event that has a name. """
@@ -19,3 +20,27 @@ class SetAttrEvent(acnsim.Event):
 
     def set_extra_attr(self, attr_val):
         self.extra_attr = attr_val
+
+class BattListEvent(acnsim.Event):
+    """ An extension of Event with a list of Batteries. """
+    def __init__(self, timestamp, batt_list):
+        super().__init__(timestamp)
+        self.batt_list = batt_list
+
+    def to_dict(self, context_dict=None):
+        context_dict, = none_to_empty_dict(context_dict)
+        args_dict = super().to_dict(context_dict)
+        args_dict['batt_list'] = [ev.to_registry(context_dict=context_dict)['id']
+                               for ev in self.batt_list]
+        return args_dict
+
+    @classmethod
+    def from_dict(cls, in_dict,
+                  context_dict=None, loaded_dict=None, cls_kwargs=None):
+        context_dict, loaded_dict, cls_kwargs = \
+            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+        batt_list = [read_from_id(ev, context_dict=context_dict,
+                               loaded_dict=loaded_dict)
+                  for ev in in_dict['batt_list']]
+        out_obj = cls(in_dict['timestamp'], batt_list, **cls_kwargs)
+        return out_obj
