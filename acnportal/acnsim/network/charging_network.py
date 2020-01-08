@@ -271,7 +271,7 @@ class ChargingNetwork:
             schedule_matrix = schedule_matrix[:, time_indices]
 
         if linear:
-            return complex(np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix))
+            return np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix).astype(complex)
         else:
             # build vector of phase angles on EVSE
             angle_coeffs = np.exp(1j*np.deg2rad(self._phase_angles))
@@ -310,11 +310,8 @@ class ChargingNetwork:
         aggregate_currents = self.constraint_current(schedule_matrix, linear=linear)
 
         # Ensure each aggregate current is less than its limit, returning False if not
-        if linear:
-            return np.all(self.magnitudes >= np.abs(aggregate_currents))
-        else:
-            schedule_length = schedule_matrix.shape[1]
-            return np.all(np.tile(self.magnitudes + violation_tolerance, (schedule_length, 1)).T >= np.abs(aggregate_currents))
+        schedule_length = schedule_matrix.shape[1]
+        return np.all(np.tile(self.magnitudes + violation_tolerance, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
 
 class StationOccupiedError(Exception):
