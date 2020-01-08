@@ -8,9 +8,13 @@ class ChargingNetwork:
     """
     The ChargingNetwork class describes the infrastructure of the charging network with
     information about the types of the charging station_schedule.
+
+    Args:
+        violation_tolerance (float): Absolute amount by which an input
+            charging schedule may violate network constrants (A).
     """
 
-    def __init__(self):
+    def __init__(self, violation_tolerance=1e-5):
         self._EVSEs = OrderedDict()
         # Matrix of constraints
         self.constraint_matrix = None
@@ -20,6 +24,7 @@ class ChargingNetwork:
         self.constraint_index = []
         self._voltages = np.array([])
         self._phase_angles = np.array([])
+        self.violation_tolerance = violation_tolerance
         pass
 
     @property

@@ -15,14 +15,23 @@ import numpy as np
 class TestChargingNetwork(TestCase):
     def setUp(self):
         self.network = ChargingNetwork()
+        self.network_with_tolerance = ChargingNetwork(violation_tolerance=1e-3)
 
-    def test_init_empty(self):
-        self.assertEqual(self.network._EVSEs, OrderedDict())
-        self.assertEqual(self.network.constraint_matrix, None)
-        self.assertEqual(self.network.constraint_index, [])
-        np.testing.assert_equal(self.network.magnitudes, np.array([]))
-        np.testing.assert_equal(self.network._voltages, np.array([]))
-        np.testing.assert_equal(self.network._phase_angles, np.array([]))
+    def _test_init_empty(self, network):
+        self.assertEqual(network._EVSEs, OrderedDict())
+        self.assertEqual(network.constraint_matrix, None)
+        self.assertEqual(network.constraint_index, [])
+        np.testing.assert_equal(network.magnitudes, np.array([]))
+        np.testing.assert_equal(network._voltages, np.array([]))
+        np.testing.assert_equal(network._phase_angles, np.array([]))
+
+    def test_init_default_tolerance(self):
+        self._test_init_empty(self.network)
+        self.assertEqual(self.network.violation_tolerance, 1e-5)
+
+    def test_init_default_tolerance(self):
+        self._test_init_empty(self.network_with_tolerance)
+        self.assertEqual(self.network_with_tolerance.violation_tolerance, 1e-3)
 
     def test_register_evse(self):
         evse1 = EVSE('PS-001')
