@@ -282,7 +282,7 @@ class ChargingNetwork:
             # multiply constraint matrix by current schedule, shifted by the phases
             return self.constraint_matrix[constraint_indices]@phasor_schedule
 
-    def is_feasible(self, schedule_matrix, linear=False):
+    def is_feasible(self, schedule_matrix, linear=False, violation_tolerance=None):
         """ Return if a set of current magnitudes for each load are feasible.
 
         Args:
@@ -290,10 +290,18 @@ class ChargingNetwork:
                 column corresponding to a time index in the schedule.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
+            violation_tolerance (float): Absolute amount by which
+                schedule_matrix may violate network constraints. Default
+                None, in which case the network's violation_tolerance
+                attribute is used.
 
         Returns:
             bool: If load_currents is feasible at time t according to this set of constraints.
         """
+        # If no violation_tolerance is specified, default to the network's violation_tolerance.
+        if violation_tolerance is None:
+            violation_tolerance = self.violation_tolerance
+
         # If there are no constraints (magnitudes vector is empty) return True
         if not len(self.magnitudes):
             return True
@@ -306,7 +314,7 @@ class ChargingNetwork:
             return np.all(self.magnitudes >= np.abs(aggregate_currents))
         else:
             schedule_length = schedule_matrix.shape[1]
-            return np.all(np.tile(self.magnitudes + 1e-5, (schedule_length, 1)).T >= np.abs(aggregate_currents))
+            return np.all(np.tile(self.magnitudes + violation_tolerance, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
 
 class StationOccupiedError(Exception):
