@@ -271,7 +271,7 @@ class ChargingNetwork:
             schedule_matrix = schedule_matrix[:, time_indices]
 
         if linear:
-            return np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix).astype(complex)
+            return np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix).astype('complex')
         else:
             # build vector of phase angles on EVSE
             angle_coeffs = np.exp(1j*np.deg2rad(self._phase_angles))

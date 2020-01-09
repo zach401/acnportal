@@ -29,7 +29,7 @@ class TestChargingNetwork(TestCase):
         self._test_init_empty(self.network)
         self.assertEqual(self.network.violation_tolerance, 1e-5)
 
-    def test_init_default_tolerance(self):
+    def test_init_default_tolerance_set(self):
         self._test_init_empty(self.network_with_tolerance)
         self.assertEqual(self.network_with_tolerance.violation_tolerance, 1e-3)
 

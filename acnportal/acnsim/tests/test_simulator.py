@@ -93,7 +93,7 @@ class TestSimulatorWarnings(TestCase):
                         'PS-002': [0,   0, 26,  0 ],
                         'PS-006': [0,   0, 0,   40]}
         with self.assertWarnsRegex(
-            UserWarning,
-            r'Invalid schedule provided at iteration 0. '
-            r'Max violation is 2.9999\d+? A on _const_1 at time index 2.'):
+                UserWarning,
+                r'Invalid schedule provided at iteration 0. '
+                r'Max violation is 2.9999\d+? A on _const_1 at time index 2.'):
             simulator._update_schedules(bad_schedule)
