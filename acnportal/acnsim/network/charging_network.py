@@ -12,9 +12,11 @@ class ChargingNetwork:
     Args:
         violation_tolerance (float): Absolute amount by which an input
             charging schedule may violate network constrants (A).
+        relative_tolerance (float): Relative amount by which an input
+            charging schedule may violate network constrants (A).
     """
 
-    def __init__(self, violation_tolerance=1e-5):
+    def __init__(self, violation_tolerance=1e-5, relative_tolerance=1e-7):
         self._EVSEs = OrderedDict()
         # Matrix of constraints
         self.constraint_matrix = None
@@ -25,6 +27,7 @@ class ChargingNetwork:
         self._voltages = np.array([])
         self._phase_angles = np.array([])
         self.violation_tolerance = violation_tolerance
+        self.relative_tolerance = relative_tolerance
         pass
 
     @property
@@ -282,8 +285,11 @@ class ChargingNetwork:
             # multiply constraint matrix by current schedule, shifted by the phases
             return self.constraint_matrix[constraint_indices]@phasor_schedule
 
-    def is_feasible(self, schedule_matrix, linear=False, violation_tolerance=None):
+    def is_feasible(self, schedule_matrix, linear=False, violation_tolerance=None, relative_tolerance=None):
         """ Return if a set of current magnitudes for each load are feasible.
+
+        For a given constraint, the larger of the violation_tolerance
+        and relative_tolerance is used to evaluate feasibility.
 
         Args:
             schedule_matrix (np.Array): 2-D matrix with each row corresponding to an EVSE and each
@@ -294,6 +300,10 @@ class ChargingNetwork:
                 schedule_matrix may violate network constraints. Default
                 None, in which case the network's violation_tolerance
                 attribute is used.
+            relative_tolerance (float): Relative amount by which
+                schedule_matrix may violate network constraints. Default
+                None, in which case the network's relative_tolerance
+                attribute is used.
 
         Returns:
             bool: If load_currents is feasible at time t according to this set of constraints.
@@ -301,6 +311,9 @@ class ChargingNetwork:
         # If no violation_tolerance is specified, default to the network's violation_tolerance.
         if violation_tolerance is None:
             violation_tolerance = self.violation_tolerance
+        if relative_tolerance is None:
+            relative_tolerance = self.relative_tolerance
+        rel_magnitude_tol = self.magnitudes * relative_tolerance
 
         # If there are no constraints (magnitudes vector is empty) return True
         if not len(self.magnitudes):
@@ -311,7 +324,7 @@ class ChargingNetwork:
 
         # Ensure each aggregate current is less than its limit, returning False if not
         schedule_length = schedule_matrix.shape[1]
-        return np.all(np.tile(self.magnitudes + violation_tolerance, (schedule_length, 1)).T >= np.abs(aggregate_currents))
+        return np.all(np.tile(self.magnitudes + np.maximum(violation_tolerance, rel_magnitude_tol), (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
 
 class StationOccupiedError(Exception):

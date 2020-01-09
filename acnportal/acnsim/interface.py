@@ -161,10 +161,13 @@ class Interface:
         network = self._simulator.network
         return Constraint(network.constraint_matrix, network.magnitudes, network.constraint_index, network.station_ids)
 
-    def is_feasible(self, load_currents, linear=False, violation_tolerance=None):
+    def is_feasible(self, load_currents, linear=False, violation_tolerance=None, relative_tolerance=None):
         """ Return if a set of current magnitudes for each load are feasible.
 
         Wraps Network's is_feasible method.
+
+        For a given constraint, the larger of the violation_tolerance
+        and relative_tolerance is used to evaluate feasibility.
 
         Args:
             load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
@@ -173,6 +176,10 @@ class Interface:
             violation_tolerance (float): Absolute amount by which
                 schedule may violate network constraints. Default
                 None, in which case the network's violation_tolerance
+                attribute is used.
+            relative_tolerance (float): Relative amount by which
+                schedule may violate network constraints. Default
+                None, in which case the network's relative_tolerance
                 attribute is used.
 
         Returns:
@@ -190,7 +197,7 @@ class Interface:
         # Convert input schedule into its matrix representation
         schedule_matrix = np.array(
             [load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id in self._simulator.network.station_ids])
-        return self._simulator.network.is_feasible(schedule_matrix, linear, violation_tolerance)
+        return self._simulator.network.is_feasible(schedule_matrix, linear, violation_tolerance, relative_tolerance)
 
     def get_prices(self, length, start=None):
         """ Get a vector of prices beginning at time start and continuing for length periods. ($/kWh)

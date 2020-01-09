@@ -15,7 +15,8 @@ import numpy as np
 class TestChargingNetwork(TestCase):
     def setUp(self):
         self.network = ChargingNetwork()
-        self.network_with_tolerance = ChargingNetwork(violation_tolerance=1e-3)
+        self.network_with_tolerance = ChargingNetwork(violation_tolerance=1e-3,
+                                                      relative_tolerance=1e-5)
 
     def _test_init_empty(self, network):
         self.assertEqual(network._EVSEs, OrderedDict())
@@ -28,10 +29,12 @@ class TestChargingNetwork(TestCase):
     def test_init_default_tolerance(self):
         self._test_init_empty(self.network)
         self.assertEqual(self.network.violation_tolerance, 1e-5)
+        self.assertEqual(self.network.relative_tolerance, 1e-7)
 
     def test_init_default_tolerance_set(self):
         self._test_init_empty(self.network_with_tolerance)
         self.assertEqual(self.network_with_tolerance.violation_tolerance, 1e-3)
+        self.assertEqual(self.network_with_tolerance.relative_tolerance, 1e-5)
 
     def test_register_evse(self):
         evse1 = EVSE('PS-001')
@@ -231,6 +234,14 @@ class TestChargingNetworkConstraints(TestCase):
     def test_is_feasible_barely_bad_loads_set(self):
         bad_loads = np.array([[160, 200.0045], [0, 0], [0, 0], [20.0015, 0], [0, 0]])
         self.assertFalse(self.network.is_feasible(bad_loads, violation_tolerance=1e-3))
+
+    def test_is_feasible_barely_good_loads_rel_set(self):
+        good_loads = np.array([[160, 200.15], [0, 0], [0, 0], [20.015, 0], [0, 0]])
+        self.assertTrue(self.network.is_feasible(good_loads, relative_tolerance=1e-3))
+
+    def test_is_feasible_barely_bad_loads_rel_set(self):
+        bad_loads = np.array([[160, 200.21], [0, 0], [0, 0], [20.021, 0], [0, 0]])
+        self.assertFalse(self.network.is_feasible(bad_loads, relative_tolerance=1e-3))
 
     def test_is_feasible_barely_good_loads_set_linear(self):
         good_loads = np.array([[160, 200.0035], [0, 0], [0, 0], [20.0015, 0], [0, 0]])
