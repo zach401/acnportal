@@ -339,6 +339,10 @@ class Simulator(BaseSimObj):
         self.scheduler.register_interface(Interface(self))
         self.max_recompute = scheduler.max_recompute
 
+    def update_signals(self, new_signals):
+        """ Updates a Simulator's signals. """
+        self.signals = new_signals
+
 def _increase_width(a, target_width):
     """ Returns a new 2-D numpy array with target_width number of columns, with the contents
     of a up to the first a.shape[1] columns and 0's thereafter.
