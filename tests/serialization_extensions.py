@@ -1,3 +1,4 @@
+""" This file contains extensions of ACN-Sim for testing purposes. """
 from acnportal import acnsim
 from acnportal.acnsim.base import *
 

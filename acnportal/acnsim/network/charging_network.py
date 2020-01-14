@@ -307,11 +307,7 @@ class ChargingNetwork(BaseSimObj):
 
 
     def to_dict(self, context_dict=None):
-        """ Converts the network into a JSON serializable dict
-
-        Returns:
-            JSON serializable
-        """
+        """ Implements BaseSimObj.to_dict. """
         context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
 
@@ -329,6 +325,7 @@ class ChargingNetwork(BaseSimObj):
 
     @classmethod
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
             none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         out_obj = cls(**cls_kwargs)

@@ -224,10 +224,19 @@ class Simulator(BaseSimObj):
 
 
     def to_dict(self, context_dict=None):
-        """ Converts the simulator into a JSON serializable dict
+        """
+        Implements BaseSimObj.to_dict. Certain simulator attributes are
+        not serialized completely as they are not ACN-Sim objects
+        (signals and scheduler exist in their own modules).
 
-        Returns:
-            JSON serializable
+        If the Python version used is less than 3.7, datetimes cannot be
+        accurately loaded. As such, a warning is thrown when the start
+        attribute is serialized.
+
+        The signals attribute is only serialized if it is natively
+        JSON Serializable, otherwise None is stored.
+
+        Only the scheduler's name is serialized.
         """
         context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
@@ -281,6 +290,26 @@ class Simulator(BaseSimObj):
 
     @classmethod
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        """
+        Implements BaseSimObj.from_dict. Certain simulator attributes
+        are not loaded completely as they are not ACN-Sim objects
+        (signals and scheduler exist in their own modules).
+
+        If the Python version used is less than 3.7, the start attribute
+        is stored in ISO format instead of datetime, and a warning is
+        thrown.
+
+        The signals attribute is only loaded if it was natively
+        JSON Serializable, in the original object, otherwise None is
+        set as the signals attribute. The Simulator provides a method to
+        set the signals after the Simulator is loaded.
+
+        The scheduler attribute is only accurate if the scheduler's
+        constructor takes no arguments, otherwise BaseAlgorithm is
+        stored. The Simulator provides a method to set the scheduler
+        after the Simulator is loaded.
+
+        """
         context_dict, loaded_dict, cls_kwargs = \
             none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         network = read_from_id(in_dict['network'], context_dict, loaded_dict=loaded_dict)
@@ -297,6 +326,7 @@ class Simulator(BaseSimObj):
                            "constructor inputs. Setting scheduler to "
                            "BaseAlgorithm instead.")
             scheduler = BaseAlgorithm()
+        scheduler.register_interface(Interface(self))
 
         if sys.version_info[1] < 7:
             warnings.warn(f"ISO format {in_dict['start']} cannot be loaded as "

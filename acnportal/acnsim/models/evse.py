@@ -161,11 +161,7 @@ class EVSE(BaseSimObj):
 
 
     def to_dict(self, context_dict=None):
-        """ Converts the event into a JSON serializable dict
-
-        Returns:
-            JSON serializable
-        """
+        """ Implements BaseSimObj.to_dict. """
         context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
 
@@ -185,6 +181,7 @@ class EVSE(BaseSimObj):
 
     @classmethod
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
             none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         if in_dict['_ev'] is not None:
@@ -239,19 +236,15 @@ class DeadbandEVSE(EVSE):
 
 
     def to_dict(self, context_dict=None):
-        """ Converts the event into a JSON serializable dict
-
-        Returns:
-            JSON serializable
-        """
+        """ Implements BaseSimObj.to_dict. """
         context_dict, = none_to_empty_dict(context_dict)
-        # TODO: pre/post here could be done with a decorator and a base sim obj class.
         args_dict = super().to_dict(context_dict)
         args_dict['_deadband_end'] = self._deadband_end
         return args_dict
 
     @classmethod
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
             none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         cls_kwargs = {'deadband_end': in_dict['_deadband_end']}
@@ -299,11 +292,7 @@ class FiniteRatesEVSE(EVSE):
 
 
     def to_dict(self, context_dict=None):
-        """ Converts the event into a JSON serializable dict
-
-        Returns:
-            JSON serializable
-        """
+        """ Implements BaseSimObj.to_dict. """
         context_dict, = none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
         args_dict['allowable_rates'] = self.allowable_rates
@@ -311,6 +300,7 @@ class FiniteRatesEVSE(EVSE):
 
     @classmethod
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
             none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         # TODO: FREVSE constructor doesn't accept args that parent class would
@@ -319,8 +309,6 @@ class FiniteRatesEVSE(EVSE):
             ev = read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
         else:
             ev = None
-        # TODO: Should we actually use the constructor? or just
-        # manually set class name and attribute.
         out_obj = cls(
             in_dict['_station_id'],
             in_dict['allowable_rates'],

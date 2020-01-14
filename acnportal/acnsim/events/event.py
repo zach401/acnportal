@@ -33,11 +33,7 @@ class Event(BaseSimObj):
 
 
     def to_dict(self, context_dict=None):
-        """ Converts the event into a JSON serializable dict
-
-        Returns:
-            JSON serializable
-        """
+        """ Implements BaseSimObj.to_dict. """
         context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
 
@@ -49,6 +45,7 @@ class Event(BaseSimObj):
 
     @classmethod
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
             none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         out_obj = cls(in_dict['timestamp'], **cls_kwargs)
@@ -72,11 +69,7 @@ class PluginEvent(Event):
 
 
     def to_dict(self, context_dict=None):
-        """ Converts the event into a JSON serializable dict
-
-        Returns:
-            JSON serializable
-        """
+        """ Implements BaseSimObj.to_dict. """
         context_dict, = none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
         # Plugin-specific attributes
@@ -86,6 +79,7 @@ class PluginEvent(Event):
 
     @classmethod
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
             none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         # TODO: standardize read_from_id inputs (use = or not)
@@ -111,11 +105,7 @@ class UnplugEvent(Event):
 
 
     def to_dict(self, context_dict=None):
-        """ Converts the event into a JSON serializable dict
-
-        Returns:
-            JSON serializable
-        """
+        """ Implements BaseSimObj.to_dict. """
         context_dict, = none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
 
@@ -127,6 +117,7 @@ class UnplugEvent(Event):
 
     @classmethod
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+        """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
             none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         cls_kwargs = {'station_id': in_dict['station_id'], 'session_id': in_dict['session_id']}
