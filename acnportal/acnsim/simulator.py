@@ -326,7 +326,6 @@ class Simulator(BaseSimObj):
                            "constructor inputs. Setting scheduler to "
                            "BaseAlgorithm instead.")
             scheduler = BaseAlgorithm()
-        scheduler.register_interface(Interface(self))
 
         if sys.version_info[1] < 7:
             warnings.warn(f"ISO format {in_dict['start']} cannot be loaded as "
@@ -346,6 +345,7 @@ class Simulator(BaseSimObj):
             verbose=in_dict['verbose'],
             **cls_kwargs
         )
+        scheduler.register_interface(Interface(out_obj))
 
         attr_lst = ['max_recompute', 'peak', '_iteration',
             '_resolve', '_last_schedule_update']
