@@ -107,6 +107,14 @@ class TestIntegration(TestCase):
             acnsim.proportion_of_demands_met(self.sim),
             self.edf_algo_true_analysis_dict['proportion_of_demands_met'])
 
+    def test_current_unbalance_nema_error(self):
+        with self.assertRaises(ValueError):
+            acnsim.current_unbalance(self.sim, ['Primary A', 'Primary B', 'Primary C'], unbalance_type='ABC')
+
+    def test_current_unbalance_nema_warning(self):
+        with self.assertWarns(DeprecationWarning):
+            acnsim.current_unbalance(self.sim, ['Primary A', 'Primary B', 'Primary C'], type='NEMA')
+
     def test_current_unbalance_nema(self):
         np.testing.assert_allclose(
             acnsim.current_unbalance(self.sim, ['Primary A', 'Primary B', 'Primary C']),

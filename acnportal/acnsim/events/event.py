@@ -1,4 +1,5 @@
 from ..base import *
+import warnings
 
 class Event(BaseSimObj):
     """ Base class for all events.
@@ -8,16 +9,14 @@ class Event(BaseSimObj):
 
     Attributes:
         timestamp (int): See args.
-        type (str): Name of the event type.
+        event_type (str): Name of the event type.
         precedence (float): Used to order occurrence for events that happen in the same timestep. Higher precedence
             events occur before lower precedence events.
 
     """
     def __init__(self, timestamp):
         self.timestamp = timestamp
-        # TODO: type is a builtin, use different name.
-        # Keep a type accessor w deprecation warning.
-        self.type = ''
+        self.event_type = ''
         self.precedence = float('inf')
 
     def __lt__(self, other):
@@ -31,6 +30,16 @@ class Event(BaseSimObj):
         """
         return self.precedence < other.precedence
 
+    @property
+    def type(self):
+        """
+        Legacy accessor for event_type. This will be removed in a future
+        release.
+        """
+        warnings.warn("Accessor 'type' for type of Event is deprecated. "
+                      "Use 'event_type' instead.",
+                      DeprecationWarning)
+        return self.event_type
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
@@ -38,7 +47,7 @@ class Event(BaseSimObj):
         args_dict = {}
 
         args_dict['timestamp'] = self.timestamp
-        args_dict['type'] = self.type
+        args_dict['event_type'] = self.event_type
         args_dict['precedence'] = self.precedence
 
         return args_dict
@@ -49,7 +58,7 @@ class Event(BaseSimObj):
         context_dict, loaded_dict, cls_kwargs = \
             none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         out_obj = cls(in_dict['timestamp'], **cls_kwargs)
-        out_obj.type = in_dict['type']
+        out_obj.event_type = in_dict['event_type']
         out_obj.precedence = in_dict['precedence']
         return out_obj
 
@@ -63,7 +72,7 @@ class PluginEvent(Event):
     """
     def __init__(self, timestamp, ev):
         super().__init__(timestamp)
-        self.type = 'Plugin'
+        self.event_type = 'Plugin'
         self.ev = ev
         self.precedence = 10
 
@@ -98,7 +107,7 @@ class UnplugEvent(Event):
     """
     def __init__(self, timestamp, station_id, session_id):
         super().__init__(timestamp)
-        self.type = 'Unplug'
+        self.event_type = 'Unplug'
         self.station_id = station_id
         self.session_id = session_id
         self.precedence = 0
@@ -128,5 +137,5 @@ class RecomputeEvent(Event):
     """ Subclass of Event for when the algorithm should be recomputed."""
     def __init__(self, timestamp):
         super().__init__(timestamp)
-        self.type = 'Recompute'
+        self.event_type = 'Recompute'
         self.precedence = 20
