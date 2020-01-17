@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 import warnings
-import copy
 
 class ChargingNetwork:
     """
@@ -246,7 +245,7 @@ class ChargingNetwork:
                 column corresponding to a time index in the schedule.
             constraints (List[str]): List of constraint id's for which to calculate aggregate current. If
                 None, calculates aggregate currents for all constraints.
-            time_indices (List[int]): List of time indices for which to calculate aggregate current. If None, 
+            time_indices (List[int]): List of time indices for which to calculate aggregate current. If None,
                 calculates aggregate currents for all timesteps.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
@@ -301,8 +300,8 @@ class ChargingNetwork:
         if linear:
             return np.all(self.magnitudes >= np.abs(aggregate_currents))
         else:
-            schedule_length = len(schedule_matrix[0])
-            return np.all(np.tile(self.magnitudes, (schedule_length, 1)).T >= np.abs(aggregate_currents))
+            schedule_length = schedule_matrix.shape[1]
+            return np.all(np.tile(self.magnitudes + 1e-5, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
 
 class StationOccupiedError(Exception):

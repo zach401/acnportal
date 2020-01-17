@@ -1,8 +1,9 @@
 """
 This module contains methods for directly interacting with the _simulator.
 """
-from datetime import timedelta
 import numpy as np
+from datetime import timedelta
+from collections import namedtuple
 
 
 class Interface:
@@ -75,6 +76,8 @@ class Interface:
 
     def allowable_pilot_signals(self, station_id):
         """ Returns the allowable pilot signal levels for the specified EVSE.
+        One may assume an EVSE pilot signal of 0 is allowed regardless
+        of this function's return values.
 
         Args:
             station_id (str): The ID of the station for which the allowable rates should be returned.
@@ -85,11 +88,7 @@ class Interface:
                 the min and the max acceptable values. [A]
         """
         evse = self._simulator.network._EVSEs[station_id]
-        if evse.is_continuous:
-            rate_set = [evse.min_rate, evse.max_rate]
-        else:
-            rate_set = evse.allowable_rates
-        return evse.is_continuous, rate_set
+        return evse.is_continuous, evse.allowable_pilot_signals
 
     def max_pilot_signal(self, station_id):
         """ Returns the maximum allowable pilot signal level for the specified EVSE.
@@ -122,8 +121,18 @@ class Interface:
         Returns:
             float: voltage of the EVSE. [V]
         """
-
         return self._simulator.network.voltages[station_id]
+
+    def evse_phase(self, station_id):
+        """ Returns the phase angle of the EVSE.
+
+        Args:
+            station_id (str): The ID of the station for which the allowable rates should be returned.
+
+        Returns:
+            float: phase angle of the EVSE. [degrees]
+        """
+        return self._simulator.network.phase_angles[station_id]
 
     def remaining_amp_periods(self, ev):
         """ Return the EV's remaining demand in A*periods.
@@ -141,6 +150,16 @@ class Interface:
 
         """
         return kwh * 1000 / self.evse_voltage(station_id) * 60 / self.period
+
+    def get_constraints(self):
+        """ Get the constraint matrix and corresponding EVSE ids for the network.
+
+        Returns:
+            np.ndarray: Matrix representing the constraints of the network. Each row is a constraint and each
+        """
+        Constraint = namedtuple('Constraint', ['constraint_matrix', 'magnitudes', 'constraint_index', 'evse_index'])
+        network = self._simulator.network
+        return Constraint(network.constraint_matrix, network.magnitudes, network.constraint_index, network.station_ids)
 
     def is_feasible(self, load_currents, linear=False):
         """ Return if a set of current magnitudes for each load are feasible.

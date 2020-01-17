@@ -31,6 +31,12 @@ class TestInterface(TestCase):
         self.simulator.iteration = 1
         self.assertEqual(self.interface.last_applied_pilot_signals, {})
 
+    def test_allowable_pilot_signals(self):
+        self.assertEqual(
+            self.interface.allowable_pilot_signals('PS-001'),
+            (True, [0, float('inf')])
+        )
+
     def test_evse_voltage(self):
         self.assertEqual(self.interface.evse_voltage('PS-002'), 240)
 
