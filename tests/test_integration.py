@@ -114,7 +114,7 @@ class TestIntegration(TestCase):
         np.testing.assert_allclose(
             acnsim.current_unbalance(self.sim, ['Secondary A', 'Secondary B', 'Secondary C']),
             np.array(self.edf_algo_true_analysis_dict['secondary_current_unbalance_nema']))
-    
+
     def test_tutorial_2(self):
         old_evse_keys = list(self.edf_algo_true_info_dict['pilot_signals'].keys())
         new_evse_keys = self.sim.network.station_ids
@@ -123,7 +123,7 @@ class TestIntegration(TestCase):
         edf_algo_new_info_dict = {field : self.sim.__dict__[field] for field in self.edf_algo_true_info_dict.keys()}
         edf_algo_new_info_dict['charging_rates'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['charging_rates'][i]) for i in range(len(self.sim.network.station_ids))}
         edf_algo_new_info_dict['pilot_signals'] = {self.sim.network.station_ids[i] : list(edf_algo_new_info_dict['pilot_signals'][i]) for i in range(len(self.sim.network.station_ids))}
-        
+
         for evse_key in new_evse_keys:
             np.testing.assert_allclose(np.array(self.edf_algo_true_info_dict['pilot_signals'][evse_key]),
                 np.array(edf_algo_new_info_dict['pilot_signals'][evse_key])[:len(self.edf_algo_true_info_dict['pilot_signals'][evse_key])])
@@ -142,3 +142,61 @@ class TestIntegration(TestCase):
             self.edf_algo_true_cr = json.load(infile)
 
         self.assertDictEqual(self.edf_algo_true_cr, self.sch.polled_charging_rates)
+
+class EmptyScheduler(BaseAlgorithm):
+    ''' Always submits an empty schedule (empty dict) as the output
+    of its run function.
+    '''
+    def __init__(self):
+        super().__init__()
+
+    def schedule(self, active_evs):
+        return {}
+
+class TestEmptyScheduleSim(TestCase):
+    @classmethod
+    def setUpClass(self):
+        self.plugin_event1 = acnsim.PluginEvent(
+            10,
+            acnsim.EV(
+                10, 20, 30, 'PS-001', 'EV-001',
+                acnsim.Battery(100, 50, 20)
+            )
+        )
+        self.plugin_event2 = acnsim.PluginEvent(
+            20,
+            acnsim.EV(
+                20, 30, 40, 'PS-002', 'EV-002',
+                acnsim.Battery(100, 50, 20)
+            )
+        )
+
+        self.evse1 = acnsim.EVSE('PS-001', max_rate=32,
+            min_rate=0)
+        self.evse2 = acnsim.EVSE('PS-002', max_rate=32,
+            min_rate=0)
+
+        self.event_queue = acnsim.EventQueue()
+        self.event_queue.add_events([self.plugin_event1, self.plugin_event2])
+
+        self.network = acnsim.ChargingNetwork()
+        self.network.register_evse(self.evse1, 220, 30)
+        self.network.register_evse(self.evse2, 220, 30)
+
+        # Simulator with scheduler that always returns an empty
+        # schedule.
+        self.simulator = acnsim.Simulator(
+            self.network, EmptyScheduler(),
+            self.event_queue, datetime(2019, 1, 1),
+            verbose=False
+        )
+
+        self.simulator.run()
+
+    def test_pilot_signals_empty_schedule(self):
+        np.testing.assert_allclose(self.simulator.pilot_signals,
+            np.zeros((2, 31)))
+
+    def test_charging_rates_empty_schedule(self):
+        np.testing.assert_allclose(self.simulator.charging_rates,
+            np.zeros((2, 31)))

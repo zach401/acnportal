@@ -309,7 +309,7 @@ class ChargingNetwork:
         if linear:
             return np.all(self.magnitudes >= np.abs(aggregate_currents))
         else:
-            schedule_length = len(schedule_matrix[0])
+            schedule_length = schedule_matrix.shape[1]
             return np.all(np.tile(self.magnitudes + 1e-5, (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
     def post_charging_update(self):
