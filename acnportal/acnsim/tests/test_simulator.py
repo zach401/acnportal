@@ -66,3 +66,6 @@ class TestSimulator(TestCase):
         pd.testing.assert_frame_equal(outframe,
             pd.DataFrame(np.array([[1.1, 3.1, 5.1], [2.1, 4.1, 6.1]]),
                 columns=['PS-001', 'PS-002', 'PS-003']))
+
+    # TODO: Test Simulator step function
+    # TODO: Test simulator _feasibility_helper

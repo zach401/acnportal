@@ -28,3 +28,5 @@ class TestEV(TestCase):
         self.ev.reset()
         self.assertEqual(self.ev.energy_delivered, 0)
         self.ev._battery.reset.assert_called_once()
+
+    # TODO: test EV eq if I choose to keep it.

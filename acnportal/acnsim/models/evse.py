@@ -143,7 +143,6 @@ class EVSE:
         if self.ev is None:
             self._ev = ev
         else:
-            print(self._ev.departure, ev.arrival)
             raise StationOccupiedError('Station {0} is occupied with ev {1}'.format(self._station_id,
                                                                                     self._ev.session_id))
 

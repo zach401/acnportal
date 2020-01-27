@@ -11,3 +11,5 @@ class GymAlgorithm(BaseAlgorithm):
 
     def register_interface(self, interface):
     	self._interface = GymInterface.from_interface(interface)
+
+    # TODO: Maybe test gym algorithm

@@ -52,3 +52,5 @@ class TestEventQueue(TestCase):
         events = []
         self.events.add_events(events)
         self.assertIsNone(self.events.get_last_timestamp())
+
+    # TODO: tests for get_last_predicted_timestamp

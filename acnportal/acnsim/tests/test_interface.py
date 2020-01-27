@@ -57,3 +57,5 @@ class TestInterface(TestCase):
         np.testing.assert_allclose(network_is_feasible_args[0][0], np.array([[1, 2], [0, 0], [4, 5]]))
         # Network's is_feasible method has its second argument (linear) defaulting to False. Check this is the case.
         self.assertEqual(network_is_feasible_args[0][1], False)
+
+# TODO: Tests for GymInterface functions.

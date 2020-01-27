@@ -3,7 +3,7 @@ from .. current import Current
 from ...models.evse import get_evse_by_type
 
 
-def simple_acn(basic_evse=False, voltage=208, transformer_cap=150, network_type=ChargingNetwork):
+def four_station(basic_evse=False, voltage=208, transformer_cap=150, network_type=ChargingNetwork):
     """ Simple, 1 constraint, 1 phase charging network
 
     Args:
@@ -34,7 +34,7 @@ def simple_acn(basic_evse=False, voltage=208, transformer_cap=150, network_type=
 
     return network
 
-def simplest_acn(basic_evse=True, voltage=208, transformer_cap=150, network_type=ChargingNetwork):
+def one_station(basic_evse=True, voltage=208, transformer_cap=150, network_type=ChargingNetwork):
     """ Simple, 1 constraint, 1 phase charging network
 
     Args:
