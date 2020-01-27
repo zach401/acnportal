@@ -189,7 +189,7 @@ class DeadbandEVSE(EVSE):
         Returns:
             bool: True if the proposed pilot signal is valid. False otherwise.
         """
-        return np.isclose(pilot, 0, atol) or pilot > self._deadband_end
+        return np.isclose(pilot, 0, atol) or pilot >= self._deadband_end
 
 
 class FiniteRatesEVSE(EVSE):

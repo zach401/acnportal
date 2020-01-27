@@ -48,7 +48,7 @@ class BaseAlgorithm:
         if self.rampdown is not None:
             self.rampdown.register_interface(interface)
 
-    def remove_active_evs_less_than_deadband(self, active_evs):
+    def remove_active_evs_less_than_deadband(self, active_evs, deadband=None):
         """ Remove EVs from active_evs which have remaining demand less than the deadband limit of their EVSE.
 
         Args:
@@ -60,7 +60,10 @@ class BaseAlgorithm:
         new_active = []
         for ev in active_evs:
             continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
-            deadband_end = allowable_rates[0] if continuous else allowable_rates[1]
+            if deadband is None:
+                deadband_end = allowable_rates[0] if continuous else allowable_rates[1]
+            else:
+                deadband_end = deadband
             if self.interface.remaining_amp_periods(ev) >= deadband_end:
                 new_active.append(ev)
         return new_active
