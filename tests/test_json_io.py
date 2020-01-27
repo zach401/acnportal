@@ -241,7 +241,7 @@ class TestJSONIO(TestCase):
         event_loaded = acnsim.Event.from_json(event_json)
         self.assertIsInstance(event_loaded, acnsim.Event)
 
-        event_fields = ['timestamp', 'type', 'precedence']
+        event_fields = ['timestamp', 'event_type', 'precedence']
 
         for field in event_fields:
             self.assertEqual(getattr(self.event, field),
@@ -252,7 +252,7 @@ class TestJSONIO(TestCase):
         event_loaded = acnsim.PluginEvent.from_json(event_json)
         self.assertIsInstance(event_loaded, acnsim.PluginEvent)
 
-        event_fields = ['timestamp', 'type', 'precedence']
+        event_fields = ['timestamp', 'event_type', 'precedence']
 
         for field in event_fields:
             self.assertEqual(getattr(self.plugin_event1, field),
@@ -267,7 +267,7 @@ class TestJSONIO(TestCase):
         event_loaded = acnsim.UnplugEvent.from_json(event_json)
         self.assertIsInstance(event_loaded, acnsim.UnplugEvent)
 
-        event_fields = ['timestamp', 'type', 'precedence',
+        event_fields = ['timestamp', 'event_type', 'precedence',
             'station_id', 'session_id']
 
         for field in event_fields:
@@ -279,7 +279,7 @@ class TestJSONIO(TestCase):
         event_loaded = acnsim.RecomputeEvent.from_json(event_json)
         self.assertIsInstance(event_loaded, acnsim.RecomputeEvent)
 
-        event_fields = ['timestamp', 'type', 'precedence']
+        event_fields = ['timestamp', 'event_type', 'precedence']
 
         for field in event_fields:
             self.assertEqual(getattr(self.recompute_event, field),
@@ -302,7 +302,7 @@ class TestJSONIO(TestCase):
                 self.assertEqual(event.__dict__,
                     event_loaded.__dict__)
             else:
-                for field in ['timestamp', 'type', 'precedence']:
+                for field in ['timestamp', 'event_type', 'precedence']:
                     self.assertEqual(
                         getattr(event, field),
                         getattr(event_loaded, field)
@@ -374,13 +374,13 @@ class TestJSONIO(TestCase):
             zip(sim.event_queue._queue,
                 simulator_loaded.event_queue._queue):
             self.assertEqual(ts, tsl)
-            self.assertEqual(event.type, event_loaded.type)
+            self.assertEqual(event.event_type, event_loaded.event_type)
             self.assertEqual(event.timestamp, event_loaded.timestamp)
 
         for event, event_loaded in \
             zip(sim.event_history,
                 simulator_loaded.event_history):
-            self.assertEqual(event.type, event_loaded.type)
+            self.assertEqual(event.event_type, event_loaded.event_type)
             self.assertEqual(event.timestamp, event_loaded.timestamp)
 
         for station_id, ev in sim.ev_history.items():
@@ -438,7 +438,7 @@ class TestExtObjJSONIO(TestJSONIO):
         self.assertIsInstance(default_named_event_loaded,
                               DefaultNamedEvent)
 
-        event_fields = ['timestamp', 'type', 'precedence']
+        event_fields = ['timestamp', 'event_type', 'precedence']
 
         for field in event_fields:
             self.assertEqual(getattr(default_named_event, field),
@@ -457,7 +457,7 @@ class TestExtObjJSONIO(TestJSONIO):
         self.assertIsInstance(set_named_event_loaded,
                               SetAttrEvent)
 
-        event_fields = ['timestamp', 'type', 'precedence', 'extra_attr']
+        event_fields = ['timestamp', 'event_type', 'precedence', 'extra_attr']
 
         for field in event_fields:
             self.assertEqual(getattr(set_named_event, field),
@@ -474,7 +474,7 @@ class TestExtObjJSONIO(TestJSONIO):
         self.assertIsInstance(set_list_event_loaded,
                               SetAttrEvent)
 
-        event_fields = ['timestamp', 'type', 'precedence', 'extra_attr']
+        event_fields = ['timestamp', 'event_type', 'precedence', 'extra_attr']
 
         for field in event_fields:
             self.assertEqual(getattr(set_list_event, field),
@@ -489,7 +489,7 @@ class TestExtObjJSONIO(TestJSONIO):
         self.assertIsInstance(set_batt_event_loaded,
                               SetAttrEvent)
 
-        event_fields = ['timestamp', 'type', 'precedence']
+        event_fields = ['timestamp', 'event_type', 'precedence']
 
         for field in event_fields:
             self.assertEqual(getattr(self.set_batt_event, field),
@@ -509,7 +509,7 @@ class TestExtObjJSONIO(TestJSONIO):
         self.assertIsInstance(set_np_event_loaded,
                               SetAttrEvent)
 
-        event_fields = ['timestamp', 'type', 'precedence']
+        event_fields = ['timestamp', 'event_type', 'precedence']
 
         for field in event_fields:
             self.assertEqual(getattr(set_np_event, field),
@@ -525,7 +525,7 @@ class TestExtObjJSONIO(TestJSONIO):
         self.assertIsInstance(batt_list_event_loaded,
                               BattListEvent)
 
-        event_fields = ['timestamp', 'type', 'precedence']
+        event_fields = ['timestamp', 'event_type', 'precedence']
 
         for field in event_fields:
             self.assertEqual(getattr(batt_list_event, field),
@@ -550,7 +550,7 @@ class TestExtObjJSONIO(TestJSONIO):
             self.assertEqual(ts, tsl)
             self.assertIsInstance(event_loaded, acnsim.Event)
             if isinstance(event_loaded, acnsim.PluginEvent):
-                for field in ['timestamp', 'type', 'precedence']:
+                for field in ['timestamp', 'event_type', 'precedence']:
                     self.assertEqual(
                         getattr(event, field),
                         getattr(event_loaded, field)
@@ -562,7 +562,7 @@ class TestExtObjJSONIO(TestJSONIO):
                         '_session_id')
                 )
             elif isinstance(event_loaded, SetAttrEvent):
-                for field in ['timestamp', 'type', 'precedence']:
+                for field in ['timestamp', 'event_type', 'precedence']:
                     self.assertEqual(
                         getattr(event, field),
                         getattr(event_loaded, field)
