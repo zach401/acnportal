@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from acnportal.acnsim import Simulator
-from acnportal.acnsim.network import ChargingNetwork
+from acnportal.acnsim.network import ChargingNetwork, Current
 from acnportal.algorithms import BaseAlgorithm
 from acnportal.acnsim.events import EventQueue, Event
 from datetime import datetime
@@ -66,6 +66,38 @@ class TestSimulator(TestCase):
         pd.testing.assert_frame_equal(outframe,
             pd.DataFrame(np.array([[1.1, 3.1, 5.1], [2.1, 4.1, 6.1]]),
                 columns=['PS-001', 'PS-002', 'PS-003']))
+
+class TestSimulatorWarnings(TestCase):
+    def test_update_schedules_infeasible_schedule(self):
+        network = ChargingNetwork()
+        network.register_evse(EVSE('PS-001'), 240, 0)
+        network.register_evse(EVSE('PS-004'), 240, 0)
+        network.register_evse(EVSE('PS-003'), 240, 0)
+        network.register_evse(EVSE('PS-002'), 240, 0)
+        network.register_evse(EVSE('PS-006'), 240, 0)
+        curr_dict1 = {'PS-001' : 0.25, 'PS-002' : 0.50, 'PS-003' : -0.25}
+        current1 = Current(curr_dict1)
+        curr_dict2 = {'PS-006' : 0.30, 'PS-004' : -0.60, 'PS-002' : 0.50}
+        current2 = Current(curr_dict2)
+        network.add_constraint(current1, 50, name='first_constraint')
+        network.add_constraint(current2, 10)
+        start = Mock(datetime)
+        scheduler = create_autospec(BaseAlgorithm)
+        scheduler.max_recompute = None
+        events = EventQueue(events=[Event(1), Event(2)])
+        simulator = Simulator(network, scheduler, events, start)
+
+        bad_schedule = {'PS-001': [200, 0, 160, 0 ],
+                        'PS-004': [0,   0, 0,   0 ],
+                        'PS-003': [0,   0, 0,   0 ],
+                        'PS-002': [0,   0, 26,  0 ],
+                        'PS-006': [0,   0, 0,   40]}
+        with self.assertWarnsRegex(
+                UserWarning,
+                r'Invalid schedule provided at iteration 0. '
+                r'Max violation is 2.9999\d+? A on _const_1 at time index 2.'):
+            simulator._update_schedules(bad_schedule)
+
 
     # TODO: Test Simulator step function
     # TODO: Test simulator _feasibility_helper

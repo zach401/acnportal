@@ -234,7 +234,20 @@ class Simulator:
             return
         good_schedule, schedule_matrix, schedule_length = self._feasibility_helper(new_schedule)
         if not good_schedule:
-            warnings.warn("Invalid schedule provided at iteration {0}".format(self._iteration), UserWarning)
+            aggregate_currents = self.network.constraint_current(
+                schedule_matrix)
+            diff_vec = np.abs(aggregate_currents) - np.tile(
+                self.network.magnitudes + self.network.violation_tolerance,
+                (schedule_length, 1)).T
+            max_idx = np.unravel_index(np.argmax(diff_vec), diff_vec.shape)
+            max_diff = diff_vec[max_idx]
+            max_timeidx = max_idx[1]
+            max_constraint = self.network.constraint_index[max_idx[0]]
+            warnings.warn(
+                f"Invalid schedule provided at iteration {self._iteration}. "
+                f"Max violation is {max_diff} A on {max_constraint} "
+                f"at time index {max_timeidx}.",
+                UserWarning)
         if self._iteration + schedule_length <= self.pilot_signals.shape[1]:
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
         else:
