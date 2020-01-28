@@ -10,9 +10,15 @@ class ChargingNetwork(BaseSimObj):
     """
     The ChargingNetwork class describes the infrastructure of the charging network with
     information about the types of the charging station_schedule.
+
+    Args:
+        violation_tolerance (float): Absolute amount by which an input
+            charging schedule may violate network constrants (A).
+        relative_tolerance (float): Relative amount by which an input
+            charging schedule may violate network constrants (A).
     """
 
-    def __init__(self):
+    def __init__(self, violation_tolerance=1e-5, relative_tolerance=1e-7):
         self._EVSEs = OrderedDict()
         # Matrix of constraints
         self.constraint_matrix = None
@@ -22,6 +28,8 @@ class ChargingNetwork(BaseSimObj):
         self.constraint_index = []
         self._voltages = np.array([])
         self._phase_angles = np.array([])
+        self.violation_tolerance = violation_tolerance
+        self.relative_tolerance = relative_tolerance
         pass
 
     @property
@@ -268,7 +276,7 @@ class ChargingNetwork(BaseSimObj):
             schedule_matrix = schedule_matrix[:, time_indices]
 
         if linear:
-            return complex(np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix))
+            return np.abs(self.constraint_matrix[constraint_indices]@schedule_matrix).astype('complex')
         else:
             # build vector of phase angles on EVSE
             angle_coeffs = np.exp(1j*np.deg2rad(self._phase_angles))
@@ -279,18 +287,36 @@ class ChargingNetwork(BaseSimObj):
             # multiply constraint matrix by current schedule, shifted by the phases
             return self.constraint_matrix[constraint_indices]@phasor_schedule
 
-    def is_feasible(self, schedule_matrix, linear=False):
+    def is_feasible(self, schedule_matrix, linear=False, violation_tolerance=None, relative_tolerance=None):
         """ Return if a set of current magnitudes for each load are feasible.
+
+        For a given constraint, the larger of the violation_tolerance
+        and relative_tolerance is used to evaluate feasibility.
 
         Args:
             schedule_matrix (np.Array): 2-D matrix with each row corresponding to an EVSE and each
                 column corresponding to a time index in the schedule.
             linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
                 ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
+            violation_tolerance (float): Absolute amount by which
+                schedule_matrix may violate network constraints. Default
+                None, in which case the network's violation_tolerance
+                attribute is used.
+            relative_tolerance (float): Relative amount by which
+                schedule_matrix may violate network constraints. Default
+                None, in which case the network's relative_tolerance
+                attribute is used.
 
         Returns:
             bool: If load_currents is feasible at time t according to this set of constraints.
         """
+        # If no violation_tolerance is specified, default to the network's violation_tolerance.
+        if violation_tolerance is None:
+            violation_tolerance = self.violation_tolerance
+        if relative_tolerance is None:
+            relative_tolerance = self.relative_tolerance
+        rel_magnitude_tol = self.magnitudes * relative_tolerance
+
         # If there are no constraints (magnitudes vector is empty) return True
         if not len(self.magnitudes):
             return True
@@ -299,11 +325,8 @@ class ChargingNetwork(BaseSimObj):
         aggregate_currents = self.constraint_current(schedule_matrix, linear=linear)
 
         # Ensure each aggregate current is less than its limit, returning False if not
-        if linear:
-            return np.all(self.magnitudes + 1e-5 >= np.abs(aggregate_currents))
-        else:
-            schedule_length = schedule_matrix.shape[1]
-            return np.all(np.tile(self.magnitudes + 1e-5, (schedule_length, 1)).T >= np.abs(aggregate_currents))
+        schedule_length = schedule_matrix.shape[1]
+        return np.all(np.tile(self.magnitudes + np.maximum(violation_tolerance, rel_magnitude_tol), (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
 
     def to_dict(self, context_dict=None):
