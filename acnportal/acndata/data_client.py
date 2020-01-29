@@ -84,8 +84,8 @@ class DataClient(object):
             args.append('where={0}'.format(cond))
         args.append('limit=1')
         query_string = '?' + '&'.join(args) if len(args) > 0 else ''
-        head = {"Authorization": "Bearer {0}".format(self.token)}
-        r = requests.head(self.url + endpoint + query_string, headers=head)
+        auth_header = {"Authorization": "Bearer {0}".format(self.token)}
+        r = requests.head(self.url + endpoint + query_string, headers=auth_header)
         return r.headers['x-total-count']
 
     def get_sessions_by_time(self, site, start=None, end=None, min_energy=None, timeseries=False, count=False):
