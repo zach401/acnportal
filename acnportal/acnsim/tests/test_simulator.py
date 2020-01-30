@@ -4,9 +4,9 @@ from unittest.mock import Mock, create_autospec
 import numpy as np
 import pandas as pd
 
-from acnportal.acnsim import Simulator
+from acnportal.acnsim import Simulator, Interface
 from acnportal.acnsim.network import ChargingNetwork, Current
-from acnportal.algorithms import BaseAlgorithm
+from acnportal.algorithms import BaseAlgorithm, UncontrolledCharging
 from acnportal.acnsim.events import EventQueue, Event
 from datetime import datetime
 from acnportal.acnsim.models import EVSE
@@ -22,10 +22,10 @@ class TestSimulator(TestCase):
         network.register_evse(evse2, 240, 0)
         evse3 = EVSE('PS-003', max_rate=32)
         network.register_evse(evse3, 240, 0)
-        scheduler = create_autospec(BaseAlgorithm)
-        scheduler.max_recompute = None
+        self.scheduler = BaseAlgorithm()
+        self.scheduler.max_recompute = None
         events = EventQueue(events=[Event(1), Event(2)])
-        self.simulator = Simulator(network, scheduler, events, start)
+        self.simulator = Simulator(network, self.scheduler, events, start)
 
     def test_correct_on_init_pilot_signals(self):
         np.testing.assert_allclose(self.simulator.pilot_signals,
@@ -34,6 +34,11 @@ class TestSimulator(TestCase):
     def test_correct_on_init_charging_rates(self):
         np.testing.assert_allclose(self.simulator.charging_rates,
             np.zeros((len(self.simulator.network.station_ids), self.simulator.event_queue.get_last_timestamp() + 1)))
+
+    def test_correct_on_init_scheduler_data(self):
+        self.assertIsInstance(self.simulator.scheduler, BaseAlgorithm)
+        self.assertIsInstance(self.scheduler.interface, Interface)
+        self.assertIsNone(self.simulator.max_recompute)
 
     def test_update_schedules_not_in_network(self):
         new_schedule = {'PS-001' : [24, 16], 'PS-004' : [16, 24]}
@@ -66,6 +71,20 @@ class TestSimulator(TestCase):
         pd.testing.assert_frame_equal(outframe,
             pd.DataFrame(np.array([[1.1, 3.1, 5.1], [2.1, 4.1, 6.1]]),
                 columns=['PS-001', 'PS-002', 'PS-003']))
+
+    def test_update_scheduler(self):
+        new_scheduler = UncontrolledCharging()
+        self.assertIsNone(new_scheduler._interface)
+        self.simulator.update_scheduler(new_scheduler)
+        self.assertIsInstance(self.simulator.scheduler, UncontrolledCharging)
+        self.assertIsInstance(new_scheduler.interface, Interface)
+        self.assertEqual(self.simulator.max_recompute, 1)
+
+    def test_update_signals(self):
+        new_signals = {'a': [1]}
+        self.simulator.update_signals(new_signals)
+        self.assertEqual(self.simulator.signals, new_signals)
+
 
 class TestSimulatorWarnings(TestCase):
     def test_update_schedules_infeasible_schedule(self):
