@@ -109,7 +109,8 @@ class BaseSimObj:
         - An extension that doesn't define `to_dict` will dump without
         error, but with partial preservation of attributes. Objects that
         are not JSON serializable and which do not have a `to_registry`
-        method will not be completely serialized.
+        method will not be completely serialized unless said objects are
+        extensions of built-in ACN-Sim objects with no extra attributes.
 
         - A warning is thrown for each attribute not explicitly handled
         in the serialization.
