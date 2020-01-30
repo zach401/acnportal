@@ -334,8 +334,15 @@ class ChargingNetwork(BaseSimObj):
         context_dict, = none_to_empty_dict(context_dict)
         args_dict = {}
 
-        args_dict['_EVSEs'] = {station_id : evse.to_registry(context_dict=context_dict)['id']
-            for station_id, evse in self._EVSEs.items()}
+        # Serialize non-nested attributes.
+        nn_attr_lst = ['violation_tolerance', 'relative_tolerance']
+        for attr in nn_attr_lst:
+            args_dict[attr] = getattr(self, attr)
+
+        args_dict['_EVSEs'] = {
+            station_id : evse.to_registry(context_dict=context_dict)['id']
+            for station_id, evse in self._EVSEs.items()
+        }
 
         args_dict['constraint_matrix'] = self.constraint_matrix.tolist()
         args_dict['magnitudes'] = self.magnitudes.tolist()
@@ -347,14 +354,22 @@ class ChargingNetwork(BaseSimObj):
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None,
+                  cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
             none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
-        out_obj = cls(**cls_kwargs)
 
-        out_obj._EVSEs = {station_id : read_from_id(evse, context_dict=context_dict, loaded_dict=loaded_dict)
-            for station_id, evse in in_dict['_EVSEs'].items()}
+        out_obj = cls(violation_tolerance=in_dict['violation_tolerance'],
+                      relative_tolerance=in_dict['relative_tolerance'],
+                      **cls_kwargs)
+
+        out_obj._EVSEs = {
+            station_id : read_from_id(
+                evse, context_dict=context_dict, loaded_dict=loaded_dict
+            )
+            for station_id, evse in in_dict['_EVSEs'].items()
+        }
 
         out_obj.constraint_matrix = \
             np.array(in_dict['constraint_matrix'])
