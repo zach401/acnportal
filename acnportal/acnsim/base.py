@@ -2,8 +2,6 @@
 This module contains definitions shared by all ACN-Sim objects.
 """
 import json
-import sys
-from functools import wraps
 from pydoc import locate
 import warnings
 
@@ -17,6 +15,7 @@ def none_to_empty_dict(*args):
         else:
             out_arg_lst.append(arg)
     return out_arg_lst
+
 
 def read_from_id(obj_id, context_dict, loaded_dict=None):
     """
@@ -177,9 +176,9 @@ class BaseSimObj:
             warnings.warn(
                 f"Attributes {unserialized_keys} present in object of type "
                 f"{obj_type} but not handled by object's to_dict method. "
-                 "Serialized object may not load correctly. Write a to_dict "
-                 "method and re-dump, or write an appropriate from_dict "
-                 "method to accurately load.",
+                f"Serialized object may not load correctly. Write a to_dict "
+                f"method and re-dump, or write an appropriate from_dict "
+                f"method to accurately load.",
                 UserWarning
             )
             for key in unserialized_keys:
@@ -197,8 +196,8 @@ class BaseSimObj:
                 except TypeError:
                     warnings.warn(
                         f"Attribute {key} could not be serialized. Dumping "
-                         "the attribute's repr() representation. This "
-                         "attribute will not be fully loaded.",
+                        f"the attribute's repr() representation. This "
+                        f"attribute will not be fully loaded.",
                         UserWarning
                     )
                     args_dict[key] = repr(unserialized_attr)
@@ -253,7 +252,7 @@ class BaseSimObj:
         objects that have as attributes extensions of ACN-Sim objects
         with defined `from_dict` methods.
 
-        - An extension that doesn't define `from_dict` will may not load
+        - An extension that doesn't define `from_dict` may not load
         correctly. The extension will load correctly only if the
         constructor of the object whose `from_dict` method is called
         takes the same arguments as this object, and any extra
@@ -282,8 +281,8 @@ class BaseSimObj:
                                       to their JSON serializable
                                       representations]}
                     ```
-            context_dict (Dict[str, JSON Serializable]): Dict mapping
-                object ID's to object JSON serializable representations.
+            loaded_dict (Dict[str, BaseSimObj-like]): Dict mapping
+                object ID's to loaded ACN-Sim objects.
             cls_kwargs (Dict[str, object]): Optional extra arguments
                 to be passed to object's constructor.
 
@@ -339,7 +338,7 @@ class BaseSimObj:
             warnings.warn(
                 f"Attributes {unloaded_attrs} present in object of type "
                 f"{obj_dict['class']} but not handled by object's from_dict "
-                 "method. Loaded object may have inaccurate attributes.",
+                f"method. Loaded object may have inaccurate attributes.",
                 UserWarning
             )
             for attr in unloaded_attrs:
