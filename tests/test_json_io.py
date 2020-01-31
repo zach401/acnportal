@@ -6,17 +6,12 @@ from .serialization_extensions import *
 
 import json
 import sys
+import os
 import numpy as np
 from copy import deepcopy
 from datetime import datetime
 
 
-# TODO: Integration test that completely compares simulator obj
-# before and after loading.
-# TODO: Call signature of from_registry: Class.from_registry()
-# TODO: Equality of simulator objects.
-# TODO: Repr for simulator objects.
-# TODO: Equality tests of objects
 class TestJSONIO(TestCase):
     @classmethod
     def setUpClass(self):
@@ -366,15 +361,12 @@ class TestJSONIO(TestCase):
         np.testing.assert_equal(sim.charging_rates,
                                 simulator_loaded.charging_rates)
 
-        # TODO: better proxy for network equality
         network_attrs = ['station_ids', 'active_station_ids',
                          'voltages', 'phase_angles']
         for attr in network_attrs:
             self.assertEqual(getattr(sim.network, attr),
                              getattr(simulator_loaded.network, attr))
 
-        # TODO: better proxy for event queue equality
-        # This only checks timestep and type
         for (ts, event), (tsl, event_loaded) in \
                 zip(sim.event_queue._queue,
                     simulator_loaded.event_queue._queue):
@@ -420,6 +412,20 @@ class TestJSONIO(TestCase):
 
     def test_sim_no_sch_hist(self):
         self._sim_compare_helper(self.simulator_no_sch_hist)
+
+    def test_acnportal_version_inequality(self):
+        with open(os.path.join(os.path.dirname(__file__),
+                               'old_version.json'),
+                  'r') as infile:
+            with self.assertWarns(UserWarning):
+                _ = acnsim.Event.from_json(json.load(infile))
+
+    def test_numpy_version_inequality(self):
+        with open(os.path.join(os.path.dirname(__file__),
+                               'old_dependencies.json'),
+                  'r') as infile:
+            with self.assertWarns(UserWarning):
+                _ = acnsim.Event.from_json(json.load(infile))
 
 
 class TestExtObjJSONIO(TestJSONIO):

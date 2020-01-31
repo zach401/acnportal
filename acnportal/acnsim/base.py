@@ -4,6 +4,9 @@ This module contains definitions shared by all ACN-Sim objects.
 import json
 from pydoc import locate
 import warnings
+import pkg_resources
+import pandas
+import numpy
 
 
 def none_to_empty_dict(*args):
@@ -53,9 +56,15 @@ def read_from_id(obj_id, context_dict, loaded_dict=None):
     obj_type = context_dict[obj_id]['class']
     obj_class = locate(obj_type)
 
-    # Use this object's
+    # 'version' is None since we've already checked the version of the
+    # parent object.
     obj = obj_class.from_registry(
-        {'id': obj_id, 'context_dict': context_dict}, loaded_dict=loaded_dict)
+        {'id': obj_id,
+         'context_dict': context_dict,
+         'version': None,
+         'dependency_versions': None},
+        loaded_dict=loaded_dict
+    )
 
     loaded_dict[obj_id] = obj
     return obj
@@ -145,7 +154,9 @@ class BaseSimObj:
                     {'id': [This object's id],
                      'context_dict': [The dict mapping all object id's
                                       to their JSON serializable
-                                      representations]}
+                                      representations],
+                     'version': [commit hash of acnportal at creation
+                                 of this object]}
                     ```
 
         Warns:
@@ -155,6 +166,9 @@ class BaseSimObj:
                 JSON serializable.
 
         """
+        # We only want to warn of missing gitpython at the top of the
+        # recursive serialization, when context_dict is None.
+        warn_gitpython = context_dict is None
         context_dict, = none_to_empty_dict(context_dict)
         obj_id = f'{id(self)}'
 
@@ -208,7 +222,19 @@ class BaseSimObj:
         obj_dict = {'class': obj_type, 'args': args_dict}
         context_dict[obj_id] = obj_dict
 
-        return {'id': obj_id, 'context_dict': context_dict}
+        # Check versions of acnportal and certain dependencies.
+        acnportal_version = pkg_resources.require('acnportal')[0].version
+        dependency_versions = {
+            'numpy': numpy.__version__,
+            'pandas': pandas.__version__
+        }
+
+        return {
+            'id': obj_id,
+            'context_dict': context_dict,
+            'version': acnportal_version,
+            'dependency_versions': dependency_versions
+        }
 
     def to_dict(self, context_dict=None):
         """ Converts the object's attributes into a JSON serializable
@@ -235,7 +261,7 @@ class BaseSimObj:
         Returns an object of type `cls` from a JSON serializable
         representation of the object.
 
-        The deserializer is invoked using `obj.from_json()`, but the
+        The deserializer is invoked using `cls.from_json()`, but the
         conversion from a serializable representation to an ACN-Sim
         object occurs in this method.
 
@@ -295,6 +321,10 @@ class BaseSimObj:
                 found in `context_dict`.
 
         Warns:
+            UserWarning: If the revision hash of the loaded object is
+                different from that of the hash of acnportal doing
+                the loading. If no hash is provided ('version' maps
+                to None), no warning is raised.
             UserWarning: If any attributes are present in the object
                 not handled by the object's `from_dict` method.
             UserWarning: If any of the unhandled attributes are not
@@ -303,8 +333,42 @@ class BaseSimObj:
                 the loaded attribute will be incorrect.
 
         """
+        # We only want to warn of missing gitpython at the top of the
+        # recursive serialization, when loaded_dict is None.
+        warn_gitpython = loaded_dict is None
         loaded_dict, cls_kwargs = none_to_empty_dict(loaded_dict, cls_kwargs)
-        obj_id, context_dict = in_json['id'], in_json['context_dict']
+        obj_id, context_dict, acnportal_version, dependency_versions = (
+            in_json['id'],
+            in_json['context_dict'],
+            in_json['version'],
+            in_json['dependency_versions']
+        )
+
+        # Check current versions of acnportal and certain dependencies
+        # against serialized versions.
+        current_version = pkg_resources.require('acnportal')[0].version
+        if (acnportal_version is not None
+                and current_version != acnportal_version):
+            warnings.warn(
+                f"Version {acnportal_version} of input acnportal object does "
+                f"not match current version {current_version}."
+            )
+
+        current_dependency_versions = {
+            'numpy': numpy.__version__,
+            'pandas': pandas.__version__
+        }
+        if dependency_versions is not None:
+            for pkg in dependency_versions.keys():
+                if (current_dependency_versions[pkg]
+                        != dependency_versions[pkg]):
+                    warnings.warn(
+                        f"Current version of dependency {pkg} does not match "
+                        f"serialized version. "
+                        f"Current: {current_dependency_versions[pkg]}, "
+                        f"Serialized: {dependency_versions[pkg]}.",
+                    )
+
         try:
             obj_dict = context_dict[obj_id]
         except KeyError:
