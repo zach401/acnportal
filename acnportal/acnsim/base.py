@@ -292,6 +292,10 @@ class BaseSimObj:
         serializable nor readable from an ID or with a `from_registry`
         method.
 
+        - A warning is thrown if any of acnportal, numpy, or pandas have
+        different versions in the current program from the versions
+        present when the object was serialized.
+
         The deserializer returns an object of type `cls`.
 
         As deserialization of nested objects occurs recursively, this
@@ -321,9 +325,10 @@ class BaseSimObj:
                 found in `context_dict`.
 
         Warns:
-            UserWarning: If the revision hash of the loaded object is
-                different from that of the hash of acnportal doing
-                the loading. If no hash is provided ('version' maps
+            UserWarning: If the acnportal version of the loaded object
+                is different from that of the acnportal doing
+                the loading, or if numpy or pandas is a different
+                version. If no version is provided ('version' maps
                 to None), no warning is raised.
             UserWarning: If any attributes are present in the object
                 not handled by the object's `from_dict` method.
