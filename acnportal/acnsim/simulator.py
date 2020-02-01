@@ -323,12 +323,10 @@ class Simulator(base.BaseSimObj):
 
         network = base.read_from_id(in_dict['network'], context_dict,
                                     loaded_dict=loaded_dict)
-        assert isinstance(network, ChargingNetwork)
 
         events = base.read_from_id(in_dict['event_queue'],
                                    context_dict=context_dict,
                                    loaded_dict=loaded_dict)
-        assert isinstance(events, EventQueue)
 
         scheduler_cls = base.locate(in_dict['scheduler'])
         try:

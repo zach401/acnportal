@@ -116,7 +116,7 @@ class TestJSONIO(TestCase):
         # Make a copy of the simulator to run
         self.simulator_run = deepcopy(self.simulator)
         # Do necessary unplugs.
-        for station_id, evse in self.simulator_run.network._EVSEs.items():
+        for evse in self.simulator_run.network._EVSEs.values():
             if evse.ev is not None:
                 evse.unplug()
         # Run simulation
@@ -156,7 +156,7 @@ class TestJSONIO(TestCase):
                      '_energy_delivered', '_current_charging_rate']
 
         def _load_dump_compare_helper(ev, bat_type):
-            assert isinstance(ev._battery, bat_type)
+            self.assertIsInstance(ev._battery, bat_type)
             ev_json = ev.to_json()
             ev_loaded = acnsim.EV.from_json(ev_json)
             self.assertIsInstance(ev_loaded, acnsim.EV)
@@ -419,14 +419,14 @@ class TestJSONIO(TestCase):
                                'old_version.json'),
                   'r') as infile:
             with self.assertWarns(UserWarning):
-                _ = acnsim.Event.from_json(json.load(infile))
+                acnsim.Event.from_json(json.load(infile))
 
     def test_numpy_version_inequality(self):
         with open(os.path.join(os.path.dirname(__file__),
                                'old_dependencies.json'),
                   'r') as infile:
             with self.assertWarns(UserWarning):
-                _ = acnsim.Event.from_json(json.load(infile))
+                acnsim.Event.from_json(json.load(infile))
 
 
 class TestExtObjJSONIO(TestJSONIO):
