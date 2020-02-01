@@ -50,7 +50,9 @@ def read_from_id(obj_id, context_dict, loaded_dict=None):
         return loaded_dict[obj_id]
 
     if obj_id not in context_dict:
-        raise KeyError(f"Object with ID {obj_id} not found in context_dict.")
+        raise KeyError(
+            f"Object with ID {obj_id} not found in context_dict."
+        )
 
     # Get the class of this object from the context_dict.
     obj_type = context_dict[obj_id]['class']

@@ -120,7 +120,7 @@ class ChargingNetwork(base.BaseSimObj):
         if name is None:
             name = '_const_{0}'.format(len(self.constraint_index))
         if name in self.constraint_index:
-            base.warnings.warn(
+            warnings.warn(
                 "Constraint {0} already added. Adding input constraint as new constraint. Use network.update_constraint to update constraint {0}".format(name),
                 UserWarning)
             name = name + "_v2"

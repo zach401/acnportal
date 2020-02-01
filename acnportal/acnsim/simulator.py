@@ -5,7 +5,6 @@ import numpy as np
 import warnings
 import sys
 
-from .network import ChargingNetwork
 from .events import *
 from .models import EV
 from .events import UnplugEvent
@@ -175,7 +174,7 @@ class Simulator(base.BaseSimObj):
             max_diff = diff_vec[max_idx]
             max_timeidx = max_idx[1]
             max_constraint = self.network.constraint_index[max_idx[0]]
-            base.warnings.warn(
+            warnings.warn(
                 f"Invalid schedule provided at iteration {self._iteration}. "
                 f"Max violation is {max_diff} A on {max_constraint} "
                 f"at time index {max_timeidx}.",
@@ -266,7 +265,7 @@ class Simulator(base.BaseSimObj):
             self.event_queue.to_registry(context_dict=context_dict)['id']
 
         if sys.version_info[1] < 7:
-            base.warnings.warn(f"Datetime {self.start} will not be loaded as "
+            warnings.warn(f"Datetime {self.start} will not be loaded as "
                           f"datetime object. Use python 3.7 or "
                           f"higher to load this value after "
                           f"serialization.")
@@ -275,7 +274,7 @@ class Simulator(base.BaseSimObj):
         try:
             base.json.dumps(self.signals)
         except TypeError:
-            base.warnings.warn("Not serializing signals as value types"
+            warnings.warn("Not serializing signals as value types"
                           "are not natively JSON serializable.",
                                UserWarning)
             args_dict['signals'] = None
@@ -332,13 +331,13 @@ class Simulator(base.BaseSimObj):
         try:
             scheduler = scheduler_cls()
         except TypeError:
-            base.warnings.warn(f"Scheduler {in_dict['scheduler']} requires "
+            warnings.warn(f"Scheduler {in_dict['scheduler']} requires "
                           f"constructor inputs. Setting scheduler to "
                           f"BaseAlgorithm instead.")
             scheduler = BaseAlgorithm()
 
         if sys.version_info[1] < 7:
-            base.warnings.warn(f"ISO format {in_dict['start']} cannot be loaded as "
+            warnings.warn(f"ISO format {in_dict['start']} cannot be loaded as "
                           f"datetime object. Use python 3.7 or higher to load "
                           f"this value.")
             start = in_dict['start']

@@ -444,7 +444,7 @@ class TestExtObjJSONIO(TestJSONIO):
         with self.assertWarns(UserWarning):
             named_event_json = named_event.to_json()
         with self.assertRaises(TypeError):
-            _ = NamedEvent.from_json(named_event_json)
+            NamedEvent.from_json(named_event_json)
 
     def test_default_named_event_json(self):
         default_named_event = DefaultNamedEvent(5, "def_event")
