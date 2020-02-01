@@ -1,6 +1,6 @@
 """ This file contains extensions of ACN-Sim for testing purposes. """
 from acnportal import acnsim
-from acnportal.acnsim.base import *
+import acnportal.acnsim.base as base
 
 class NamedEvent(acnsim.Event):
     """ An extension of Event that has a name. """
@@ -29,19 +29,21 @@ class BattListEvent(acnsim.Event):
         self.batt_list = batt_list
 
     def to_dict(self, context_dict=None):
-        context_dict, = none_to_empty_dict(context_dict)
+        context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
-        args_dict['batt_list'] = [ev.to_registry(context_dict=context_dict)['id']
-                               for ev in self.batt_list]
+        args_dict['batt_list'] = \
+            [ev.to_registry(context_dict=context_dict)['id']
+             for ev in self.batt_list]
         return args_dict
 
     @classmethod
     def from_dict(cls, in_dict,
                   context_dict=None, loaded_dict=None, cls_kwargs=None):
         context_dict, loaded_dict, cls_kwargs = \
-            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
-        batt_list = [read_from_id(ev, context_dict=context_dict,
-                               loaded_dict=loaded_dict)
-                  for ev in in_dict['batt_list']]
+            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+        batt_list = [base.read_from_id(ev,
+                                       context_dict=context_dict,
+                                       loaded_dict=loaded_dict)
+                     for ev in in_dict['batt_list']]
         out_obj = cls(in_dict['timestamp'], batt_list, **cls_kwargs)
         return out_obj

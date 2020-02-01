@@ -1,5 +1,5 @@
 import numpy as np
-from ..base import *
+from .. import base
 
 BASIC = 'BASIC'
 AV = 'AeroVironment'
@@ -37,7 +37,7 @@ class StationOccupiedError(Exception):
     pass
 
 
-class EVSE(BaseSimObj):
+class EVSE(base.BaseSimObj):
     """ Class to model Electric Vehicle Supply Equipment (charging station).
 
     This base class allows for charging in a continuous range from min_rate to max_rate.
@@ -162,7 +162,7 @@ class EVSE(BaseSimObj):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = none_to_empty_dict(context_dict)
+        context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = {}
 
         nn_attr_lst = [
@@ -183,9 +183,9 @@ class EVSE(BaseSimObj):
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
-            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         if in_dict['_ev'] is not None:
-            ev = read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
+            ev = base.read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
         else:
             ev = None
         out_obj = cls(
@@ -237,7 +237,7 @@ class DeadbandEVSE(EVSE):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = none_to_empty_dict(context_dict)
+        context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
         args_dict['_deadband_end'] = self._deadband_end
         return args_dict
@@ -246,7 +246,7 @@ class DeadbandEVSE(EVSE):
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
-            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         cls_kwargs = {'deadband_end': in_dict['_deadband_end']}
         out_obj = super().from_dict(in_dict, context_dict, loaded_dict, cls_kwargs)
         return out_obj
@@ -293,7 +293,7 @@ class FiniteRatesEVSE(EVSE):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = none_to_empty_dict(context_dict)
+        context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
         args_dict['allowable_rates'] = self.allowable_rates
         return args_dict
@@ -302,11 +302,11 @@ class FiniteRatesEVSE(EVSE):
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
-            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         # TODO: FREVSE constructor doesn't accept args that parent class would
         # So can't use super here. Maybe should change FREVSE constructor?
         if in_dict['_ev'] is not None:
-            ev = read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
+            ev = base.read_from_id(in_dict['_ev'], context_dict=context_dict, loaded_dict=loaded_dict)
         else:
             ev = None
         out_obj = cls(

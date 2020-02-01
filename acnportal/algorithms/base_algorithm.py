@@ -1,5 +1,3 @@
-import json
-
 class BaseAlgorithm:
     """ Abstract base class meant to be inherited from to implement new algorithms.
 

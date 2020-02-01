@@ -3,10 +3,10 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 import warnings
-from ..base import *
+from .. import base
 
 
-class ChargingNetwork(BaseSimObj):
+class ChargingNetwork(base.BaseSimObj):
     """
     The ChargingNetwork class describes the infrastructure of the charging network with
     information about the types of the charging station_schedule.
@@ -120,7 +120,7 @@ class ChargingNetwork(BaseSimObj):
         if name is None:
             name = '_const_{0}'.format(len(self.constraint_index))
         if name in self.constraint_index:
-            warnings.warn(
+            base.warnings.warn(
                 "Constraint {0} already added. Adding input constraint as new constraint. Use network.update_constraint to update constraint {0}".format(name),
                 UserWarning)
             name = name + "_v2"
@@ -331,7 +331,7 @@ class ChargingNetwork(BaseSimObj):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = none_to_empty_dict(context_dict)
+        context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = {}
 
         # Serialize non-nested attributes.
@@ -358,14 +358,14 @@ class ChargingNetwork(BaseSimObj):
                   cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
-            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
 
         out_obj = cls(violation_tolerance=in_dict['violation_tolerance'],
                       relative_tolerance=in_dict['relative_tolerance'],
                       **cls_kwargs)
 
         out_obj._EVSEs = {
-            station_id : read_from_id(
+            station_id : base.read_from_id(
                 evse, context_dict=context_dict, loaded_dict=loaded_dict
             )
             for station_id, evse in in_dict['_EVSEs'].items()

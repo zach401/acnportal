@@ -2,7 +2,8 @@ from unittest import TestCase
 
 from acnportal import acnsim
 from acnportal.algorithms import BaseAlgorithm, UncontrolledCharging
-from .serialization_extensions import *
+from .serialization_extensions import NamedEvent, DefaultNamedEvent
+from .serialization_extensions import SetAttrEvent, BattListEvent
 
 import json
 import sys

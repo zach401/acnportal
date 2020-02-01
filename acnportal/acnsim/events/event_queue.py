@@ -1,9 +1,9 @@
 import heapq
 from .event import Event
-from ..base import *
+from .. import base
 
 
-class EventQueue(BaseSimObj):
+class EventQueue(base.BaseSimObj):
     """ Queue which stores simulation events.
 
     Args:
@@ -93,7 +93,7 @@ class EventQueue(BaseSimObj):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = none_to_empty_dict(context_dict)
+        context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = {}
 
         args_dict['_queue'] = [(ts, event.to_registry(context_dict=context_dict)['id'])
@@ -105,9 +105,9 @@ class EventQueue(BaseSimObj):
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
-            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         out_obj = cls(**cls_kwargs)
-        out_obj._queue = [(ts, read_from_id(event, context_dict=context_dict, loaded_dict=loaded_dict))
+        out_obj._queue = [(ts, base.read_from_id(event, context_dict=context_dict, loaded_dict=loaded_dict))
             for (ts, event) in in_dict['_queue']]
         out_obj._timestep = in_dict['_timestep']
 

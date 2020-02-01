@@ -12,11 +12,11 @@ from .events import UnplugEvent
 from .interface import Interface
 from .interface import InvalidScheduleError
 from acnportal.algorithms import BaseAlgorithm
-from .base import *
+from . import base
 
 
 
-class Simulator(BaseSimObj):
+class Simulator(base.BaseSimObj):
     """ Central class of the acnsim package.
 
     The Simulator class is the central place where everything about a particular simulation is stored including the
@@ -175,7 +175,7 @@ class Simulator(BaseSimObj):
             max_diff = diff_vec[max_idx]
             max_timeidx = max_idx[1]
             max_constraint = self.network.constraint_index[max_idx[0]]
-            warnings.warn(
+            base.warnings.warn(
                 f"Invalid schedule provided at iteration {self._iteration}. "
                 f"Max violation is {max_diff} A on {max_constraint} "
                 f"at time index {max_timeidx}.",
@@ -244,7 +244,7 @@ class Simulator(BaseSimObj):
 
         Only the scheduler's name is serialized.
         """
-        context_dict, = none_to_empty_dict(context_dict)
+        context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = {}
 
         # Serialize non-nested attributes.
@@ -266,18 +266,18 @@ class Simulator(BaseSimObj):
             self.event_queue.to_registry(context_dict=context_dict)['id']
 
         if sys.version_info[1] < 7:
-            warnings.warn(f"Datetime {self.start} will not be loaded as "
+            base.warnings.warn(f"Datetime {self.start} will not be loaded as "
                           f"datetime object. Use python 3.7 or "
                           f"higher to load this value after "
                           f"serialization.")
 
         args_dict['start'] = self.start.isoformat()
         try:
-            json.dumps(self.signals)
+            base.json.dumps(self.signals)
         except TypeError:
-            warnings.warn("Not serializing signals as value types"
+            base.warnings.warn("Not serializing signals as value types"
                           "are not natively JSON serializable.",
-                          UserWarning)
+                               UserWarning)
             args_dict['signals'] = None
         else:
             args_dict['signals'] = self.signals
@@ -319,28 +319,28 @@ class Simulator(BaseSimObj):
 
         """
         context_dict, loaded_dict, cls_kwargs = \
-            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
 
-        network = read_from_id(in_dict['network'], context_dict,
-                               loaded_dict=loaded_dict)
+        network = base.read_from_id(in_dict['network'], context_dict,
+                                    loaded_dict=loaded_dict)
         assert isinstance(network, ChargingNetwork)
 
-        events = read_from_id(in_dict['event_queue'],
-                              context_dict=context_dict,
-                              loaded_dict=loaded_dict)
+        events = base.read_from_id(in_dict['event_queue'],
+                                   context_dict=context_dict,
+                                   loaded_dict=loaded_dict)
         assert isinstance(events, EventQueue)
 
-        scheduler_cls = locate(in_dict['scheduler'])
+        scheduler_cls = base.locate(in_dict['scheduler'])
         try:
             scheduler = scheduler_cls()
         except TypeError:
-            warnings.warn(f"Scheduler {in_dict['scheduler']} requires "
+            base.warnings.warn(f"Scheduler {in_dict['scheduler']} requires "
                           f"constructor inputs. Setting scheduler to "
                           f"BaseAlgorithm instead.")
             scheduler = BaseAlgorithm()
 
         if sys.version_info[1] < 7:
-            warnings.warn(f"ISO format {in_dict['start']} cannot be loaded as "
+            base.warnings.warn(f"ISO format {in_dict['start']} cannot be loaded as "
                           f"datetime object. Use python 3.7 or higher to load "
                           f"this value.")
             start = in_dict['start']
@@ -374,11 +374,11 @@ class Simulator(BaseSimObj):
         out_obj.pilot_signals = np.array(in_dict['pilot_signals'])
         out_obj.charging_rates = np.array(in_dict['charging_rates'])
 
-        out_obj.ev_history = {session_id: read_from_id(
+        out_obj.ev_history = {session_id: base.read_from_id(
             ev, context_dict=context_dict, loaded_dict=loaded_dict)
             for session_id, ev in in_dict['ev_history'].items()}
 
-        out_obj.event_history = [read_from_id(
+        out_obj.event_history = [base.read_from_id(
             past_event, context_dict=context_dict, loaded_dict=loaded_dict)
             for past_event in in_dict['event_history']]
         return out_obj

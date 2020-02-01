@@ -1,8 +1,8 @@
 from builtins import property
-from ..base import *
+from .. import base
 
 
-class EV(BaseSimObj):
+class EV(base.BaseSimObj):
     """Class to model the behavior of an Electrical Vehicle (ev).
 
     Args:
@@ -139,7 +139,7 @@ class EV(BaseSimObj):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = none_to_empty_dict(context_dict)
+        context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = {}
 
         nn_attr_lst = [
@@ -158,8 +158,8 @@ class EV(BaseSimObj):
     def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
-            none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
-        battery = read_from_id(in_dict['_battery'], context_dict, loaded_dict)
+            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+        battery = base.read_from_id(in_dict['_battery'], context_dict, loaded_dict)
         out_obj = cls(
             in_dict['_arrival'],
             in_dict['_departure'],

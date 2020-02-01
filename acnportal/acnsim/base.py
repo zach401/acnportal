@@ -166,9 +166,6 @@ class BaseSimObj:
                 JSON serializable.
 
         """
-        # We only want to warn of missing gitpython at the top of the
-        # recursive serialization, when context_dict is None.
-        warn_gitpython = context_dict is None
         context_dict, = none_to_empty_dict(context_dict)
         obj_id = f'{id(self)}'
 
@@ -338,9 +335,6 @@ class BaseSimObj:
                 the loaded attribute will be incorrect.
 
         """
-        # We only want to warn of missing gitpython at the top of the
-        # recursive serialization, when loaded_dict is None.
-        warn_gitpython = loaded_dict is None
         loaded_dict, cls_kwargs = none_to_empty_dict(loaded_dict, cls_kwargs)
         obj_id, context_dict, acnportal_version, dependency_versions = (
             in_json['id'],
