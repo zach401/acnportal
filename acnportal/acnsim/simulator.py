@@ -112,8 +112,9 @@ class Simulator:
         Returns:
             bool: True if the simulation is complete.
         """
-        # TODO: move feasibility checks to interface. step should ONLY do one step of run function
-        # Check if the newest schedule is feasible; don't continue sim if not
+        # TODO: Move feasibility checks to interface. step should ONLY do one step of run function, not checking feasibility also. Then, we have no need for a return and step is identical
+        # TODO: to run except for one schedule update. Check if the newest
+        #    schedule is feasible; don't continue sim if not
         if check_feasibility and not self._feasibility_helper(new_schedule)[0]:
             return False
         # Update network with new schedules

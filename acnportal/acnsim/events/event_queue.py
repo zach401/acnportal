@@ -95,4 +95,15 @@ class EventQueue:
         Returns:
             int: Last timestamp of an EV departure in the event queue
         """
-        return max(self._queue, key=lambda x: x[1].ev.departure if hasattr(x[1], 'ev') else 0)[1].ev.departure
+        if self.empty():
+            return None
+
+        max_plugin_prediction = max(
+            self._queue,
+            key=lambda x: x[1].ev.departure if hasattr(x[1], 'ev') else 0
+        )
+
+        max_predicted_departure = max_plugin_prediction[1].ev.departure
+        last_real_timestamp = self.get_last_timestamp()
+
+        return max(max_predicted_departure, last_real_timestamp)

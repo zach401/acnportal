@@ -248,14 +248,14 @@ class Interface:
 
 
 class GymInterface(Interface):
-    """ Interface between OpenAI Environments and the ACN Simulation Environment.
-
+    """ Interface between OpenAI Environments and the ACN Simulation
+     Environment.
     """
 
     @classmethod
     def from_interface(cls, interface):
-        self = GymInterface(interface._simulator)
-        return self
+        gym_interface = GymInterface(interface._simulator)
+        return gym_interface
 
     @property
     def last_predicted_timestamp(self):
