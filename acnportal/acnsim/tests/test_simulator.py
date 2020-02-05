@@ -100,4 +100,3 @@ class TestSimulatorWarnings(TestCase):
 
 
     # TODO: Test Simulator step function
-    # TODO: Test simulator _feasibility_helper

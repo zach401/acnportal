@@ -176,39 +176,6 @@ class Simulator:
             self._print('Recompute Event...')
             self._resolve = True
 
-    def _feasibility_helper(self, new_schedule):
-        """ Helper to check if a given schedule is feasible for the network based network constraint feasibility.
-
-        Args:
-            new_schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
-
-        Returns:
-            bool, np.Array, int: True if the schedule is feasible for the network.
-                A numpy array representing the schedule
-                The length of each schedule   
-        """
-        if len(new_schedule) == 0:
-            return True, None, 0
-
-        for station_id in new_schedule:
-            if station_id not in self.network.station_ids:
-                raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
-
-        # TODO: remove private var access here, generalize to all schedule entries, not just first
-        for station_id in new_schedule:
-            if self.network._EVSEs[station_id].max_rate < new_schedule[station_id][0] or \
-                self.network._EVSEs[station_id].min_rate > new_schedule[station_id][0]:
-                # TODO: correct 2nd and 3rd rets
-                return False, None, 0
-
-        schedule_lengths = set(len(x) for x in new_schedule.values())
-        if len(schedule_lengths) > 1:
-            raise InvalidScheduleError('All schedules should have the same length.')
-        schedule_length = schedule_lengths.pop()
-
-        schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
-        return self.network.is_feasible(schedule_matrix), schedule_matrix, schedule_length
-
     def _update_schedules(self, new_schedule):
         """ Extend the current self.pilot_signals with the new pilot signal schedule.
 
@@ -223,8 +190,18 @@ class Simulator:
         """
         if len(new_schedule) == 0:
             return
-        good_schedule, schedule_matrix, schedule_length = self._feasibility_helper(new_schedule)
-        if not good_schedule:
+
+        for station_id in new_schedule:
+            if station_id not in self.network.station_ids:
+                raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
+
+        schedule_lengths = set(len(x) for x in new_schedule.values())
+        if len(schedule_lengths) > 1:
+            raise InvalidScheduleError('All schedules should have the same length.')
+        schedule_length = schedule_lengths.pop()
+
+        schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
+        if not self.network.is_feasible(schedule_matrix):
             aggregate_currents = self.network.constraint_current(
                 schedule_matrix)
             diff_vec = np.abs(aggregate_currents) - np.tile(
