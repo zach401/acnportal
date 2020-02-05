@@ -7,10 +7,10 @@ class GymAlgorithm(BaseAlgorithm):
     Algorithm class for Simulations using a reinforcement learning
     agent that operates in an Open AI Gym environment.
 
-    # TODO: The below docs may be out of date.
     This algorithm's schedule function is never called; instead, a Gym
     environment is stepped when a new schedule is needed.
     """
+    # TODO: Should max_recompute be set to 1?
     def __init__(self):
         super().__init__()
         self.max_recompute = 1

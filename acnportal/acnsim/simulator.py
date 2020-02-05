@@ -97,57 +97,47 @@ class Simulator:
             self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
 
-    def step(self, new_schedule, check_feasibility=True):
-        # TODO: check_feasibility might be superfluous as a function, maybe move into envs
-        """ Step the simulation until the next schedule recompute is required.
+    def step(self, new_schedule):
+        """ Step the simulation until the next schedule recompute is
+        required.
 
-        The step function executes a single iteration of the run() function. However,
-        the step function updates the simulator with an input schedule rather than
-        query the scheduler for a new schedule when one is required. Also, step
-        will return a flag if the simulation is done.
+        The step function executes a single iteration of the run()
+        function. However, the step function updates the simulator with
+        an input schedule rather than query the scheduler for a new
+        schedule when one is required. Also, step will return a flag if
+        the simulation is done.
 
         Args:
-            new_schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
+            new_schedule (Dict[str, List[number]]): Dictionary mapping
+                station ids to a schedule of pilot signals.
 
         Returns:
             bool: True if the simulation is complete.
         """
-        # TODO: Move feasibility checks to interface. step should ONLY do one step of run function, not checking feasibility also. Then, we have no need for a return and step is identical
-        # TODO: to run except for one schedule update. Check if the newest
-        #    schedule is feasible; don't continue sim if not
-        if check_feasibility and not self._feasibility_helper(new_schedule)[0]:
-            return False
-        # Update network with new schedules
-        self._update_schedules(new_schedule)
-        # Post-schedule update processing
-        if self.schedule_history is not None:
-            self.schedule_history[self._iteration] = new_schedule
-        self._last_schedule_update = self._iteration
-        if not self.event_queue.empty():
-            # TODO: This might call the event processing subloop twice per iteration
+        while (not self.event_queue.empty()
+               and not self._resolve
+               and (self.max_recompute is None
+                    or (self._iteration - self._last_schedule_update
+                        < self.max_recompute))):
+            self._update_schedules(new_schedule)
+            if self.schedule_history is not None:
+                self.schedule_history[self._iteration] = new_schedule
+            self._last_schedule_update = self._iteration
+            self._resolve = False
+            if self.event_queue.get_last_timestamp() is not None:
+                width_increase = max(self.event_queue.get_last_timestamp() + 1, self._iteration + 1)
+            else:
+                width_increase = self._iteration + 1
+            self.pilot_signals = _increase_width(self.pilot_signals, width_increase)
+            self.charging_rates = _increase_width(self.charging_rates, width_increase)
+            self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
+            self._store_actual_charging_rates()
+            self._iteration = self._iteration + 1
             current_events = self.event_queue.get_current_events(self._iteration)
             for e in current_events:
                 self.event_history.append(e)
                 self._process_event(e)
-            self._resolve = False
-            # Initialize schedule-free loop
-            new_schedule_needed = False
-            while not new_schedule_needed and not self.event_queue.empty():
-                self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
-                self._store_actual_charging_rates()
-                self._iteration = self._iteration + 1
-                current_events = self.event_queue.get_current_events(self._iteration)
-                for e in current_events:
-                    self.event_history.append(e)
-                    self._process_event(e)
-                if self._resolve or \
-                    self.max_recompute is not None and \
-                    self._iteration - self._last_schedule_update >= self.max_recompute:
-                    new_schedule_needed = True
-            return False
-        else:
-            return True
-
+        return self.event_queue.empty()
 
     def get_active_evs(self):
         """ Return all EVs which are plugged in and not fully charged at the current time.

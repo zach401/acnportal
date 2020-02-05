@@ -86,6 +86,34 @@ class ChargingNetwork:
         """
         return {self.station_ids[i] : self._phase_angles[i] for i in range(len(self._phase_angles))}
 
+    @property
+    def allowable_pilot_signals(self):
+        """ Return dictionary of allowable pilot signals for all EVSEs
+        in the network. Allowable pilot signal entries are in the form
+        of a dict:
+        ```
+            {
+                'is_continuous': [bool],
+                'allowable_pilot_signals': [List[float]]
+            }
+        ```
+        If `is_continuous` is `True`, `allowable_pilot_signals` is a
+        doublet specifying an inclusive range of possible pilot signals,
+        with 0 implied to be included. If `is_continuous` is `False`,
+        `allowable_pilot_signals` gives a discrete list of possible
+        pilot signals, with 0 implied to be included.
+
+        Returns:
+            Dict[str, Dict]: Dictionary mapping EVSE ids their
+                continuity flag and allowable pilot signals.
+        """
+        return {
+            evse.station_id: {
+                'is_continuous': evse.is_continuous,
+                'allowable_pilot_signals': evse.allowable_pilot_signals
+            } for evse in self._EVSEs.values()
+        }
+
     def register_evse(self, evse, voltage, phase_angle):
         """ Register an EVSE with the network so it will be accessible to the rest of the simulation.
 

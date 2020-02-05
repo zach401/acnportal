@@ -4,6 +4,7 @@ This module contains methods for directly interacting with the _simulator.
 import numpy as np
 from datetime import timedelta
 from collections import namedtuple
+import warnings
 
 
 class Interface:
@@ -41,7 +42,8 @@ class Interface:
     @property
     def last_actual_charging_rate(self):
         # TODO: change to "rates"?
-        # TODO: doesn't include charging rates of those evs that unplugged in the last period
+        # TODO: doesn't include charging rates of those evs that unplugged
+        #  in the last period if called from a reward function.
         """ Return the actual charging rates in the last period for all active EVs.
 
         Returns:
@@ -271,7 +273,7 @@ class GymInterface(Interface):
         """ Return a list of space ids of stations the in the network.
 
         Returns:
-            List[str]: List of station ids in the newtork.
+            List[str]: List of station ids in the network.
         """
         return self._simulator.network.station_ids
 
@@ -284,14 +286,14 @@ class GymInterface(Interface):
         """
         return len(self._simulator.network.station_ids)
 
-    @property
-    def evse_list(self):
-        """ Return the list of EVSEs in the network.
-
-        Returns:
-            List[EVSE]: List of EVSEs in the network.
-        """
-        return list(self._simulator.network._EVSEs.values())
+    # @property
+    # def evse_list(self):
+    #     """ Return the list of EVSEs in the network.
+    #
+    #     Returns:
+    #         List[EVSE]: List of EVSEs in the network.
+    #     """
+    #     return list(self._simulator.network._EVSEs.values())
 
     @property
     def network_constraints(self):
@@ -301,43 +303,122 @@ class GymInterface(Interface):
             np.Array: constraint matrix
             np.Array: magnitudes vector
         """
-        return self._simulator.network.constraint_matrix, self._simulator.network.magnitudes
+        return (self._simulator.network.constraint_matrix,
+                self._simulator.network.magnitudes)
 
     @property
     def is_done(self):
-        """ Returns if the simulation is complete (i.e. event queue is empty).
+        """ Returns if the simulation is complete (i.e. event queue is
+        empty).
 
         Returns:
             bool: True if simulation is complete.
         """
         return self._simulator.event_queue.empty()
 
-    def step(self, new_schedule):
-        """ Step the simulation using the input new_schedule until the simulator
-        requests a new charging schedule.
-        # TODO: somehow remove this function as it is unrealistic
+    def is_feasible(self, load_currents, linear=False,
+                    violation_tolerance=None, relative_tolerance=None):
+        """ Overrides Interface.is_feasible with extra feasibility
+        checks. These include:
+
+        - Checking for stations in a schedule but not in the network.
+        - Checking that the schedule doesn't violate any constraints on
+        EVSE charging rates.
+        """
+        # Check if conditions of standard Interface.is_feasible are violated.
+        constraints_satisfied = super().is_feasible(
+            load_currents,
+            linear=linear,
+            violation_tolerance=violation_tolerance,
+            relative_tolerance=relative_tolerance
+        )
+
+        # Check if EVSE constraints are violated.
+        # TODO: Should this check apply to all schedules, just the ones in
+        #  the current iteration, or some intermediate?
+        allowable_pilots_dict = self._simulator.network.allowable_pilot_signals
+        evse_satisfied = True
+        for station_id in load_currents:
+            # Check that each EVSE in the schedule is actually in the network.
+            if station_id not in allowable_pilots_dict:
+                raise KeyError(
+                    f'Station {station_id} in schedule but not found in '
+                    f'network.'
+                )
+            # Check that none of the EVSE pilot signal limits are violated.
+            evse_allowable_pilots = allowable_pilots_dict[station_id]
+            if evse_allowable_pilots['is_continuous']:
+                min_rate = evse_allowable_pilots['allowable_pilot_signals'][0]
+                max_rate = evse_allowable_pilots['allowable_pilot_signals'][1]
+                evse_satisfied = not np.all(np.array([
+                    (min_rate <= pilot <= max_rate) or pilot == 0
+                    for pilot in load_currents[station_id]
+                ]))
+            else:
+                evse_satisfied = not np.all(np.isin(
+                    np.array(load_currents[station_id]),
+                    np.array(evse_allowable_pilots['allowable_pilot_signals'])
+                ))
+
+        return constraints_satisfied and evse_satisfied
+
+    def step(self, new_schedule, force_feasibility=True):
+        """ Step the simulation using the input new_schedule until the
+        simulator requires a new charging schedule. If the provided
+        schedule is infeasible, steps the simulation only if
+        `force_feasibility` is `False`, otherwise doesn't step the
+        simulation.
+
         Args:
-            new_schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
+            new_schedule (Dict[str, List[number]]): Dictionary mapping
+            station ids to a schedule of pilot signals.
+            force_feasibility (bool): If True, do not allow an
 
         Returns:
             bool: True if the simulation is completed
+            bool: True if the schedule was feasible
+
+        Warns:
+            UserWarning: If the length of the new schedule is less than
+                the Simulator's `max_recompute` parameter. This warning
+                is raised because stepping the Simulator with a schedule
+                of length less than `max_recompute` could cause the
+                pilot signals to be updated with 0's after the schedule
+                runs out of entries.
         """
-        return self._simulator.step(new_schedule, check_feasibility=False)
+        # Check that length of new schedules is not less than max_recompute
+        if (len(new_schedule) == 0
+                or len(new_schedule.values()[0])
+                < self._simulator.max_recompute):
+            warnings.warn(
+                f"Length of schedules {len(new_schedule.values()[0])} is less "
+                f"than this simulation's max_recompute parameter "
+                f"{self._simulator.max_recompute}. Pilots may be updated with"
+                f"zeros."
+            )
+
+        schedule_is_feasible = self.is_feasible(new_schedule)
+        if force_feasibility and not schedule_is_feasible:
+            return self._simulator.event_queue.empty(), schedule_is_feasible
+        return self._simulator.step(new_schedule), schedule_is_feasible
 
     def last_energy_delivered(self):
-        """ Return the actual energy delivered in the last period, in amp-periods
+        """ Return the actual energy delivered in the last period, in
+        amp-periods.
 
         Returns:
-            number: Total energy delivered in the last period, in amp-periods
+            number: Total energy delivered in the last period, in
+                amp-periods.
         """
         return sum([ev.current_charging_rate for ev in self.active_evs])
 
     def constraint_currents(self, input_schedule):
         # TODO: standardize schedule input format for interface functions
-        return abs(self._simulator.network.constraint_current(input_schedule, time_indices=[0]))
+        return abs(self._simulator.network.constraint_current(
+            input_schedule, time_indices=[0]))
     # TODO: Add a function that gives the EVs unplugged in the last time step
+
 
 class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """
     pass
-
