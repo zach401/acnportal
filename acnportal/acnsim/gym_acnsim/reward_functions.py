@@ -66,18 +66,11 @@ def soft_charging_reward(env):
     """
     Rewards for charge delivered in the last timestep.
     """
-    # TODO: currently only takes last actual charging rates, should take all
-    #  charging rates caused by this schedule
-    # TODO: function for this that doesn't require private variable access
     # TODO: The test for this function should include a case where EVs just
     #  plugged in and a case where an EV just left but was charging in the
     #  last period.
-
-    charging_rates = env.interface.last_actual_charging_rate
-    charging_reward = np.sum(
-        env.interface._simulator.charging_rates[:, env.interface.current_time-1]
-    )
-    return charging_reward
+    return np.sum(env.interface.charging_rates
+                  - env.prev_interface.charging_rates)
 
 
 def hard_charging_reward(env):

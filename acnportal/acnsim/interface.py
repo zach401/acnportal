@@ -316,6 +316,17 @@ class GymInterface(Interface):
         """
         return self._simulator.event_queue.empty()
 
+    @property
+    def charging_rates(self):
+        """ Returns the charging_rates of the simulator at all times.
+
+        Returns:
+            np.ndarray: numpy array of all charging rates. Each row
+                represents the charging rates of a station; each column
+                represents the charging rates at an iteration.
+        """
+        return self._simulator.charging_rates
+
     def is_feasible(self, load_currents, linear=False,
                     violation_tolerance=None, relative_tolerance=None):
         """ Overrides Interface.is_feasible with extra feasibility

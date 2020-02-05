@@ -40,17 +40,23 @@ class BaseSimEnv(gym.Env):
     is not required for internal functionality.
 
     Attributes:
-        interface (GymInterface): an interface to a simulation to be 
+        interface (GymInterface): An interface to a simulation to be
             stepped by this environment.
-        init_snapshot (GymInterface): a deep copy of the initial 
+        init_snapshot (GymInterface): A deep copy of the initial
             interface, used for environment resets.
-        prev_interface (GymInterface): a deep copy of the interface 
+        prev_interface (GymInterface): A deep copy of the interface
             at the previous time step; used for calculating action 
             rewards.
-        action (object): the action taken by the agent in this 
-            agent-environment loop iteration
+        action (object): The action taken by the agent in this
+            agent-environment loop iteration.
+        schedule (Dict[str, List[number]]): Dictionary mapping
+            station ids to a schedule of pilot signals.
+        observation (object): The observation given to the agent in
+            this agent-environment loop iteration.
+        done (object): An object representing whether or not the
+            execution of the environment is complete.
+        info (object): An object that gives info about the environment.
     """
-
     def __init__(self, interface):
         self.interface = interface
         self.init_snapshot = copy.deepcopy(interface)
@@ -58,6 +64,10 @@ class BaseSimEnv(gym.Env):
         #  each step makes a copy of the entire simulation.
         self.prev_interface = copy.deepcopy(interface)
         self.action = None
+        self.schedule = None
+        self.observation = None
+        self.done = None
+        self.info = None
 
     def step(self, action):
         """ Step the simulation one timestep with an agent's action.
@@ -81,10 +91,10 @@ class BaseSimEnv(gym.Env):
         # TODO: We can remove action as an input to action_to_schedule and
         #  use instance var instead.
         self.action = action
-        schedule = self._action_to_schedule(action)
+        self.schedule = self._action_to_schedule()
         
         self.prev_interface = copy.deepcopy(self.interface)
-        self.interface.step(schedule)
+        self.interface.step(self.schedule)
         
         observation = self._observation_from_state()
         reward = self._reward_from_state()
@@ -106,12 +116,9 @@ class BaseSimEnv(gym.Env):
         self.prev_interface = copy.deepcopy(self.init_snapshot)
         return self._observation_from_state()
 
-    def _action_to_schedule(self, action):
+    def _action_to_schedule(self):
         """ Convert an agent action to a schedule to be input to the
         simulator.
-
-        Args:
-            action (object): an action provided by the agent.
 
         Returns:
             schedule (Dict[str, List[number]]): Dictionary mappding 
@@ -280,20 +287,17 @@ class DefaultSimEnv(BaseSimEnv):
         self.static_obs = {'constraint_matrix': constraint_matrix,
                            'magnitudes': magnitudes}
 
-    def _action_to_schedule(self, action):
+    def _action_to_schedule(self):
         """ Convert an agent action to a schedule to be input to the 
         simulator.
-
-        Args:
-            action (object): an action provided by the agent.
 
         Returns:
             schedule (Dict[str, List[number]]): Dictionary mappding 
                 station ids to a schedule of pilot signals.
         """
-        action = action + self.rate_offset_array
-        new_schedule = {self.interface.station_ids[i]: [action[i]]
-                        for i in range(len(action))}
+        offset_action = self.action + self.rate_offset_array
+        new_schedule = {self.interface.station_ids[i]: [offset_action[i]]
+                        for i in range(len(offset_action))}
         return new_schedule
 
     def _observation_from_state(self):
