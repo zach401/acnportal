@@ -1,21 +1,23 @@
 import gym
-import math
 import numpy as np
 from gym import spaces
 import copy
+from .. import reward_functions as rf
 
-from copy import deepcopy
-import random
+# from copy import deepcopy
+# import random
+#
+# from acnportal import acnsim
+# from acnportal import algorithms
+# from acnportal.acnsim import events
+# from acnportal.acnsim import models
+# from acnportal.acnsim import gym_acnsim
+#
+# from gym.wrappers import FlattenDictWrapper
+# from gym.wrappers import ClipAction
 
-from acnportal import acnsim
-from acnportal import algorithms
-from acnportal.acnsim import events
-from acnportal.acnsim import models
-from acnportal.acnsim import gym_acnsim
 
-from gym.wrappers import FlattenDictWrapper
-from gym.wrappers import ClipAction
-
+# TODO: BaseSimEnv should implement all abstract methods of gym.Env.
 class BaseSimEnv(gym.Env):
     """ Abstract base class meant to be inherited from to implement
     new ACN-Sim Environments.
@@ -52,8 +54,8 @@ class BaseSimEnv(gym.Env):
     def __init__(self, interface):
         self.interface = interface
         self.init_snapshot = copy.deepcopy(interface)
-        # TODO: having prev_interface functionality slows down 
-        # stepping as each step makes a copy of the entire simulation
+        # TODO: having prev_interface functionality slows down stepping as
+        #  each step makes a copy of the entire simulation.
         self.prev_interface = copy.deepcopy(interface)
         self.action = None
 
@@ -76,8 +78,8 @@ class BaseSimEnv(gym.Env):
             info (dict): contains auxiliary diagnostic information 
                 (helpful for debugging, and sometimes learning)
         """
-        # TODO: We can remove action as an input to 
-        # action_to_schedule and use instance var isntead
+        # TODO: We can remove action as an input to action_to_schedule and
+        #  use instance var instead.
         self.action = action
         schedule = self._action_to_schedule(action)
         
@@ -125,8 +127,7 @@ class BaseSimEnv(gym.Env):
             observation (object): an environment observation 
                 generated from the simulation state
         """
-        # TODO: should always copy over previous and current 
-        # interfaces
+        # TODO: should always copy over previous and current interfaces
         raise NotImplementedError
 
     def _reward_from_state(self):
@@ -154,7 +155,10 @@ class BaseSimEnv(gym.Env):
         Returns:
             info (dict): dict of environment information
         """
+        # TODO: Implement an _info_from_state function here or elsewhere. If
+        #  elsewhere, raise a NotImplementedError here.
         return {}
+
 
 class DefaultSimEnv(BaseSimEnv):
     """ A simulator environment with the following characteristics:
@@ -218,14 +222,17 @@ class DefaultSimEnv(BaseSimEnv):
         self.rate_offset_array = (self.max_rates + self.min_rates) / 2
         
         if reward_funcs is None:
-            self.reward_funcs = [evse_violation, 
-                unplugged_ev_violation, constraint_violation, 
-                hard_charging_reward]
+            self.reward_funcs = [
+                rf.evse_violation,
+                rf.unplugged_ev_violation,
+                rf.constraint_violation,
+                rf.hard_charging_reward
+            ]
         self.reward_funcs = reward_funcs
 
         # Action space is the set of possible schedules (0 - 32 A for 
         # each EVSE)
-        # Recentered about 0
+        # Re-centered about 0
         self.action_space = spaces.Box(
             low=self.min_rates-self.rate_offset_array, 
             high=self.max_rates-self.rate_offset_array, 
@@ -237,21 +244,24 @@ class DefaultSimEnv(BaseSimEnv):
             low=0, high=np.inf, shape=(self.num_evses,), 
             dtype='float32')
         # departure time
-        departure_space = spaces.Box(low=0, high=np.inf, 
-            shape=(self.num_evses,), dtype='float32')
+        departure_space = spaces.Box(
+            low=0, high=np.inf, shape=(self.num_evses,), dtype='float32')
         # remaining amp-period demand
-        remaining_demand_space = spaces.Box(low=0, high=np.inf, 
-            shape=(self.num_evses,), dtype='float32')
+        remaining_demand_space = spaces.Box(
+            low=0, high=np.inf, shape=(self.num_evses,), dtype='float32')
         # constraint matrix (coefficients in aggregate currents)
-        constraint_matrix_space = spaces.Box(low=-1*np.inf, 
-            high=np.inf, shape=constraint_matrix.shape, 
-            dtype='float32')
+        constraint_matrix_space = spaces.Box(
+            low=-1*np.inf, high=np.inf,
+            shape=constraint_matrix.shape, dtype='float32'
+        )
         # magnitude vector (upper limits on aggregate currents)
-        magnitudes_space = spaces.Box(low=-1*np.inf, high=np.inf, 
-            shape=magnitudes.shape, dtype='float32')
+        magnitudes_space = spaces.Box(
+            low=-1*np.inf, high=np.inf,
+            shape=magnitudes.shape, dtype='float32'
+        )
         # current sim timestep
-        timestep_space = spaces.Box(low=0, high=np.inf, shape=(1,), 
-            dtype='float32')
+        timestep_space = spaces.Box(
+            low=0, high=np.inf, shape=(1,), dtype='float32')
 
         # Total observation space is a Dict space of the subspaces
         # TODO: plurals for keys
@@ -267,8 +277,8 @@ class DefaultSimEnv(BaseSimEnv):
 
         # Portion of the observation that is independent of agent 
         # action
-        self.static_obs = {'constraint_matrix': constraint_matrix, 
-            'magnitudes': magnitudes}
+        self.static_obs = {'constraint_matrix': constraint_matrix,
+                           'magnitudes': magnitudes}
 
     def _action_to_schedule(self, action):
         """ Convert an agent action to a schedule to be input to the 
@@ -282,8 +292,8 @@ class DefaultSimEnv(BaseSimEnv):
                 station ids to a schedule of pilot signals.
         """
         action = action + self.rate_offset_array
-        new_schedule = {self.interface.station_ids[i]: [action[i]] \
-            for i in range(len(action))}
+        new_schedule = {self.interface.station_ids[i]: [action[i]]
+                        for i in range(len(action))}
         return new_schedule
 
     def _observation_from_state(self):
@@ -300,25 +310,26 @@ class DefaultSimEnv(BaseSimEnv):
 
         # Time-like observations are 1 indexed as 0 means no EV is 
         # plugged in.
-        curr_obs['arrivals'] = np.array(
-            [evse.ev.arrival + 1 \
-            if evse.ev is not None \
-            else 0 \
-            for evse in self.interface.evse_list]
-        )
+        curr_obs['arrivals'] = np.array([
+            evse.ev.arrival + 1
+            if evse.ev is not None
+            else 0
+            for evse in self.interface.evse_list
+        ])
 
-        curr_obs['departures'] = np.array(
-            [evse.ev.departure + 1 \
-            if evse.ev is not None \
-            else 0 \
-            for evse in self.interface.evse_list]
-        )
+        curr_obs['departures'] = np.array([
+            evse.ev.departure + 1
+            if evse.ev is not None
+            else 0
+            for evse in self.interface.evse_list
+        ])
 
         curr_obs['demand'] = np.array([
-            self.interface.remaining_amp_periods(evse.ev) \
-            if evse.ev is not None \
-            else 0 \
-            for evse in self.interface.evse_list])
+            self.interface.remaining_amp_periods(evse.ev)
+            if evse.ev is not None
+            else 0
+            for evse in self.interface.evse_list
+        ])
 
         curr_obs['timestep'] = self.interface.current_time + 1
 
@@ -331,6 +342,7 @@ class DefaultSimEnv(BaseSimEnv):
             reward (float): a reward generated from the simulation 
                 state
         """
+        # TODO: Why isn't action used at all?
         action = self.action + self.rate_offset_array
         
         total_reward = 0
@@ -348,6 +360,7 @@ class DefaultSimEnv(BaseSimEnv):
         """
         return self.interface.is_done
 
+
 class RebuildingEnv(DefaultSimEnv):
     """ A simulator environment that subclasses DefaultSimEnv, with 
     the extra property that the entire simulation is rebuilt within 
@@ -357,8 +370,8 @@ class RebuildingEnv(DefaultSimEnv):
     stochastic elements.
     """
     # TODO: reward_func or sim_gen_function, choose a convention
-    def __init__(self, interface, reward_func=None, 
-        sim_gen_func=None, event_lst=None):
+    def __init__(self, interface, reward_funcs=None,
+                 sim_gen_func=None, event_lst=None):
         """ Initialize this environment. Every Sim environment needs 
         an interface to a simulator which runs an iteration every 
         time the environment is stepped.
@@ -366,11 +379,12 @@ class RebuildingEnv(DefaultSimEnv):
         Args:
             interface (acnsim.GymInterface): OpenAI Gym Interface 
                 with ACN simulation for this environment to use.
-            reward_func (-> number): A function which takes no 
-                arguments and returns a number.
-            sim_gen_function (-> acnsim.GymInterface): function which 
+            reward_funcs (List[-> number]): A list of functions which
+                take no arguments and return a number.
+            sim_gen_func (-> acnsim.GymInterface): function which
                 returns a GymInterface to a generated simulator.
         """
+        # TODO: Figure out a better way to assign a default sim_gen_func.
         if sim_gen_func is None:
             def sim_gen_func(self, *args, **kwargs): 
                 return self.init_snapshot
@@ -378,7 +392,7 @@ class RebuildingEnv(DefaultSimEnv):
             self.sim_gen_func = sim_gen_func
             self.event_lst = event_lst
         
-        super().__init__(interface, reward_func=reward_func)
+        super().__init__(interface, reward_funcs=reward_funcs)
 
         if self.event_lst is None:
             temp_interface = self.sim_gen_func()

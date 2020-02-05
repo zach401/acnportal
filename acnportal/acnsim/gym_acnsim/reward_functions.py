@@ -72,6 +72,7 @@ def soft_charging_reward(env):
     # TODO: The test for this function should include a case where EVs just
     #  plugged in and a case where an EV just left but was charging in the
     #  last period.
+
     charging_rates = env.interface.last_actual_charging_rate
     charging_reward = np.sum(
         env.interface._simulator.charging_rates[:, env.interface.current_time-1]
