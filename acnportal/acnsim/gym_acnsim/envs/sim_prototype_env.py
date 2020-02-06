@@ -64,7 +64,7 @@ class BaseSimEnv(gym.Env):
         #  each step makes a copy of the entire simulation.
         self.prev_interface = copy.deepcopy(interface)
         self.action = None
-        self.schedule = None
+        self.schedule = {}
         self.observation = None
         self.done = None
         self.info = None
@@ -215,7 +215,7 @@ class DefaultSimEnv(BaseSimEnv):
         super().__init__(interface)
 
         # Get parameters that constrain the action/observation spaces
-        self.num_evses = self.interface.num_evses
+        self.num_evses = len(self.interface.station_ids)
         self.min_rates = np.array(
             [evse.min_rate for evse in self.interface.evse_list])
         self.max_rates = np.array(

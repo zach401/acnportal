@@ -10,3 +10,7 @@ register(
     id='rebuilding-acnsim-v0',
     entry_point='acnportal.acnsim.gym_acnsim.envs:RebuildingEnv',
 )
+
+# TODO: CustomSimEnv, which allows customization of spaces and rewards.
+#  after such an environment is created, it needs to be added to the
+#  envs/__init__ file too.

@@ -6,34 +6,67 @@ All reward functions have signature
 
 That is, reward functions take in an environment instance
 and return a number (reward) based on the characteristics of that
-environment.
+environment; namely, the previous state, previous action, and current
+state.
 """
+# TODO: Make sure all violations are negative.
 
 
 def evse_violation(env):
     """
-    If a single EVSE constraint is violated, a negative reward equal to
-    the magnitude of the violation is added to the total reward.
+    If a single EVSE constraint was violated by the last schedule, a
+    negative reward equal to the magnitude of the violation is added to
+    the total reward.
+
+    Raises:
+        KeyError: If a station_id in the last schedule is not found in
+            the ChargingNetwork.
     """
     violation = 0
-    for i in range(len(env.interface.evse_list)):
-        curr_evse = env.interface.evse_list[i]
-        if env.action[i] < curr_evse.min_rate:
-            violation -= curr_evse.min_rate - env.action[i]
-        if env.action[i] > curr_evse.max_rate:
-            violation -= env.action[i] - curr_evse.max_rate
+    for station_id in env.schedule:
+        # Check that each EVSE in the schedule is actually in the network.
+        if station_id not in env.interface.station_ids:
+            raise KeyError(
+                f'Station {station_id} in schedule but not found in '
+                f'network.'
+            )
+        # Check that none of the EVSE pilot signal limits are violated.
+        evse_is_continuous, evse_allowable_pilots = \
+            env.interface.allowable_pilot_signals(station_id)
+        if evse_is_continuous:
+            min_rate = evse_allowable_pilots[0]
+            max_rate = evse_allowable_pilots[1]
+            # Add penalty for any pilot signal not in [min_rate, max_rate],
+            # except for 0 pilots, which aren't penalized.
+            violation += sum([
+                max(min_rate - pilot, 0) + max(pilot - max_rate, 0)
+                if pilot != 0 else 0
+                for pilot in env.schedule[station_id]
+            ])
+        else:
+            # Add penalty for any pilot signal not in the list of allowed
+            # pilots, except for 0 pilots, which aren't penalized.
+            violation += sum([
+                np.abs(np.array(evse_allowable_pilots) - pilot).min()
+                if pilot != 0 else 0
+                for pilot in env.schedule[station_id]
+            ])
     return violation
 
 
 def unplugged_ev_violation(env):
     """
-    If charge is attempted to be delivered to an evse with no ev, this
-    rate is subtracted from the reward.
+    If charge is attempted to be delivered to an EVSE with no EV, or to
+    an EVSE with an EV that is done charging, the charging rate is
+    subtracted from the reward. This penalty is only applied to the
+    schedules for the current iteration.
     """
     violation = 0
-    for i in range(len(env.interface.evse_list)):
-        if env.interface.evse_list[i].ev is None:
-            violation -= abs(env.action[i])
+    active_evse_ids = env.interface.active_station_ids
+    for station_id in env.schedule:
+        if station_id not in active_evse_ids:
+            # TODO: Check for an empty list as schedule.
+            violation += abs(env.schedule[station_id][0])
     return violation
 
 

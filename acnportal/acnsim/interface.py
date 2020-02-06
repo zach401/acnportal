@@ -269,13 +269,15 @@ class GymInterface(Interface):
         return self._simulator.network.station_ids
 
     @property
-    def num_evses(self):
-        """ Return the number of EVSEs in the network.
+    def active_station_ids(self):
+        """ Returns a list of active EVSE station ids for use by the
+        algorithm.
 
         Returns:
-            int: Number of EVSEs in the network.
+            List[str]: List of EVSE station ids with an EV plugged in
+                that is not finished charging.
         """
-        return len(self._simulator.network.station_ids)
+        return self._simulator.network.active_station_ids
 
     @property
     def network_constraints(self):
@@ -309,6 +311,45 @@ class GymInterface(Interface):
         """
         return self._simulator.charging_rates
 
+    def is_feasible_evse(self, load_currents):
+        """
+        Return if each EVSE in load_currents can accept the pilots
+        assigned to it.
+
+        Args:
+            load_currents (Dict[str, List[number]]): Dictionary mapping
+                load_ids to schedules of charging rates.
+
+        Returns: bool: True if all pilots are valid for the EVSEs to
+            which they are sent.
+        """
+        # TODO: Should this check apply to all schedules, just the ones in
+        #  the current iteration, or some intermediate?
+        evse_satisfied = True
+        for station_id in load_currents:
+            # Check that each EVSE in the schedule is actually in the network.
+            if station_id not in self.station_ids:
+                raise KeyError(
+                    f'Station {station_id} in schedule but not found in '
+                    f'network.'
+                )
+            # Check that none of the EVSE pilot signal limits are violated.
+            evse_is_continuous, evse_allowable_pilots = \
+                self.allowable_pilot_signals(station_id)
+            if evse_is_continuous:
+                min_rate = evse_allowable_pilots[0]
+                max_rate = evse_allowable_pilots[1]
+                evse_satisfied = not np.all(np.array([
+                    (min_rate <= pilot <= max_rate) or pilot == 0
+                    for pilot in load_currents[station_id]
+                ]))
+            else:
+                evse_satisfied = not np.all(np.isin(
+                    np.array(load_currents[station_id]),
+                    np.array(evse_allowable_pilots)
+                ))
+        return evse_satisfied
+
     def is_feasible(self, load_currents, linear=False,
                     violation_tolerance=None, relative_tolerance=None):
         """ Overrides Interface.is_feasible with extra feasibility
@@ -326,32 +367,7 @@ class GymInterface(Interface):
             relative_tolerance=relative_tolerance
         )
 
-        # Check if EVSE constraints are violated.
-        # TODO: Should this check apply to all schedules, just the ones in
-        #  the current iteration, or some intermediate?
-        allowable_pilots_dict = self._simulator.network.allowable_pilot_signals
-        evse_satisfied = True
-        for station_id in load_currents:
-            # Check that each EVSE in the schedule is actually in the network.
-            if station_id not in allowable_pilots_dict:
-                raise KeyError(
-                    f'Station {station_id} in schedule but not found in '
-                    f'network.'
-                )
-            # Check that none of the EVSE pilot signal limits are violated.
-            evse_allowable_pilots = allowable_pilots_dict[station_id]
-            if evse_allowable_pilots['is_continuous']:
-                min_rate = evse_allowable_pilots['allowable_pilot_signals'][0]
-                max_rate = evse_allowable_pilots['allowable_pilot_signals'][1]
-                evse_satisfied = not np.all(np.array([
-                    (min_rate <= pilot <= max_rate) or pilot == 0
-                    for pilot in load_currents[station_id]
-                ]))
-            else:
-                evse_satisfied = not np.all(np.isin(
-                    np.array(load_currents[station_id]),
-                    np.array(evse_allowable_pilots['allowable_pilot_signals'])
-                ))
+        evse_satisfied = self.is_feasible_evse(load_currents)
 
         return constraints_satisfied and evse_satisfied
 
