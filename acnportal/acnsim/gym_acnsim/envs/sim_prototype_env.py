@@ -59,7 +59,9 @@ class BaseSimEnv(gym.Env):
 
         Accepts an action and returns a tuple (observation, reward,
         done, info).
-        
+
+        Implements gym.Env.step()
+
         Args:
             action (object): an action provided by the agent
 
@@ -91,13 +93,19 @@ class BaseSimEnv(gym.Env):
         observation. Resetting is done by setting the interface to the
         simulation to an interface to the simulation in its initial 
         state.
-        
+
+        Implements gym.Env.reset()
+
         Returns:
             observation (object): the initial observation.
         """
         self.interface = copy.deepcopy(self.init_snapshot)
         self.prev_interface = copy.deepcopy(self.init_snapshot)
         return self._observation_from_state()
+
+    def render(self, mode='human'):
+        """ Renders the environment. Implements gym.Env.render(). """
+        raise NotImplementedError
 
     def _action_to_schedule(self):
         """ Convert an agent action to a schedule to be input to the
@@ -266,6 +274,10 @@ class DefaultSimEnv(BaseSimEnv):
         self.static_obs = {'constraint_matrix': constraint_matrix,
                            'magnitudes': magnitudes}
 
+    def render(self, mode='human'):
+        """ Renders the environment. Implements gym.Env.render(). """
+        raise NotImplementedError
+
     def _action_to_schedule(self):
         """ Convert an agent action to a schedule to be input to the 
         simulator.
@@ -397,3 +409,7 @@ class RebuildingEnv(DefaultSimEnv):
         self.prev_interface = copy.deepcopy(temp_interface)
         self.init_snapshot = copy.deepcopy(temp_interface)
         return self._observation_from_state()
+
+    def render(self, mode='human'):
+        """ Renders the environment. Implements gym.Env.render(). """
+        raise NotImplementedError
