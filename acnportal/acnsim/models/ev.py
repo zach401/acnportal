@@ -124,9 +124,7 @@ class EV:
             float: Actual charging rate of the ev. [A]
         """
         charge_rate = self._battery.charge(pilot, voltage, period)
-        self._energy_delivered += ((charge_rate * voltage)
-                                   / 1000
-                                   * (period / 60))
+        self._energy_delivered += (charge_rate * voltage) / 1000 * (period / 60)
         self._current_charging_rate = charge_rate
         return charge_rate
 
