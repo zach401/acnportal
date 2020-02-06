@@ -9,7 +9,6 @@ and return a number (reward) based on the characteristics of that
 environment; namely, the previous state, previous action, and current
 state.
 """
-# TODO: Make sure all violations are negative.
 
 
 def evse_violation(env):
@@ -26,10 +25,8 @@ def evse_violation(env):
     for station_id in env.schedule:
         # Check that each EVSE in the schedule is actually in the network.
         if station_id not in env.interface.station_ids:
-            raise KeyError(
-                f'Station {station_id} in schedule but not found in '
-                f'network.'
-            )
+            raise KeyError(f'Station {station_id} in schedule but not found '
+                           f'in network.')
         # Check that none of the EVSE pilot signal limits are violated.
         evse_is_continuous, evse_allowable_pilots = \
             env.interface.allowable_pilot_signals(station_id)
@@ -51,7 +48,7 @@ def evse_violation(env):
                 if pilot != 0 else 0
                 for pilot in env.schedule[station_id]
             ])
-    return violation
+    return -violation
 
 
 def unplugged_ev_violation(env):
@@ -62,37 +59,33 @@ def unplugged_ev_violation(env):
     schedules for the current iteration.
     """
     violation = 0
+    if len(env.schedule) > 0 and len(env.schedule.values()[0]) == 0:
+        return violation
     active_evse_ids = env.interface.active_station_ids
     for station_id in env.schedule:
         if station_id not in active_evse_ids:
-            # TODO: Check for an empty list as schedule.
             violation += abs(env.schedule[station_id][0])
-    return violation
+    return -violation
 
 
 def constraint_violation(env):
     """
     If a network constraint is violated, a negative reward equal to the
-    abs of the constraint violation, times the number of EVSEs, is
-    added.
+    norm of the total constraint violation, times the number of EVSEs,
+    is added.
     """
-    _, magnitudes = env.interface.network_constraints
-    # Calculate aggregate currents for this charging schedule
-    out_vector = abs(
-        env.interface.constraint_currents(
-            np.array([[env.action[i]] for i in range(len(env.action))])
-        )
-    )
-    # Calculate violation of each individual constraint violation
-    difference_vector = np.array(
-        [0 if out_vector[i] <= magnitudes[i]
-         else out_vector[i] - magnitudes[i]
-         for i in range(len(out_vector))]
-    )
-    # Calculate total constraint violation, scaled by number of 
-    # EVSEs
-    violation = np.linalg.norm(difference_vector) * env.num_evses * (-1)
-    return violation
+    magnitudes = env.interface.get_constraints().magnitudes
+    # Calculate aggregate currents for this charging schedule.
+    out_vector = abs(env.interface.constraint_currents(
+        np.array([[env.action[i]] for i in range(len(env.action))])))
+    # Calculate violation of each individual constraint.
+    difference_vector = np.array([0 if out_vector[i] <= magnitudes[i]
+                                  else out_vector[i] - magnitudes[i]
+                                  for i in range(len(out_vector))])
+    # Calculate total constraint violation, scaled by number of EVSEs.
+    violation = (np.linalg.norm(difference_vector)
+                 * len(env.interface.station_ids))
+    return -violation
 
 
 def soft_charging_reward(env):
@@ -111,10 +104,9 @@ def hard_charging_reward(env):
     Rewards for charge delivered in the last timestep, but only
     if constraint and evse violations are 0.
     """
-    if evse_violation(env) != 0 or constraint_violation(env) != 0:
-        return 0
-    else:
-        return soft_charging_reward(env)
+    return (soft_charging_reward(env)
+            if evse_violation(env) == 0 and constraint_violation(env) == 0
+            else 0)
 
 
 # TODO: there seems to be a problem with plugging in 2 evs at the same

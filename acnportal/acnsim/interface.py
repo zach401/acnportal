@@ -250,6 +250,8 @@ class Interface:
 
 
 class GymInterface(Interface):
+    # TODO: In PR, ask which of these functions (or if all of them) should
+    #  be moved into Interface.
     """ Interface between OpenAI Environments and the ACN Simulation
      Environment.
     """
@@ -278,17 +280,6 @@ class GymInterface(Interface):
                 that is not finished charging.
         """
         return self._simulator.network.active_station_ids
-
-    @property
-    def network_constraints(self):
-        """ Return the network constraints.
-
-        Returns:
-            np.Array: constraint matrix
-            np.Array: magnitudes vector
-        """
-        return (self._simulator.network.constraint_matrix,
-                self._simulator.network.magnitudes)
 
     @property
     def is_done(self):

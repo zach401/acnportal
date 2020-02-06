@@ -220,8 +220,9 @@ class DefaultSimEnv(BaseSimEnv):
             [evse.min_rate for evse in self.interface.evse_list])
         self.max_rates = np.array(
             [evse.max_rate for evse in self.interface.evse_list])
+        constraint_obj = self.interface.get_constraints()
         constraint_matrix, magnitudes = \
-            self.interface.network_constraints
+            constraint_obj.constraint_matrix, constraint_obj.magnitudes
 
         # Some baselines require zero-centering; subtract this offset 
         # from actions to do this
