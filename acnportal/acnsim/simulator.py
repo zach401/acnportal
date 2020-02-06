@@ -202,11 +202,8 @@ class Simulator:
 
         schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
         if not self.network.is_feasible(schedule_matrix):
-            aggregate_currents = self.network.constraint_current(
-                schedule_matrix)
-            diff_vec = np.abs(aggregate_currents) - np.tile(
-                self.network.magnitudes + self.network.violation_tolerance,
-                (schedule_length, 1)).T
+            aggregate_currents = self.network.constraint_current(schedule_matrix)
+            diff_vec = np.abs(aggregate_currents) - np.tile(self.network.magnitudes + self.network.violation_tolerance, (schedule_length, 1)).T
             max_idx = np.unravel_index(np.argmax(diff_vec), diff_vec.shape)
             max_diff = diff_vec[max_idx]
             max_timeidx = max_idx[1]
