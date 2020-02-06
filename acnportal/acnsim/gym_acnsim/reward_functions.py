@@ -92,9 +92,6 @@ def soft_charging_reward(env):
     """
     Rewards for charge delivered in the last timestep.
     """
-    # TODO: The test for this function should include a case where EVs just
-    #  plugged in and a case where an EV just left but was charging in the
-    #  last period.
     return np.sum(env.interface.charging_rates
                   - env.prev_interface.charging_rates)
 
@@ -108,7 +105,3 @@ def hard_charging_reward(env):
             if evse_violation(env) == 0 and constraint_violation(env) == 0
             else 0)
 
-
-# TODO: there seems to be a problem with plugging in 2 evs at the same
-#  timestep having inaccurate len actives
-# TODO: add options to toggle which rewards are included in the sum

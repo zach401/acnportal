@@ -97,6 +97,3 @@ class TestSimulatorWarnings(TestCase):
                 r'Invalid schedule provided at iteration 0. '
                 r'Max violation is 2.9999\d+? A on _const_1 at time index 2.'):
             simulator._update_schedules(bad_schedule)
-
-
-    # TODO: Test Simulator step function

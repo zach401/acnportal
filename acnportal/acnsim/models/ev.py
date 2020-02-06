@@ -12,6 +12,7 @@ class EV:
         session_id (str): Identifier of the session belonging to this ev.
         battery (Battery-like): Battery object to be used by the EV.
     """
+
     def __init__(self, arrival, departure, requested_energy, station_id, session_id, battery, estimated_departure=None):
         # User Defined Parameters
         self._arrival = arrival
@@ -21,16 +22,13 @@ class EV:
 
         # Estimate of session parameters
         self._requested_energy = requested_energy
-        self._estimated_departure = (estimated_departure if estimated_departure is not None else departure)
+        self._estimated_departure = estimated_departure if estimated_departure is not None else departure
+
 
         # Internal State
         self._battery = battery
         self._energy_delivered = 0
         self._current_charging_rate = 0
-
-    def __eq__(self, other):
-        # TODO: Is this an acceptable definition?
-        return self.session_id == other.session_id
 
     @property
     def arrival(self):

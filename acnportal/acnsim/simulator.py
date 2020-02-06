@@ -52,8 +52,6 @@ class Simulator:
         # Local Variables
         self._iteration = 0
         self._resolve = False
-        # TODO: should this be -1? since there hasn't been a schedule update yet
-        # self._last_schedule_update = -1
         self._last_schedule_update = 0
 
     @property

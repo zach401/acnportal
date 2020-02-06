@@ -10,7 +10,6 @@ class GymAlgorithm(BaseAlgorithm):
     This algorithm's schedule function is never called; instead, a Gym
     environment is stepped when a new schedule is needed.
     """
-    # TODO: Should max_recompute be set to 1?
     def __init__(self):
         super().__init__()
         self.max_recompute = 1
@@ -28,7 +27,3 @@ class GymAlgorithm(BaseAlgorithm):
             "GymAlgorithm does not implement a schedule function. Instead, "
             "call step on the environment containing this simulation."
         )
-
-    # TODO: Should GymAlgorithm implement a schedule function?
-
-    # TODO: Maybe test gym algorithm

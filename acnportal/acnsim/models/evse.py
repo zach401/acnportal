@@ -126,7 +126,6 @@ class EVSE:
         Returns:
             bool: True if the proposed pilot signal is valid. False otherwise.
         """
-        # TODO: Should this include 0 by default?
         return self.min_rate <= pilot <= self.max_rate
 
     def plugin(self, ev):

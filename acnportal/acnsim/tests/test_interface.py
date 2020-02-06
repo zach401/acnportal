@@ -71,6 +71,3 @@ class TestInterface(TestCase):
         self.assertEqual(network_is_feasible_args[0][1], True)
         self.assertEqual(network_is_feasible_args[0][2], 1e-3)
         self.assertEqual(network_is_feasible_args[0][3], 1e-5)
-
-
-# TODO: Tests for GymInterface functions.

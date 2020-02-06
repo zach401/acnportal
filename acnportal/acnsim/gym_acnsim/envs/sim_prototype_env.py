@@ -4,20 +4,7 @@ from gym import spaces
 import copy
 from .. import reward_functions as rf
 
-# from copy import deepcopy
-# import random
-#
-# from acnportal import acnsim
-# from acnportal import algorithms
-# from acnportal.acnsim import events
-# from acnportal.acnsim import models
-# from acnportal.acnsim import gym_acnsim
-#
-# from gym.wrappers import FlattenDictWrapper
-# from gym.wrappers import ClipAction
 
-
-# TODO: BaseSimEnv should implement all abstract methods of gym.Env.
 class BaseSimEnv(gym.Env):
     """ Abstract base class meant to be inherited from to implement
     new ACN-Sim Environments.
@@ -60,8 +47,6 @@ class BaseSimEnv(gym.Env):
     def __init__(self, interface):
         self.interface = interface
         self.init_snapshot = copy.deepcopy(interface)
-        # TODO: having prev_interface functionality slows down stepping as
-        #  each step makes a copy of the entire simulation.
         self.prev_interface = copy.deepcopy(interface)
         self.action = None
         self.schedule = {}
@@ -88,8 +73,6 @@ class BaseSimEnv(gym.Env):
             info (dict): contains auxiliary diagnostic information 
                 (helpful for debugging, and sometimes learning)
         """
-        # TODO: We can remove action as an input to action_to_schedule and
-        #  use instance var instead.
         self.action = action
         self.schedule = self._action_to_schedule()
         
@@ -134,7 +117,6 @@ class BaseSimEnv(gym.Env):
             observation (object): an environment observation 
                 generated from the simulation state
         """
-        # TODO: should always copy over previous and current interfaces
         raise NotImplementedError
 
     def _reward_from_state(self):
@@ -162,8 +144,6 @@ class BaseSimEnv(gym.Env):
         Returns:
             info (dict): dict of environment information
         """
-        # TODO: Implement an _info_from_state function here or elsewhere. If
-        #  elsewhere, raise a NotImplementedError here.
         return {}
 
 
@@ -226,7 +206,6 @@ class DefaultSimEnv(BaseSimEnv):
 
         # Some baselines require zero-centering; subtract this offset 
         # from actions to do this
-        # TODO: this would be better as an action wrapper
         self.rate_offset_array = (self.max_rates + self.min_rates) / 2
         
         if reward_funcs is None:
@@ -272,11 +251,10 @@ class DefaultSimEnv(BaseSimEnv):
             low=0, high=np.inf, shape=(1,), dtype='float32')
 
         # Total observation space is a Dict space of the subspaces
-        # TODO: plurals for keys
         self.observation_dict = {
             'arrivals': arrival_space,
             'departures': departure_space,
-            'demand': remaining_demand_space,
+            'demands': remaining_demand_space,
             'constraint_matrix': constraint_matrix_space,
             'magnitudes': magnitudes_space,
             'timestep': timestep_space
@@ -347,9 +325,6 @@ class DefaultSimEnv(BaseSimEnv):
             reward (float): a reward generated from the simulation 
                 state
         """
-        # TODO: Why isn't action used at all?
-        action = self.action + self.rate_offset_array
-        
         total_reward = 0
         for reward_func in self.reward_funcs:
             total_reward += reward_func(self)
@@ -374,7 +349,6 @@ class RebuildingEnv(DefaultSimEnv):
     This is especially useful if the network or event queue have 
     stochastic elements.
     """
-    # TODO: reward_func or sim_gen_function, choose a convention
     def __init__(self, interface, reward_funcs=None,
                  sim_gen_func=None, event_lst=None):
         """ Initialize this environment. Every Sim environment needs 
@@ -389,7 +363,6 @@ class RebuildingEnv(DefaultSimEnv):
             sim_gen_func (-> acnsim.GymInterface): function which
                 returns a GymInterface to a generated simulator.
         """
-        # TODO: Figure out a better way to assign a default sim_gen_func.
         if sim_gen_func is None:
             def sim_gen_func(self, *args, **kwargs): 
                 return self.init_snapshot

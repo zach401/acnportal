@@ -41,9 +41,6 @@ class Interface:
 
     @property
     def last_actual_charging_rate(self):
-        # TODO: change to "rates"?
-        # TODO: doesn't include charging rates of those evs that unplugged
-        #  in the last period if called from a reward function.
         """ Return the actual charging rates in the last period for all active EVs.
 
         Returns:
@@ -250,8 +247,6 @@ class Interface:
 
 
 class GymInterface(Interface):
-    # TODO: In PR, ask which of these functions (or if all of them) should
-    #  be moved into Interface.
     """ Interface between OpenAI Environments and the ACN Simulation
      Environment.
     """
@@ -314,8 +309,6 @@ class GymInterface(Interface):
         Returns: bool: True if all pilots are valid for the EVSEs to
             which they are sent.
         """
-        # TODO: Should this check apply to all schedules, just the ones in
-        #  the current iteration, or some intermediate?
         evse_satisfied = True
         for station_id in load_currents:
             # Check that each EVSE in the schedule is actually in the network.
@@ -413,10 +406,8 @@ class GymInterface(Interface):
         return sum([ev.current_charging_rate for ev in self.active_evs])
 
     def constraint_currents(self, input_schedule):
-        # TODO: standardize schedule input format for interface functions
         return abs(self._simulator.network.constraint_current(
             input_schedule, time_indices=[0]))
-    # TODO: Add a function that gives the EVs unplugged in the last time step
 
 
 class InvalidScheduleError(Exception):
