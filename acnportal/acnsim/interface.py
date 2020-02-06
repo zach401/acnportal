@@ -260,15 +260,6 @@ class GymInterface(Interface):
         return gym_interface
 
     @property
-    def last_predicted_timestamp(self):
-        """ Return the timestamp of the last EV departure in the queue.
-
-        Returns:
-            int: Last timestamp of an EV departure in the event queue
-        """
-        return self._simulator.event_queue.get_last_predicted_timestamp()
-
-    @property
     def station_ids(self):
         """ Return a list of space ids of stations the in the network.
 
@@ -285,15 +276,6 @@ class GymInterface(Interface):
             int: Number of EVSEs in the network.
         """
         return len(self._simulator.network.station_ids)
-
-    # @property
-    # def evse_list(self):
-    #     """ Return the list of EVSEs in the network.
-    #
-    #     Returns:
-    #         List[EVSE]: List of EVSEs in the network.
-    #     """
-    #     return list(self._simulator.network._EVSEs.values())
 
     @property
     def network_constraints(self):
