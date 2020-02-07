@@ -1,4 +1,6 @@
 import numpy as np
+import warnings
+import datetime
 
 
 def aggregate_current(sim):
@@ -121,6 +123,7 @@ def _nema_current_unbalance(sim, phase_ids):
     currents = np.vstack([currents_dict[phase] for phase in phase_ids])
     return (np.max(currents, axis=0) - np.mean(currents, axis=0)) / np.mean(currents, axis=0)
 
+
 def energy_cost(sim, tariff=None):
     """ Calculate the total energy cost of the simulation.
 
@@ -164,3 +167,29 @@ def demand_charge(sim, tariff=None):
     agg = aggregate_power(sim)
     dc = tariff.get_demand_charge(sim.start)
     return dc * np.max(agg)
+
+
+def datetimes_array(sim):
+    """ Return a numpy array of datetimes over which the simulation was
+    run.
+
+    The resolution of the datetimes list is equal to the period of the
+    simulation, and the number of datetimes in the returned list is
+    equal to teh number of iterations of the simulation.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+
+    Returns:
+        np.ndarray[np.datetime64]: List of datetimes over which the
+            simulation was run.
+
+    Warns:
+        UserWarning: If this is called before sim is complete.
+    """
+    if not sim.event_queue.empty():
+        warnings.warn("Simulation incomplete; not all datetimes will be "
+                      "included.",
+                      UserWarning)
+    return np.array([sim.start + datetime.timedelta(minutes=sim.period * i)
+                     for i in range(sim.iteration)])
