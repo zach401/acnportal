@@ -191,5 +191,7 @@ def datetimes_array(sim):
         warnings.warn("Simulation incomplete; not all datetimes will be "
                       "included.",
                       UserWarning)
-    return np.array([sim.start + datetime.timedelta(minutes=sim.period * i)
-                     for i in range(sim.iteration)])
+    return np.array([np.datetime64(
+        sim.start + datetime.timedelta(minutes=sim.period * i))
+        for i in range(sim.iteration)
+    ])
