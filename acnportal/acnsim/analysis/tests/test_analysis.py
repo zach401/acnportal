@@ -42,7 +42,7 @@ class TestAnalysis(TestCase):
 
     def test_datetimes_array(self):
         self.events.empty = Mock(self.events.empty)
-        self.events.empty = lambda : True
+        self.events.empty = lambda: True
         datetime_array = acnsim.datetimes_array(self.simulator)
         np.testing.assert_equal(datetime_array,
                                 self.expected_datetime_array)
