@@ -45,9 +45,11 @@ class EarliestDeadlineFirstAlgoStateful(BaseAlgorithm):
             self.polled_charging_rates[str(self.interface.current_time)] = self.interface.last_actual_charging_rate
         return schedule
 
+
 def to_array_dict(list_dict):
     ''' Converts a dictionary of strings to lists to a dictionary of strings to numpy arrays. '''
     return {key : np.array(value) for key, value in list_dict.items()}
+
 
 class TestIntegration(TestCase):
     @classmethod
@@ -138,15 +140,12 @@ class TestIntegration(TestCase):
         self.assertDictEqual(self.edf_algo_true_lap, self.sch.polled_pilots)
 
     def test_cr_interface_func(self):
-        # TODO: last_actual_charging_rates has a new definition that
-        # doesn't include EVs that arrived in the current iteration.
-        # This test (namely edf_algo_true_cr) must change to reflect
-        # this.
         self.maxDiff = None
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_charging_rates.json'), 'r') as infile:
             self.edf_algo_true_cr = json.load(infile)
 
         self.assertDictEqual(self.edf_algo_true_cr, self.sch.polled_charging_rates)
+
 
 class EmptyScheduler(BaseAlgorithm):
     ''' Always submits an empty schedule (empty dict) as the output
@@ -157,6 +156,7 @@ class EmptyScheduler(BaseAlgorithm):
 
     def schedule(self, active_evs):
         return {}
+
 
 class TestEmptyScheduleSim(TestCase):
     @classmethod
