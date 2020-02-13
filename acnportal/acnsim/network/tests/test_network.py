@@ -221,35 +221,35 @@ class TestChargingNetworkConstraints(TestCase):
 
     def test_is_feasible_barely_good_loads(self):
         good_loads = np.array([[160, 200.000035], [0, 0], [0, 0], [20.000015, 0], [0, 0]])
-        self.assertTrue(self.network.is_feasible(good_loads))
+        self.assertTrue(np.all(self.network.is_feasible(good_loads)))
 
     def test_is_feasible_barely_bad_loads(self):
         bad_loads = np.array([[160, 200.000045], [0, 0], [0, 0], [20.000015, 0], [0, 0]])
-        self.assertFalse(self.network.is_feasible(bad_loads))
+        self.assertFalse(np.all(self.network.is_feasible(bad_loads)))
 
     def test_is_feasible_barely_good_loads_set(self):
         good_loads = np.array([[160, 200.0035], [0, 0], [0, 0], [20.0015, 0], [0, 0]])
-        self.assertTrue(self.network.is_feasible(good_loads, violation_tolerance=1e-3))
+        self.assertTrue(np.all(self.network.is_feasible(good_loads, violation_tolerance=1e-3)))
 
     def test_is_feasible_barely_bad_loads_set(self):
         bad_loads = np.array([[160, 200.0045], [0, 0], [0, 0], [20.0015, 0], [0, 0]])
-        self.assertFalse(self.network.is_feasible(bad_loads, violation_tolerance=1e-3))
+        self.assertFalse(np.all(self.network.is_feasible(bad_loads, violation_tolerance=1e-3)))
 
     def test_is_feasible_barely_good_loads_rel_set(self):
         good_loads = np.array([[160, 200.15], [0, 0], [0, 0], [20.015, 0], [0, 0]])
-        self.assertTrue(self.network.is_feasible(good_loads, relative_tolerance=1e-3))
+        self.assertTrue(np.all(self.network.is_feasible(good_loads, relative_tolerance=1e-3)))
 
     def test_is_feasible_barely_bad_loads_rel_set(self):
         bad_loads = np.array([[160, 200.21], [0, 0], [0, 0], [20.021, 0], [0, 0]])
-        self.assertFalse(self.network.is_feasible(bad_loads, relative_tolerance=1e-3))
+        self.assertFalse(np.all(self.network.is_feasible(bad_loads, relative_tolerance=1e-3)))
 
     def test_is_feasible_barely_good_loads_set_linear(self):
         good_loads = np.array([[160, 200.0035], [0, 0], [0, 0], [20.0015, 0], [0, 0]])
-        self.assertTrue(self.network.is_feasible(good_loads, violation_tolerance=1e-3, linear=True))
+        self.assertTrue(np.all(self.network.is_feasible(good_loads, violation_tolerance=1e-3, linear=True)))
 
     def test_is_feasible_barely_bad_loads_set_linear(self):
         bad_loads = np.array([[160, 200.0045], [0, 0], [0, 0], [20.0015, 0], [0, 0]])
-        self.assertFalse(self.network.is_feasible(bad_loads, violation_tolerance=1e-3, linear=True))
+        self.assertFalse(np.all(self.network.is_feasible(bad_loads, violation_tolerance=1e-3, linear=True)))
 
     def test_constraint_current(self):
         loads = np.array([[0, 0], [150, 120], [100, 40], [150, 120], [60, 9]])
