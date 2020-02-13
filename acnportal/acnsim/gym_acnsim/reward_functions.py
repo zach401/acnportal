@@ -23,26 +23,29 @@ def evse_violation(env):
     """
     violation = 0
     for station_id in env.schedule:
-        # Check that each EVSE in the schedule is actually in the network.
+        # Check that each EVSE in the schedule is actually in the
+        # network.
         if station_id not in env.interface.station_ids:
-            raise KeyError(f'Station {station_id} in schedule but not found '
-                           f'in network.')
+            raise KeyError(f'Station {station_id} in schedule but not '
+                           f'found in network.')
         # Check that none of the EVSE pilot signal limits are violated.
         evse_is_continuous, evse_allowable_pilots = \
             env.interface.allowable_pilot_signals(station_id)
         if evse_is_continuous:
             min_rate = evse_allowable_pilots[0]
             max_rate = evse_allowable_pilots[1]
-            # Add penalty for any pilot signal not in [min_rate, max_rate],
-            # except for 0 pilots, which aren't penalized.
+            # Add penalty for any pilot signal not in
+            # [min_rate, max_rate], except for 0 pilots, which aren't
+            # penalized.
             violation += sum([
                 max(min_rate - pilot, 0) + max(pilot - max_rate, 0)
                 if pilot != 0 else 0
                 for pilot in env.schedule[station_id]
             ])
         else:
-            # Add penalty for any pilot signal not in the list of allowed
-            # pilots, except for 0 pilots, which aren't penalized.
+            # Add penalty for any pilot signal not in the list of
+            # allowed pilots, except for 0 pilots, which aren't
+            # penalized.
             violation += sum([
                 np.abs(np.array(evse_allowable_pilots) - pilot).min()
                 if pilot != 0 else 0
@@ -104,4 +107,3 @@ def hard_charging_reward(env):
     return (soft_charging_reward(env)
             if evse_violation(env) == 0 and constraint_violation(env) == 0
             else 0)
-

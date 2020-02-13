@@ -311,13 +311,15 @@ class GymInterface(Interface):
         """
         evse_satisfied = True
         for station_id in load_currents:
-            # Check that each EVSE in the schedule is actually in the network.
+            # Check that each EVSE in the schedule is actually in the
+            # network.
             if station_id not in self.station_ids:
                 raise KeyError(
-                    f'Station {station_id} in schedule but not found in '
-                    f'network.'
+                    f'Station {station_id} in schedule but not found '
+                    f'in network.'
                 )
-            # Check that none of the EVSE pilot signal limits are violated.
+            # Check that none of the EVSE pilot signal limits are
+            # violated.
             evse_is_continuous, evse_allowable_pilots = \
                 self.allowable_pilot_signals(station_id)
             if evse_is_continuous:
@@ -343,7 +345,8 @@ class GymInterface(Interface):
         - Checking that the schedule doesn't violate any constraints on
         EVSE charging rates.
         """
-        # Check if conditions of standard Interface.is_feasible are violated.
+        # Check if conditions of standard Interface.is_feasible are
+        # violated.
         constraints_satisfied = super().is_feasible(
             load_currents,
             linear=linear,
@@ -379,15 +382,16 @@ class GymInterface(Interface):
                 pilot signals to be updated with 0's after the schedule
                 runs out of entries.
         """
-        # Check that length of new schedules is not less than max_recompute
+        # Check that length of new schedules is not less than
+        # max_recompute.
         if (len(new_schedule) == 0
                 or len(new_schedule.values()[0])
                 < self._simulator.max_recompute):
             warnings.warn(
-                f"Length of schedules {len(new_schedule.values()[0])} is less "
-                f"than this simulation's max_recompute parameter "
-                f"{self._simulator.max_recompute}. Pilots may be updated with"
-                f"zeros."
+                f"Length of schedules {len(new_schedule.values()[0])} "
+                f"is less than this simulation's max_recompute "
+                f"parameter {self._simulator.max_recompute}. Pilots "
+                f"may be updated with zeros."
             )
 
         schedule_is_feasible = self.is_feasible(new_schedule)

@@ -24,6 +24,7 @@ class GymAlgorithm(BaseAlgorithm):
     def schedule(self, active_evs):
         """ Implements BaseAlgortihm.schedule(). """
         raise NotImplementedError(
-            "GymAlgorithm does not implement a schedule function. Instead, "
-            "call step on the environment containing this simulation."
+            "GymAlgorithm does not implement a schedule function. "
+            "Instead, call step on the environment containing this "
+            "simulation."
         )
