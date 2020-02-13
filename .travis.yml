@@ -1,9 +1,14 @@
+os:
+  - linux
+  - osx
 language: python
 python:
   - "3.6"
   - "3.7"
+env:
+  - USE_GYM=True
+  - USE_GYM=False
 install:
-  - pip install .
-  - pip install .[gym]
+  ./.travis_script.sh
 script:
   - python -m unittest discover
