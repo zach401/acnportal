@@ -6,8 +6,8 @@ python:
   - "3.6"
   - "3.7"
 env:
-  - USE_GYM=True
-  - USE_GYM=False
+  - USE_GYM=true
+  - USE_GYM=false
 install:
   ./.travis_script.sh
 script:
