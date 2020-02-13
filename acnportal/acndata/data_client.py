@@ -24,7 +24,6 @@ class DataClient(object):
 
         Args:
             site (str): ACN ID from which data should be gathered.
-            token (str): API token needed to access the acndata API.
             cond (str): String of conditions. See API reference for the where parameter.
 
         Yields:
@@ -63,7 +62,33 @@ class DataClient(object):
             else:
                 break
 
-    def get_sessions_by_time(self, site, start=None, end=None, min_energy=None, timeseries=False):
+    def count_sessions(self, site, cond=None):
+        """ Return the number of sessions which match the given query
+
+        Args:
+            site (str): ACN ID from which data should be gathered.
+            cond (str): String of conditions. See API reference for the where parameter.
+
+        Returns:
+            int: Number of sessions which match the query.
+
+        Raises:
+            ValueError: Raised if the site name is not valid.
+        """
+        if site not in {'caltech', 'jpl', 'office001'}:
+            raise ValueError("Invalid site name. Must be either 'caltech' or 'jpl'")
+
+        endpoint = 'sessions/' + site
+        args = []
+        if cond is not None:
+            args.append('where={0}'.format(cond))
+        args.append('limit=1')
+        query_string = '?' + '&'.join(args) if len(args) > 0 else ''
+        auth_header = {"Authorization": "Bearer {0}".format(self.token)}
+        r = requests.head(self.url + endpoint + query_string, headers=auth_header)
+        return r.headers['x-total-count']
+
+    def get_sessions_by_time(self, site, start=None, end=None, min_energy=None, timeseries=False, count=False):
         """ Wrapper for get_sessions with condition based on start and end times and a minimum energy delivered.
 
         Args:
@@ -71,12 +96,14 @@ class DataClient(object):
             start (datetime): Only return sessions which began after start.
             end (datetime): Only return session which began before end.
             min_energy (float): Only return sessions where the kWhDelivered is greater than or equal to min_energy.
+            timeseries (bool): If True return the time-series of charging rates and pilot signals. Default False.
+            count (bool): If True return the number of sessions which would be returned by the function. Default False.
 
         Yields:
-            See get_sessions.
+            If count is False see get_sessions else see count_sessions.
 
         Raises:
-            See get_sessions.
+            See get_sessions/count_sessions.
         """
         start_str = http_date(start) if start is not None else None
         end_str = http_date(end) if end is not None else None
@@ -88,4 +115,7 @@ class DataClient(object):
         if min_energy is not None:
             cond.append('kWhDelivered > {0}'.format(min_energy))
         condition = ' and '.join(cond)
-        return self.get_sessions(site, condition, sort='connectionTime', timeseries=timeseries)
+        if count:
+            return self.count_sessions(site, condition)
+        else:
+            return self.get_sessions(site, condition, sort='connectionTime', timeseries=timeseries)
