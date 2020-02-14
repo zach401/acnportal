@@ -108,12 +108,14 @@ class TestIntegration(TestCase):
             self.edf_algo_true_analysis_dict['proportion_of_demands_met'])
 
     def test_current_unbalance_nema(self):
-        np.testing.assert_allclose(
-            acnsim.current_unbalance(self.sim, ['Primary A', 'Primary B', 'Primary C']),
-            np.array(self.edf_algo_true_analysis_dict['primary_current_unbalance_nema']))
-        np.testing.assert_allclose(
-            acnsim.current_unbalance(self.sim, ['Secondary A', 'Secondary B', 'Secondary C']),
-            np.array(self.edf_algo_true_analysis_dict['secondary_current_unbalance_nema']))
+        with self.assertWarns(RuntimeWarning):
+            np.testing.assert_allclose(
+                acnsim.current_unbalance(self.sim, ['Primary A', 'Primary B', 'Primary C']),
+                np.array(self.edf_algo_true_analysis_dict['primary_current_unbalance_nema']))
+        with self.assertWarns(RuntimeWarning):
+            np.testing.assert_allclose(
+                acnsim.current_unbalance(self.sim, ['Secondary A', 'Secondary B', 'Secondary C']),
+                np.array(self.edf_algo_true_analysis_dict['secondary_current_unbalance_nema']))
 
     def test_tutorial_2(self):
         old_evse_keys = list(self.edf_algo_true_info_dict['pilot_signals'].keys())

@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 BASIC = 'BASIC'
@@ -36,23 +38,32 @@ class StationOccupiedError(Exception):
     pass
 
 
-class EVSE:
-    """ Class to model Electric Vehicle Supply Equipment (charging station).
+class BaseEVSE:
+    """ Abstract base class to model Electric Vehicle Supply Equipment
+    (charging station). This class is meant to be inherited from to
+    implement new EVSEs.
 
-    This base class allows for charging in a continuous range from min_rate to max_rate.
+    Subclasses must implement the max_rate, allowable_pilot_signals,
+    and _valid_rate methods.
 
-    Args:
-        station_id (str): Unique identifier of the EVSE.
-        ev (EV): EV currently connected the the EVSE.
-        max_rate (float): Maximum charging current allowed by the EVSE.
-        min_rate (float): Minimum charging current allowed by the EVSE.
-        current_pilot (float): Pilot signal for the current time step. [acnsim units]
+    Attributes:
+        _station_id (str): Unique identifier of the EVSE.
+        _ev (EV): EV currently connected the the EVSE.
+        _current_pilot (float): Pilot signal for the current time step.
+            [acnsim units]
+        is_continuous (bool): If True, this EVSE accepts a continuous
+            range of pilot signals. If False, this EVSE accepts only
+            a discrete set of pilot signals.
     """
-    def __init__(self, station_id, max_rate=float('inf'), min_rate=0):
+
+    def __init__(self, station_id):
+        """ Initialize a BaseEVSE instance.
+
+        Args:
+            station_id (str): Unique identifier of the EVSE.
+        """
         self._station_id = station_id
         self._ev = None
-        self._max_rate = max_rate
-        self._min_rate = min_rate
         self._current_pilot = 0
         self.is_continuous = True
 
@@ -62,19 +73,19 @@ class EVSE:
         return self._station_id
 
     @property
-    def ev(self):
-        """ Return EV currently connected the the EVSE. (EV) """
-        return self._ev
-
-    @property
     def max_rate(self):
         """ Return maximum charging current allowed by the EVSE. (float) """
-        return self._max_rate
+        raise NotImplementedError
 
     @property
     def min_rate(self):
         """ Return minimum charging current allowed by the EVSE. (float) """
-        return self._min_rate
+        return 0
+
+    @property
+    def ev(self):
+        """ Return EV currently connected the the EVSE. (EV) """
+        return self._ev
 
     @property
     def current_pilot(self):
@@ -85,11 +96,10 @@ class EVSE:
     def allowable_pilot_signals(self):
         """ Returns the allowable pilot signal levels for this EVSE.
 
-        Returns:
-            list[float]: List of 2 values: the min and max
-                acceptable values.
+        NOT IMPLEMENTED IN BaseEVSE. This method MUST be implemented in
+        all subclasses.
         """
-        return [self.min_rate, self.max_rate]
+        raise NotImplementedError
 
     def set_pilot(self, pilot, voltage, period):
         """ Apply a new pilot signal to the EVSE.
@@ -115,18 +125,26 @@ class EVSE:
             if self._ev is not None:
                 self._ev.charge(pilot, voltage, period)
         else:
-            raise InvalidRateError('Pilot {0} A is not valid for for station {1}'.format(pilot, self.station_id))
+            raise InvalidRateError(
+                'Pilot {0} A is not valid for for station {1}'.format(pilot,
+                                                                      self.station_id))
 
-    def _valid_rate(self, pilot):
+    def _valid_rate(self, pilot, atol=1e-3):
         """ Check if pilot is in the valid set.
+
+        NOT IMPLEMENTED IN BaseEVSE. This method MUST be implemented in
+        all subclasses.
 
         Args:
             pilot (float): Proposed pilot signal.
 
         Returns:
-            bool: True if the proposed pilot signal is valid. False otherwise.
+            bool: True if the proposed pilot signal is valid. False
+                otherwise.
+            atol: Absolute tolerance used when determining if a pilot
+                belongs to the allowable rates set.
         """
-        return self.min_rate <= pilot <= self.max_rate
+        raise NotImplementedError
 
     def plugin(self, ev):
         """ Method to attach an EV to the EVSE.
@@ -143,8 +161,9 @@ class EVSE:
         if self.ev is None:
             self._ev = ev
         else:
-            raise StationOccupiedError('Station {0} is occupied with ev {1}'.format(self._station_id,
-                                                                                    self._ev.session_id))
+            raise StationOccupiedError(
+                'Station {0} is occupied with ev {1}'.format(self._station_id,
+                                                             self._ev.session_id))
 
     def unplug(self):
         """ Method to remove an EV currently attached to the EVSE.
@@ -158,20 +177,123 @@ class EVSE:
         self._current_pilot = 0
 
 
-class DeadbandEVSE(EVSE):
-    """ Subclass of EVSE which enforces the J1772 deadband between 0 - 6 A.
+class EVSE(BaseEVSE):
+    """ This class of EVSE allows for charging in a continuous range
+    from min_rate to max_rate.
 
-    Most functionality remains the same except for a new _valid_rate function.
-
+    Attributes:
+        See BaseEVSE attributes.
+        _max_rate (float): Maximum charging current allowed by the EVSE.
+        _min_rate (float): Minimum charging current allowed by the EVSE.
     """
+    def __init__(self, station_id, max_rate=float('inf'), min_rate=0):
+        """ Initialize an EVSE instance.
 
-    def __init__(self, station_id, deadband_end=6, max_rate=float('inf'), min_rate=0):
-        super().__init__(station_id, max_rate, min_rate)
-        self._deadband_end = deadband_end
+        Args:
+            See BaseEVSE __init__() Args.
+            max_rate (float): Maximum charging current allowed by the
+                EVSE.
+            min_rate (float): Minimum charging current allowed by the
+                EVSE.
+        """
+        super().__init__(station_id)
+        self._max_rate = max_rate
+        self._min_rate = min_rate
+
+    @property
+    def max_rate(self):
+        """ Return maximum charging current allowed by the EVSE. (float) """
+        return self._max_rate
+
+    @property
+    def min_rate(self):
+        """ Return minimum charging current allowed by the EVSE. (float) """
+        return self._min_rate
 
     @property
     def allowable_pilot_signals(self):
         """ Returns the allowable pilot signal levels for this EVSE.
+
+        Implements abstract method allowable_pilot_signals from
+        BaseEVSE.
+
+        Returns:
+            list[float]: List of 2 values: the min and max
+                acceptable values.
+        """
+        return [self.min_rate, self.max_rate]
+
+    def _valid_rate(self, pilot, atol=1e-3):
+        """ Check if pilot is in the valid set.
+
+        Implements abstract method _valid_rate from BaseEVSE.
+
+        Args:
+            pilot (float): Proposed pilot signal.
+            atol: Absolute tolerance used when determining if a pilot
+                belongs to the allowable rates set.
+
+        Returns:
+            bool: True if the proposed pilot signal is valid. False
+                otherwise.
+        """
+        return (self.min_rate <= pilot + atol
+                and pilot - atol <= self.max_rate)
+
+
+class DeadbandEVSE(BaseEVSE):
+    """ Subclass of BaseEVSE which enforces the J1772 deadband between
+    0 - 6 A.
+
+    Attributes:
+        See BaseEVSE attributes.
+        _max_rate (float): Maximum charging current allowed by the EVSE.
+        _deadband_end (float): Upper end of the deadband. Pilot signals
+            between 0 and this number are not allowed for this EVSE.
+
+    """
+
+    def __init__(self, station_id, deadband_end=6,
+                 max_rate=float('inf'), min_rate=None):
+        """ Initialize a DeadbandEVSE instance.
+
+        Args:
+            See EVSE __init__() Args.
+            max_rate (float): Maximum charging current allowed by the
+                EVSE.
+            deadband_end (float): Upper end of the deadband. Pilot
+                signals between 0 and this number are not allowed for
+                this EVSE.
+        """
+        super().__init__(station_id)
+        self._max_rate = max_rate
+        self._deadband_end = deadband_end
+        if min_rate is not None:
+            warnings.warn(
+                f"Keyword argument 'min_rate' is deprecated for class "
+                f"DeadbandEVSE. Providing 'min_rate' will raise an "
+                f"error in a future release of acnportal.",
+                DeprecationWarning
+            )
+
+    @property
+    def max_rate(self):
+        """ Return maximum charging current allowed by the EVSE. (float) """
+        return self._max_rate
+
+    @property
+    def deadband_end(self):
+        """ Return deadband end of the EVSE. (float) """
+        return self._deadband_end
+
+    @property
+    def allowable_pilot_signals(self):
+        """ Returns the allowable pilot signal levels for this EVSE.
+
+        It is implied that a 0 A signal is allowed.
+
+        Implements abstract method allowable_pilot_signals from
+        BaseEVSE.
 
         Returns:
             list[float]: List of 2 values: the min and max
@@ -180,39 +302,71 @@ class DeadbandEVSE(EVSE):
         return [self._deadband_end, self.max_rate]
 
     def _valid_rate(self, pilot, atol=1e-3):
-        """ Overrides super class method. Disallows rates between 0 - 6 A as per the J1772 standard.
+        """ Check if pilot is in the valid set.
+
+        Overrides super class method. Disallows rates between
+        0 - 6 A as per the J1772 standard.
 
         Args:
             pilot: Proposed pilot signal.
-            atol: Absolute tolerance used when determining if a pilot belongs to the allowable rates set.
+            atol: Absolute tolerance used when determining if a pilot
+                belongs to the allowable rates set.
 
         Returns:
-            bool: True if the proposed pilot signal is valid. False otherwise.
+            bool: True if the proposed pilot signal is valid. False
+                otherwise.
         """
-        return np.isclose(pilot, 0, atol) or pilot > self._deadband_end
+        return (np.isclose(pilot, 0, atol=atol, rtol=0)
+                or (self._deadband_end <= pilot + atol
+                    and pilot - atol <= self.max_rate))
 
 
-class FiniteRatesEVSE(EVSE):
+class FiniteRatesEVSE(BaseEVSE):
     """ Subclass of EVSE which allows for finite allowed rate sets.
 
-    Most functionality remains the same except those differences noted below.
+    Most functionality remains the same except those differences noted
+    below.
 
     Attributes:
-        allowable_rates (iterable): Iterable of rates which are allowed by the EVSE.
-            On initialization, allowable_rates is converted into a list of rates
-            in increasing order that includes 0 and contains no duplicate values.
+        See BaseEVSE attributes.
+        allowable_rates (iterable): Iterable of rates which are allowed
+            by the EVSE. On initialization, allowable_rates is converted
+            into a list of rates in increasing order that includes 0 and
+            contains no duplicate values.
 
     """
     def __init__(self, station_id, allowable_rates):
-        super().__init__(station_id, max(allowable_rates))
+        """ Initialize a DeadbandEVSE instance.
+
+        Args:
+            See EVSE __init__() Args.
+            allowable_rates (iterable): Iterable of rates which are
+                allowed by the EVSE. On initialization, allowable_rates
+                is converted into a list of rates in increasing order
+                that includes 0 and contains no duplicate values.
+        """
+        super().__init__(station_id)
         allowable_rates = set(allowable_rates)
         allowable_rates.add(0)
         self.allowable_rates = sorted(list(allowable_rates))
         self.is_continuous = False
 
     @property
+    def max_rate(self):
+        """ Return maximum charging current allowed by the EVSE. (float) """
+        return max(self.allowable_rates)
+
+    @property
+    def min_rate(self):
+        """ Return minimum charging current allowed by the EVSE. (float) """
+        return min(self.allowable_rates)
+
+    @property
     def allowable_pilot_signals(self):
         """ Returns the allowable pilot signal levels for this EVSE.
+
+        Implements abstract method allowable_pilot_signals from
+        BaseEVSE.
 
         Returns:
             list[float]: List of allowable pilot signals.
@@ -220,13 +374,19 @@ class FiniteRatesEVSE(EVSE):
         return self.allowable_rates
 
     def _valid_rate(self, pilot, atol=1e-3):
-        """ Overrides super class method. Checks if pilot is close to being in the allowable set.
+        """ Check if pilot is in the valid set.
+
+        Overrides super class method. Checks if pilot is close to being
+        in the allowable set.
 
         Args:
             pilot: Proposed pilot signal.
-            atol: Absolute tolerance used when determining if a pilot belongs to the allowable rates set.
+            atol: Absolute tolerance used when determining if a pilot
+                belongs to the allowable rates set.
 
         Returns:
-            bool: True if the proposed pilot signal is valid. False otherwise.
+            bool: True if the proposed pilot signal is valid. False
+                otherwise.
         """
-        return np.any(np.isclose(pilot, self.allowable_rates, atol=1e-3))
+        return np.any(np.isclose(pilot, self.allowable_rates,
+                                 atol=1e-3, rtol=0))
