@@ -73,6 +73,11 @@ class BaseEVSE:
         return self._station_id
 
     @property
+    def ev(self):
+        """ Return EV currently connected the the EVSE. (EV) """
+        return self._ev
+
+    @property
     def max_rate(self):
         """ Return maximum charging current allowed by the EVSE. (float) """
         raise NotImplementedError
@@ -81,11 +86,6 @@ class BaseEVSE:
     def min_rate(self):
         """ Return minimum charging current allowed by the EVSE. (float) """
         return 0
-
-    @property
-    def ev(self):
-        """ Return EV currently connected the the EVSE. (EV) """
-        return self._ev
 
     @property
     def current_pilot(self):
@@ -125,9 +125,8 @@ class BaseEVSE:
             if self._ev is not None:
                 self._ev.charge(pilot, voltage, period)
         else:
-            raise InvalidRateError(
-                'Pilot {0} A is not valid for for station {1}'.format(pilot,
-                                                                      self.station_id))
+            raise InvalidRateError(f"Pilot {pilot} A is not valid for "
+                                   f"station {self.station_id}.")
 
     def _valid_rate(self, pilot, atol=1e-3):
         """ Check if pilot is in the valid set.
@@ -139,6 +138,7 @@ class BaseEVSE:
             pilot (float): Proposed pilot signal.
 
         Returns:
+
             bool: True if the proposed pilot signal is valid. False
                 otherwise.
             atol: Absolute tolerance used when determining if a pilot
@@ -162,8 +162,8 @@ class BaseEVSE:
             self._ev = ev
         else:
             raise StationOccupiedError(
-                'Station {0} is occupied with ev {1}'.format(self._station_id,
-                                                             self._ev.session_id))
+                f"Station {self._station_id} is occupied with ev "
+                f"{self._ev.session_id}.")
 
     def unplug(self):
         """ Method to remove an EV currently attached to the EVSE.
