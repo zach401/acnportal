@@ -1,6 +1,7 @@
 from .. import base
 import warnings
 
+
 class Event(base.BaseSimObj):
     """ Base class for all events.
 
@@ -43,23 +44,20 @@ class Event(base.BaseSimObj):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = base.none_to_empty_dict(context_dict)
-        args_dict = {}
-
-        args_dict['timestamp'] = self.timestamp
-        args_dict['event_type'] = self.event_type
-        args_dict['precedence'] = self.precedence
-
+        args_dict = {'timestamp': self.timestamp,
+                     'event_type': self.event_type,
+                     'precedence': self.precedence}
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+    def from_dict(cls, attributes_dict, context_dict=None,
+                  loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
-        context_dict, loaded_dict, cls_kwargs = \
-            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
-        out_obj = cls(in_dict['timestamp'], **cls_kwargs)
-        out_obj.event_type = in_dict['event_type']
-        out_obj.precedence = in_dict['precedence']
+        context_dict, loaded_dict, cls_kwargs = base.none_to_empty_dict(
+            context_dict, loaded_dict, cls_kwargs)
+        out_obj = cls(attributes_dict['timestamp'], **cls_kwargs)
+        out_obj.event_type = attributes_dict['event_type']
+        out_obj.precedence = attributes_dict['precedence']
         return out_obj
 
 
@@ -76,26 +74,27 @@ class PluginEvent(Event):
         self.ev = ev
         self.precedence = 10
 
-
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
         context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
         # Plugin-specific attributes
         args_dict['ev'] = self.ev.to_registry(context_dict=context_dict)['id']
-
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+    def from_dict(cls, attributes_dict, context_dict=None,
+                  loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
-        context_dict, loaded_dict, cls_kwargs = \
-            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
-        # TODO: standardize read_from_id inputs (use = or not)
-        ev = base.read_from_id(in_dict['ev'], context_dict, loaded_dict)
+        context_dict, loaded_dict, cls_kwargs = base.none_to_empty_dict(
+            context_dict, loaded_dict, cls_kwargs)
+        ev = base.build_from_id(
+            attributes_dict['ev'], context_dict, loaded_dict=loaded_dict)
         cls_kwargs = {'ev': ev}
-        out_obj = super().from_dict(in_dict, context_dict, loaded_dict, cls_kwargs)
+        out_obj = super().from_dict(
+            attributes_dict, context_dict, loaded_dict, cls_kwargs)
         return out_obj
+
 
 class UnplugEvent(Event):
     """ Subclass of Event for EV unplugs.
@@ -112,26 +111,27 @@ class UnplugEvent(Event):
         self.session_id = session_id
         self.precedence = 0
 
-
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
         context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
-
         # Unplug-specific attributes
         args_dict['station_id'] = self.station_id
         args_dict['session_id'] = self.session_id
-
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+    def from_dict(cls, attributes_dict, context_dict=None,
+                  loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
-        context_dict, loaded_dict, cls_kwargs = \
-            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
-        cls_kwargs = {'station_id': in_dict['station_id'], 'session_id': in_dict['session_id']}
-        out_obj = super().from_dict(in_dict, context_dict, loaded_dict, cls_kwargs)
+        context_dict, loaded_dict, cls_kwargs = base.none_to_empty_dict(
+            context_dict, loaded_dict, cls_kwargs)
+        cls_kwargs = {'station_id': attributes_dict['station_id'],
+                      'session_id': attributes_dict['session_id']}
+        out_obj = super().from_dict(
+            attributes_dict, context_dict, loaded_dict, cls_kwargs)
         return out_obj
+
 
 class RecomputeEvent(Event):
     """ Subclass of Event for when the algorithm should be recomputed."""

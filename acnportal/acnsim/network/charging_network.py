@@ -328,12 +328,10 @@ class ChargingNetwork(base.BaseSimObj):
         schedule_length = schedule_matrix.shape[1]
         return np.all(np.tile(self.magnitudes + np.maximum(violation_tolerance, rel_magnitude_tol), (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
-
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
         context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = {}
-
         # Serialize non-nested attributes.
         nn_attr_lst = ['violation_tolerance', 'relative_tolerance']
         for attr in nn_attr_lst:
@@ -348,37 +346,35 @@ class ChargingNetwork(base.BaseSimObj):
         args_dict['magnitudes'] = self.magnitudes.tolist()
         args_dict['_voltages'] = self._voltages.tolist()
         args_dict['_phase_angles'] = self._phase_angles.tolist()
-
         args_dict['constraint_index'] = self.constraint_index
-
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None,
-                  cls_kwargs=None):
+    def from_dict(cls, attributes_dict, context_dict=None,
+                  loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
-        context_dict, loaded_dict, cls_kwargs = \
-            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
-
-        out_obj = cls(violation_tolerance=in_dict['violation_tolerance'],
-                      relative_tolerance=in_dict['relative_tolerance'],
-                      **cls_kwargs)
+        context_dict, loaded_dict, cls_kwargs = base.none_to_empty_dict(
+            context_dict, loaded_dict, cls_kwargs)
+        out_obj = cls(
+            violation_tolerance=attributes_dict['violation_tolerance'],
+            relative_tolerance=attributes_dict['relative_tolerance'],
+            **cls_kwargs
+        )
 
         out_obj._EVSEs = {
-            station_id : base.read_from_id(
-                evse, context_dict=context_dict, loaded_dict=loaded_dict
-            )
-            for station_id, evse in in_dict['_EVSEs'].items()
+            station_id : base.build_from_id(evse, context_dict,
+                                            loaded_dict=loaded_dict)
+            for station_id, evse in attributes_dict['_EVSEs'].items()
         }
 
         out_obj.constraint_matrix = \
-            np.array(in_dict['constraint_matrix'])
+            np.array(attributes_dict['constraint_matrix'])
         out_obj.magnitudes = \
-            np.array(in_dict['magnitudes'])
+            np.array(attributes_dict['magnitudes'])
 
-        out_obj.constraint_index = in_dict['constraint_index']
-        out_obj._voltages = np.array(in_dict['_voltages'])
-        out_obj._phase_angles = np.array(in_dict['_phase_angles'])
+        out_obj.constraint_index = attributes_dict['constraint_index']
+        out_obj._voltages = np.array(attributes_dict['_voltages'])
+        out_obj._phase_angles = np.array(attributes_dict['_phase_angles'])
 
         return out_obj
 

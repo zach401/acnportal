@@ -227,7 +227,6 @@ class Simulator(base.BaseSimObj):
             raise KeyError("EVSE {0} not found in network.".format(station_id))
         return self.network.station_ids.index(station_id)
 
-
     def to_dict(self, context_dict=None):
         """
         Implements BaseSimObj.to_dict. Certain simulator attributes are
@@ -244,59 +243,55 @@ class Simulator(base.BaseSimObj):
         Only the scheduler's name is serialized.
         """
         context_dict, = base.none_to_empty_dict(context_dict)
-        args_dict = {}
+        attributes_dict = {}
 
         # Serialize non-nested attributes.
-        nn_attr_lst = [
-            'period', 'max_recompute', 'verbose', 'peak',
-            '_iteration', '_resolve', '_last_schedule_update',
-            'schedule_history'
-        ]
+        nn_attr_lst = ['period', 'max_recompute', 'verbose', 'peak',
+                       '_iteration', '_resolve', '_last_schedule_update',
+                       'schedule_history']
         for attr in nn_attr_lst:
-            args_dict[attr] = getattr(self, attr)
+            attributes_dict[attr] = getattr(self, attr)
 
-        args_dict['network'] = \
-            self.network.to_registry(context_dict=context_dict)['id']
+        attributes_dict['network'] = self.network.to_registry(
+            context_dict=context_dict)['id']
 
-        args_dict['scheduler'] = f'{self.scheduler.__module__}' \
-                                 f'.{self.scheduler.__class__.__name__}'
+        attributes_dict['scheduler'] = (f'{self.scheduler.__module__}.'
+                                        f'{self.scheduler.__class__.__name__}')
 
-        args_dict['event_queue'] = \
-            self.event_queue.to_registry(context_dict=context_dict)['id']
+        attributes_dict['event_queue'] = self.event_queue.to_registry(
+            context_dict=context_dict)['id']
 
         if sys.version_info[1] < 7:
-            warnings.warn(f"Datetime {self.start} will not be loaded as "
-                          f"datetime object. Use python 3.7 or "
+            warnings.warn(f"Datetime {self.start} will not be loaded "
+                          f"as datetime object. Use python 3.7 or "
                           f"higher to load this value after "
                           f"serialization.")
 
-        args_dict['start'] = self.start.isoformat()
+        attributes_dict['start'] = self.start.isoformat()
         try:
             base.json.dumps(self.signals)
         except TypeError:
             warnings.warn("Not serializing signals as value types"
                           "are not natively JSON serializable.",
-                               UserWarning)
-            args_dict['signals'] = None
+                          UserWarning)
+            attributes_dict['signals'] = None
         else:
-            args_dict['signals'] = self.signals
+            attributes_dict['signals'] = self.signals
 
-        args_dict['pilot_signals'] = self.pilot_signals.tolist()
-        args_dict['charging_rates'] = self.charging_rates.tolist()
+        attributes_dict['pilot_signals'] = self.pilot_signals.tolist()
+        attributes_dict['charging_rates'] = self.charging_rates.tolist()
 
-        args_dict['ev_history'] = {
-            session_id : ev.to_registry(context_dict=context_dict)['id']
-            for session_id, ev in self.ev_history.items()
-        }
-        args_dict['event_history'] = [
-            event.to_registry(context_dict=context_dict)['id']
-            for event in self.event_history
-        ]
-        return args_dict
+        attributes_dict['ev_history'] = {
+            session_id: ev.to_registry(context_dict=context_dict)['id']
+            for session_id, ev in self.ev_history.items()}
+        attributes_dict['event_history'] = [
+            event_elt.to_registry(context_dict=context_dict)['id']
+            for event_elt in self.event_history]
+        return attributes_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None,
-                  cls_kwargs=None):
+    def from_dict(cls, attributes_dict, context_dict=None,
+                  loaded_dict=None, cls_kwargs=None):
         """
         Implements BaseSimObj.from_dict. Certain simulator attributes
         are not loaded completely as they are not ACN-Sim objects
@@ -317,41 +312,40 @@ class Simulator(base.BaseSimObj):
         after the Simulator is loaded.
 
         """
-        context_dict, loaded_dict, cls_kwargs = \
-            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+        context_dict, loaded_dict, cls_kwargs = base.none_to_empty_dict(
+            context_dict, loaded_dict, cls_kwargs)
 
-        network = base.read_from_id(in_dict['network'], context_dict,
-                                    loaded_dict=loaded_dict)
+        network = base.build_from_id(attributes_dict['network'],
+                                     context_dict, loaded_dict=loaded_dict)
 
-        events = base.read_from_id(in_dict['event_queue'],
-                                   context_dict=context_dict,
-                                   loaded_dict=loaded_dict)
+        events = base.build_from_id(attributes_dict['event_queue'],
+                                    context_dict, loaded_dict=loaded_dict)
 
-        scheduler_cls = base.locate(in_dict['scheduler'])
+        scheduler_cls = base.locate(attributes_dict['scheduler'])
         try:
             scheduler = scheduler_cls()
         except TypeError:
-            warnings.warn(f"Scheduler {in_dict['scheduler']} requires "
-                          f"constructor inputs. Setting scheduler to "
-                          f"BaseAlgorithm instead.")
+            warnings.warn(f"Scheduler {attributes_dict['scheduler']} "
+                          f"requires constructor inputs. Setting "
+                          f"scheduler to BaseAlgorithm instead.")
             scheduler = BaseAlgorithm()
 
         if sys.version_info[1] < 7:
-            warnings.warn(f"ISO format {in_dict['start']} cannot be loaded as "
-                          f"datetime object. Use python 3.7 or higher to load "
-                          f"this value.")
-            start = in_dict['start']
+            warnings.warn(f"ISO format {attributes_dict['start']} "
+                          f"cannot be loaded as datetime object. Use "
+                          f"python 3.7 or higher to load this value.")
+            start = attributes_dict['start']
         else:
-            start = datetime.fromisoformat(in_dict['start'])
+            start = datetime.fromisoformat(attributes_dict['start'])
 
         out_obj = cls(
             network,
             scheduler,
             events,
             start,
-            period=in_dict['period'],
-            signals=in_dict['signals'],
-            verbose=in_dict['verbose'],
+            period=attributes_dict['period'],
+            signals=attributes_dict['signals'],
+            verbose=attributes_dict['verbose'],
             **cls_kwargs
         )
         scheduler.register_interface(Interface(out_obj))
@@ -359,25 +353,30 @@ class Simulator(base.BaseSimObj):
         attr_lst = ['max_recompute', 'peak', '_iteration', '_resolve',
                     '_last_schedule_update']
         for attr in attr_lst:
-            setattr(out_obj, attr, in_dict[attr])
+            setattr(out_obj, attr, attributes_dict[attr])
 
-        if in_dict['schedule_history'] is not None:
-            out_obj.schedule_history = {int(key): value
-                                        for key, value
-                                        in in_dict['schedule_history'].items()}
+        if attributes_dict['schedule_history'] is not None:
+            out_obj.schedule_history = {
+                int(key): value
+                for key, value in attributes_dict['schedule_history'].items()
+            }
         else:
             out_obj.schedule_history = None
 
-        out_obj.pilot_signals = np.array(in_dict['pilot_signals'])
-        out_obj.charging_rates = np.array(in_dict['charging_rates'])
+        out_obj.pilot_signals = np.array(attributes_dict['pilot_signals'])
+        out_obj.charging_rates = np.array(attributes_dict['charging_rates'])
 
-        out_obj.ev_history = {session_id: base.read_from_id(
-            ev, context_dict=context_dict, loaded_dict=loaded_dict)
-            for session_id, ev in in_dict['ev_history'].items()}
+        out_obj.ev_history = {
+            session_id: base.build_from_id(
+                ev, context_dict, loaded_dict=loaded_dict)
+            for session_id, ev in attributes_dict['ev_history'].items()
+        }
 
-        out_obj.event_history = [base.read_from_id(
-            past_event, context_dict=context_dict, loaded_dict=loaded_dict)
-            for past_event in in_dict['event_history']]
+        out_obj.event_history = [
+            base.build_from_id(
+                past_event, context_dict, loaded_dict=loaded_dict)
+            for past_event in attributes_dict['event_history']
+        ]
         return out_obj
 
     def update_scheduler(self, new_scheduler):

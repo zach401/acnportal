@@ -37,13 +37,13 @@ class BattListEvent(acnsim.Event):
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict,
+    def from_dict(cls, attributes_dict,
                   context_dict=None, loaded_dict=None, cls_kwargs=None):
         context_dict, loaded_dict, cls_kwargs = \
             base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
-        batt_list = [base.read_from_id(ev,
-                                       context_dict=context_dict,
-                                       loaded_dict=loaded_dict)
-                     for ev in in_dict['batt_list']]
-        out_obj = cls(in_dict['timestamp'], batt_list, **cls_kwargs)
+        batt_list = [base.build_from_id(ev,
+                                        context_dict=context_dict,
+                                        loaded_dict=loaded_dict)
+                     for ev in attributes_dict['batt_list']]
+        out_obj = cls(attributes_dict['timestamp'], batt_list, **cls_kwargs)
         return out_obj

@@ -20,7 +20,7 @@ def none_to_empty_dict(*args):
     return out_arg_lst
 
 
-def read_from_id(obj_id, context_dict, loaded_dict=None):
+def build_from_id(obj_id, context_dict, loaded_dict=None):
     """
     Given an object ID and a dictionary mapping object ID's to JSON
     serializable representations of ACN-Sim objects, returns the ACN-Sim
@@ -388,8 +388,8 @@ class BaseSimObj:
                 UserWarning
             )
 
-        # in_dict is a dict mapping attribute names to JSON serializable
-        # values.
+        # attributes_dict is a dict mapping attribute names to JSON
+        # serializable values.
         in_dict = obj_dict['args']
 
         # Call this class' from_dict method to convert the JSON
@@ -408,12 +408,10 @@ class BaseSimObj:
                 UserWarning
             )
             for attr in unloaded_attrs:
-                # Try reading this attribute from an ID in in_dict.
+                # Try reading this attribute from an ID in attributes_dict.
                 try:
-                    setattr(
-                        out_obj, attr,
-                        read_from_id(in_dict[attr], context_dict, loaded_dict)
-                    )
+                    setattr(out_obj, attr, build_from_id(
+                        in_dict[attr], context_dict, loaded_dict=loaded_dict))
                 except (KeyError, TypeError):
                     warnings.warn(
                         f"Loader for attribute {attr} not found. Setting "
@@ -430,12 +428,13 @@ class BaseSimObj:
         return out_obj
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict, loaded_dict, cls_kwargs=None):
+    def from_dict(cls, attributes_dict, context_dict, loaded_dict,
+                  cls_kwargs=None):
         """ Converts a JSON serializable representation of an ACN-Sim
         object into an actual ACN-Sim object.
 
         Args:
-            in_dict (Dict[str, JSON Serializable]): A JSON Serializable
+            attributes_dict (Dict[str, JSON Serializable]): A JSON Serializable
                 representation of this object's attributes.
             context_dict (Dict[str, JSON Serializable]): Dict mapping
                 object ID's to object JSON serializable representations.

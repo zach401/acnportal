@@ -87,29 +87,28 @@ class Battery(base.BaseSimObj):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = {}
-
-        nn_attr_lst = [
-            '_max_power', '_current_charging_power', '_current_charge',
-            '_capacity', '_init_charge'
-        ]
-
+        nn_attr_lst = ['_max_power', '_current_charging_power',
+                       '_current_charge', '_capacity', '_init_charge']
         for attr in nn_attr_lst:
             args_dict[attr] = getattr(self, attr)
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+    def from_dict(cls, attributes_dict, context_dict=None,
+                  loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
-        context_dict, loaded_dict, cls_kwargs = \
-            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+        context_dict, loaded_dict, cls_kwargs = base.none_to_empty_dict(
+            context_dict, loaded_dict, cls_kwargs)
         out_obj = cls(
-            in_dict['_capacity'], in_dict['_init_charge'], in_dict['_max_power'], **cls_kwargs)
-
+            attributes_dict['_capacity'],
+            attributes_dict['_init_charge'],
+            attributes_dict['_max_power'],
+            **cls_kwargs
+        )
         out_obj._current_charging_power = \
-            in_dict['_current_charging_power']
-        out_obj._current_charge = in_dict['_current_charge']
+            attributes_dict['_current_charging_power']
+        out_obj._current_charge = attributes_dict['_current_charge']
         return out_obj
 
 
@@ -170,30 +169,29 @@ class Linear2StageBattery(Battery):
         self._current_charging_power = charge_power
         return charge_power * 1000 / voltage
 
-
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = base.none_to_empty_dict(context_dict)
         args_dict = super().to_dict(context_dict)
         args_dict['_noise_level'] = self._noise_level
         args_dict['_transition_soc'] = self._transition_soc
         return args_dict
 
     @classmethod
-    def from_dict(cls, in_dict, context_dict=None, loaded_dict=None, cls_kwargs=None):
+    def from_dict(cls, attributes_dict, context_dict=None,
+                  loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
-        context_dict, loaded_dict, cls_kwargs = \
-            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
-
+        context_dict, loaded_dict, cls_kwargs = base.none_to_empty_dict(
+            context_dict, loaded_dict, cls_kwargs)
         # Note second arg in below construction is a placeholder
         out_obj = cls(
-            in_dict['_capacity'], in_dict['_init_charge'], in_dict['_max_power'],
-            noise_level=in_dict['_noise_level'],
-            transition_soc=in_dict['_transition_soc'],
+            attributes_dict['_capacity'],
+            attributes_dict['_init_charge'],
+            attributes_dict['_max_power'],
+            noise_level=attributes_dict['_noise_level'],
+            transition_soc=attributes_dict['_transition_soc'],
             **cls_kwargs
         )
-
         out_obj._current_charging_power = \
-            in_dict['_current_charging_power']
-        out_obj._current_charge = in_dict['_current_charge']
+            attributes_dict['_current_charging_power']
+        out_obj._current_charge = attributes_dict['_current_charge']
         return out_obj
