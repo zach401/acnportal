@@ -138,37 +138,36 @@ class EV(base.BaseSimObj):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = base.none_to_empty_dict(context_dict)
-        args_dict = {}
+        attribute_dict = {}
         nn_attr_lst = ['_arrival', '_departure', '_session_id',
                        '_station_id', '_requested_energy',
                        '_estimated_departure', '_energy_delivered',
                        '_current_charging_rate']
         for attr in nn_attr_lst:
-            args_dict[attr] = getattr(self, attr)
-        args_dict['_battery'] = self._battery.to_registry(
-            context_dict=context_dict)['id']
-        return args_dict
+            attribute_dict[attr] = getattr(self, attr)
+        registry, context_dict = self._battery.to_registry(
+            context_dict=context_dict)
+        attribute_dict['_battery'] = registry['id']
+        return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attributes_dict, context_dict=None,
+    def from_dict(cls, attribute_dict, context_dict,
                   loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
-        context_dict, loaded_dict, cls_kwargs = base.none_to_empty_dict(
-            context_dict, loaded_dict, cls_kwargs)
-        battery = base.build_from_id(attributes_dict['_battery'], context_dict,
-                                     loaded_dict=loaded_dict)
+        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
+        battery, loaded_dict = base.build_from_id(
+            attribute_dict['_battery'], context_dict, loaded_dict=loaded_dict)
         out_obj = cls(
-            attributes_dict['_arrival'],
-            attributes_dict['_departure'],
-            attributes_dict['_requested_energy'],
-            attributes_dict['_station_id'],
-            attributes_dict['_session_id'],
+            attribute_dict['_arrival'],
+            attribute_dict['_departure'],
+            attribute_dict['_requested_energy'],
+            attribute_dict['_station_id'],
+            attribute_dict['_session_id'],
             battery,
-            estimated_departure=attributes_dict['_estimated_departure'],
+            estimated_departure=attribute_dict['_estimated_departure'],
             **cls_kwargs
         )
-        out_obj._energy_delivered = attributes_dict['_energy_delivered']
+        out_obj._energy_delivered = attribute_dict['_energy_delivered']
         out_obj._current_charging_rate = \
-            attributes_dict['_current_charging_rate']
-        return out_obj
+            attribute_dict['_current_charging_rate']
+        return out_obj, loaded_dict

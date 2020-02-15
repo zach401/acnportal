@@ -161,40 +161,39 @@ class EVSE(base.BaseSimObj):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = base.none_to_empty_dict(context_dict)
-        args_dict = {}
+        attribute_dict = {}
         nn_attr_lst = ['_station_id', '_max_rate', '_min_rate',
                        '_current_pilot','is_continuous']
         for attr in nn_attr_lst:
-            args_dict[attr] = getattr(self, attr)
+            attribute_dict[attr] = getattr(self, attr)
         if self._ev is not None:
-            args_dict['_ev'] = self.ev.to_registry(
-                context_dict=context_dict)['id']
+            registry, context_dict = self.ev.to_registry(
+                context_dict=context_dict)
+            attribute_dict['_ev'] = registry['id']
         else:
-            args_dict['_ev'] = None
-        return args_dict
+            attribute_dict['_ev'] = None
+        return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attributes_dict, context_dict=None,
+    def from_dict(cls, attribute_dict, context_dict,
                   loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
-        context_dict, loaded_dict, cls_kwargs = base.none_to_empty_dict(
-            context_dict, loaded_dict, cls_kwargs)
-        if attributes_dict['_ev'] is not None:
-            ev = base.build_from_id(attributes_dict['_ev'], context_dict,
-                                    loaded_dict=loaded_dict)
+        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
+        if attribute_dict['_ev'] is not None:
+            ev, loaded_dict = base.build_from_id(
+                attribute_dict['_ev'], context_dict, loaded_dict=loaded_dict)
         else:
             ev = None
         out_obj = cls(
-            attributes_dict['_station_id'],
-            max_rate=attributes_dict['_max_rate'],
-            min_rate=attributes_dict['_min_rate'],
+            attribute_dict['_station_id'],
+            max_rate=attribute_dict['_max_rate'],
+            min_rate=attribute_dict['_min_rate'],
             **cls_kwargs
         )
-        out_obj._current_pilot = attributes_dict['_current_pilot']
+        out_obj._current_pilot = attribute_dict['_current_pilot']
         out_obj._ev = ev
         out_obj.is_continuous = True
-        return out_obj
+        return out_obj, loaded_dict
 
 
 class DeadbandEVSE(EVSE):
@@ -232,21 +231,19 @@ class DeadbandEVSE(EVSE):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = base.none_to_empty_dict(context_dict)
-        args_dict = super().to_dict(context_dict)
-        args_dict['_deadband_end'] = self._deadband_end
-        return args_dict
+        attribute_dict, context_dict = super().to_dict(context_dict)
+        attribute_dict['_deadband_end'] = self._deadband_end
+        return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attributes_dict, context_dict=None,
+    def from_dict(cls, attribute_dict, context_dict,
                   loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
-        context_dict, loaded_dict, cls_kwargs = base.none_to_empty_dict(
-            context_dict, loaded_dict, cls_kwargs)
-        cls_kwargs = {'deadband_end': attributes_dict['_deadband_end']}
-        out_obj = super().from_dict(
-            attributes_dict, context_dict, loaded_dict, cls_kwargs)
-        return out_obj
+        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
+        cls_kwargs = {'deadband_end': attribute_dict['_deadband_end']}
+        out_obj, loaded_dict = super().from_dict(
+            attribute_dict, context_dict, loaded_dict, cls_kwargs)
+        return out_obj, loaded_dict
 
 
 class FiniteRatesEVSE(EVSE):
@@ -290,30 +287,29 @@ class FiniteRatesEVSE(EVSE):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = base.none_to_empty_dict(context_dict)
-        args_dict = super().to_dict(context_dict)
-        args_dict['allowable_rates'] = self.allowable_rates
-        return args_dict
+
+        attribute_dict, context_dict = super().to_dict(context_dict)
+        attribute_dict['allowable_rates'] = self.allowable_rates
+        return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attributes_dict, context_dict=None,
+    def from_dict(cls, attribute_dict, context_dict,
                   loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
-        context_dict, loaded_dict, cls_kwargs = base.none_to_empty_dict(
-            context_dict, loaded_dict, cls_kwargs)
-        if attributes_dict['_ev'] is not None:
-            ev = base.build_from_id(attributes_dict['_ev'], context_dict,
-                                    loaded_dict=loaded_dict)
+        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
+        if attribute_dict['_ev'] is not None:
+            ev, loaded_dict = base.build_from_id(
+                attribute_dict['_ev'], context_dict, loaded_dict=loaded_dict)
         else:
             ev = None
         out_obj = cls(
-            attributes_dict['_station_id'],
-            attributes_dict['allowable_rates'],
+            attribute_dict['_station_id'],
+            attribute_dict['allowable_rates'],
             **cls_kwargs
         )
-        out_obj._max_rate = attributes_dict['_max_rate']
-        out_obj._min_rate = attributes_dict['_min_rate']
-        out_obj._current_pilot = attributes_dict['_current_pilot']
+        out_obj._max_rate = attribute_dict['_max_rate']
+        out_obj._min_rate = attribute_dict['_min_rate']
+        out_obj._current_pilot = attribute_dict['_current_pilot']
         out_obj._ev = ev
-        out_obj.is_continuous = attributes_dict['is_continuous']
-        return out_obj
+        out_obj.is_continuous = attribute_dict['is_continuous']
+        return out_obj, loaded_dict

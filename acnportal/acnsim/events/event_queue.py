@@ -92,25 +92,31 @@ class EventQueue(base.BaseSimObj):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        context_dict, = base.none_to_empty_dict(context_dict)
-        args_dict = {
-            '_queue': [(ts, event.to_registry(context_dict=context_dict)['id'])
-                       for (ts, event) in self._queue],
+        attribute_dict = {
             '_timestep': self._timestep
         }
-        return args_dict
+        event_queue = []
+        for (ts, event) in self._queue:
+            registry, context_dict = event.to_registry(
+                context_dict=context_dict)
+            event_queue.append((ts, registry['id']))
+        attribute_dict['_queue'] = event_queue
+        return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attributes_dict, context_dict=None,
+    def from_dict(cls, attribute_dict, context_dict,
                   loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         context_dict, loaded_dict, cls_kwargs = \
             base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
         out_obj = cls(**cls_kwargs)
-        out_obj._queue = [
-            (ts, base.build_from_id(event, context_dict,
-                                    loaded_dict=loaded_dict))
-            for (ts, event) in attributes_dict['_queue']
-        ]
-        out_obj._timestep = attributes_dict['_timestep']
-        return out_obj
+
+        event_queue = []
+        for (ts, event) in attribute_dict['_queue']:
+            event_elt, loaded_dict = base.build_from_id(
+                event, context_dict, loaded_dict=loaded_dict)
+            event_queue.append((ts, event))
+        out_obj._queue = event_queue
+
+        out_obj._timestep = attribute_dict['_timestep']
+        return out_obj, loaded_dict

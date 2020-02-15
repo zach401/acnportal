@@ -38,16 +38,17 @@ def build_from_id(obj_id, context_dict, loaded_dict=None):
 
     Returns:
         BaseSimObj-like: The loaded ACN-Sim object.
+        Dict[str, BaseSimObj-like]: Dict mapping object ID's to ACN-Sim
+            objects. This is the loaded_dict passed to and modified by
+            this function.
 
     Raises:
         KeyError: Raised if `obj_id` is not found in `context_dict`.
     """
-    loaded_dict, = none_to_empty_dict(loaded_dict)
-
     # Check if this object has already been loaded; return the loaded
     # object if this is the case.
     if obj_id in loaded_dict:
-        return loaded_dict[obj_id]
+        return loaded_dict[obj_id], loaded_dict
 
     if obj_id not in context_dict:
         raise KeyError(
@@ -60,7 +61,7 @@ def build_from_id(obj_id, context_dict, loaded_dict=None):
 
     # 'version' is None since we've already checked the version of the
     # parent object.
-    obj = obj_class.from_registry(
+    obj, loaded_dict = obj_class.from_registry(
         {'id': obj_id,
          'context_dict': context_dict,
          'version': None,
@@ -69,7 +70,7 @@ def build_from_id(obj_id, context_dict, loaded_dict=None):
     )
 
     loaded_dict[obj_id] = obj
-    return obj
+    return obj, loaded_dict
 
 
 class BaseSimObj:
@@ -95,7 +96,7 @@ class BaseSimObj:
 
     def to_json(self):
         """ Returns a JSON string representing self. """
-        return json.dumps(self.to_registry())
+        return json.dumps(self.to_registry()[0])
 
     def to_registry(self, context_dict=None):
         """
@@ -160,6 +161,8 @@ class BaseSimObj:
                      'version': [commit hash of acnportal at creation
                                  of this object]}
                     ```
+            Dict[str, JSON Serializable]: For clarity, the context_dict
+                is returned since it is modified by this function.
 
         Warns:
             UserWarning: If any attributes are present in the object
@@ -174,19 +177,19 @@ class BaseSimObj:
         # Check if this object has already been converted, and return
         # the appropriate dict if this is the case.
         if obj_id in context_dict:
-            return {'id': obj_id, 'context_dict': context_dict}
+            return {'id': obj_id, 'context_dict': context_dict}, context_dict
 
         obj_type = f'{self.__module__}.{self.__class__.__name__}'
 
         # Get a dictionary of the attributes of this object using the
         # object's to_dict method.
-        args_dict = self.to_dict(context_dict)
+        attribute_dict, context_dict = self.to_dict(context_dict)
 
         # Check that all attributes have been serialized.
         # Warn if some attributes weren't serialized.
-        if args_dict.keys() != self.__dict__.keys():
+        if attribute_dict.keys() != self.__dict__.keys():
             unserialized_keys = \
-                set(self.__dict__.keys()) - set(args_dict.keys())
+                set(self.__dict__.keys()) - set(attribute_dict.keys())
             warnings.warn(
                 f"Attributes {unserialized_keys} present in object of type "
                 f"{obj_type} but not handled by object's to_dict method. "
@@ -199,7 +202,7 @@ class BaseSimObj:
                 unserialized_attr = self.__dict__[key]
                 # Try calling the attr's to_registry method.
                 try:
-                    args_dict[key] = unserialized_attr.to_registry(
+                    attribute_dict[key] = unserialized_attr.to_registry(
                         context_dict=context_dict)['id']
                     continue
                 except AttributeError:
@@ -214,26 +217,23 @@ class BaseSimObj:
                         f"attribute will not be fully loaded.",
                         UserWarning
                     )
-                    args_dict[key] = repr(unserialized_attr)
+                    attribute_dict[key] = repr(unserialized_attr)
                 else:
-                    args_dict[key] = unserialized_attr
+                    attribute_dict[key] = unserialized_attr
 
-        obj_dict = {'class': obj_type, 'args': args_dict}
+        obj_dict = {'class': obj_type, 'attributes': attribute_dict}
         context_dict[obj_id] = obj_dict
 
         # Check versions of acnportal and certain dependencies.
         acnportal_version = pkg_resources.require('acnportal')[0].version
-        dependency_versions = {
-            'numpy': numpy.__version__,
-            'pandas': pandas.__version__
-        }
+        dependency_versions = {'numpy': numpy.__version__,
+                               'pandas': pandas.__version__}
 
-        return {
-            'id': obj_id,
-            'context_dict': context_dict,
-            'version': acnportal_version,
-            'dependency_versions': dependency_versions
-        }
+        return ({'id': obj_id,
+                 'context_dict': context_dict,
+                 'version': acnportal_version,
+                 'dependency_versions': dependency_versions},
+                context_dict)
 
     def to_dict(self, context_dict=None):
         """ Converts the object's attributes into a JSON serializable
@@ -246,16 +246,20 @@ class BaseSimObj:
         Returns:
             Dict[str, JSON Serializable]: Dict of the object's
                 attributes, converted to JSON serializable forms.
+            context_dict (Dict[str, JSON Serializable]): Dict mapping
+                object ID's to object JSON serializable representations.
+                This is returned as context_dict may have been modified
+                by this method.
         """
         raise NotImplementedError
 
     @classmethod
     def from_json(cls, in_json):
-        """ Returns an ACN-Sim object loaded from in_json. """
-        return cls.from_registry(json.loads(in_json))
+        """ Returns an ACN-Sim object loaded from in_registry. """
+        return cls.from_registry(json.loads(in_json))[0]
 
     @classmethod
-    def from_registry(cls, in_json, loaded_dict=None, cls_kwargs=None):
+    def from_registry(cls, in_registry, loaded_dict=None, cls_kwargs=None):
         """
         Returns an object of type `cls` from a JSON serializable
         representation of the object.
@@ -303,8 +307,9 @@ class BaseSimObj:
         the deserialized object is added.
 
         Args:
-            in_json (Dict[str, JSON Serializable]): A JSON Serializable
-                representation of this object. Takes the form:
+            in_registry (Dict[str, JSON Serializable]): A JSON
+                Serializable representation of this object. Takes the
+                form:
                     ```
                     {'id': [This object's id],
                      'context_dict': [The dict mapping all object id's
@@ -318,6 +323,8 @@ class BaseSimObj:
 
         Returns:
             BaseSimObj-like: Loaded object.
+            loaded_dict (Dict[str, BaseSimObj-like]): Dict mapping
+                object ID's to loaded ACN-Sim objects.
 
         Raises:
             KeyError: Raised if object represented by `in_json` is not
@@ -339,10 +346,10 @@ class BaseSimObj:
         """
         loaded_dict, cls_kwargs = none_to_empty_dict(loaded_dict, cls_kwargs)
         obj_id, context_dict, acnportal_version, dependency_versions = (
-            in_json['id'],
-            in_json['context_dict'],
-            in_json['version'],
-            in_json['dependency_versions']
+            in_registry['id'],
+            in_registry['context_dict'],
+            in_registry['version'],
+            in_registry['dependency_versions']
         )
 
         # Check current versions of acnportal and certain dependencies
@@ -379,7 +386,7 @@ class BaseSimObj:
         # Check if this object has already been converted, and return
         # the appropriate dict if this is the case.
         if obj_id is not None and obj_id in loaded_dict:
-            return loaded_dict[obj_id]
+            return loaded_dict[obj_id], loaded_dict
 
         if obj_dict['class'] != f'{cls.__module__}.{cls.__name__}':
             warnings.warn(
@@ -388,19 +395,19 @@ class BaseSimObj:
                 UserWarning
             )
 
-        # attributes_dict is a dict mapping attribute names to JSON
+        # attribute_dict is a dict mapping attribute names to JSON
         # serializable values.
-        in_dict = obj_dict['args']
+        attribute_dict = obj_dict['attributes']
 
         # Call this class' from_dict method to convert the JSON
         # representation of this object's attributes into the actual
         # object.
-        out_obj = cls.from_dict(in_dict, context_dict, loaded_dict, cls_kwargs)
+        out_obj, loaded_dict = cls.from_dict(attribute_dict, context_dict, loaded_dict, cls_kwargs)
 
         # Check that all attributes have been loaded.
         # Warn if some attributes weren't loaded.
-        if out_obj.__dict__.keys() != in_dict.keys():
-            unloaded_attrs = set(in_dict.keys()) - set(out_obj.__dict__.keys())
+        if out_obj.__dict__.keys() != attribute_dict.keys():
+            unloaded_attrs = set(attribute_dict.keys()) - set(out_obj.__dict__.keys())
             warnings.warn(
                 f"Attributes {unloaded_attrs} present in object of type "
                 f"{obj_dict['class']} but not handled by object's from_dict "
@@ -408,10 +415,10 @@ class BaseSimObj:
                 UserWarning
             )
             for attr in unloaded_attrs:
-                # Try reading this attribute from an ID in attributes_dict.
+                # Try reading this attribute from an ID in attribute_dict.
                 try:
                     setattr(out_obj, attr, build_from_id(
-                        in_dict[attr], context_dict, loaded_dict=loaded_dict))
+                        attribute_dict[attr], context_dict, loaded_dict=loaded_dict))
                 except (KeyError, TypeError):
                     warnings.warn(
                         f"Loader for attribute {attr} not found. Setting "
@@ -420,21 +427,21 @@ class BaseSimObj:
                     )
                     # If the attribute was originally JSON serializable,
                     # this is correct loading.
-                    setattr(out_obj, attr, in_dict[attr])
+                    setattr(out_obj, attr, attribute_dict[attr])
 
         # Add this object to the dictionary of loaded objects.
         if obj_id is not None:
             loaded_dict[obj_id] = out_obj
-        return out_obj
+        return out_obj, loaded_dict
 
     @classmethod
-    def from_dict(cls, attributes_dict, context_dict, loaded_dict,
-                  cls_kwargs=None):
+    def from_dict(cls, attribute_dict, context_dict,
+                  loaded_dict=None, cls_kwargs=None):
         """ Converts a JSON serializable representation of an ACN-Sim
         object into an actual ACN-Sim object.
 
         Args:
-            attributes_dict (Dict[str, JSON Serializable]): A JSON Serializable
+            attribute_dict (Dict[str, JSON Serializable]): A JSON Serializable
                 representation of this object's attributes.
             context_dict (Dict[str, JSON Serializable]): Dict mapping
                 object ID's to object JSON serializable representations.
@@ -445,5 +452,8 @@ class BaseSimObj:
 
         Returns:
             BaseSimObj-like: Loaded object
+            (Dict[str, BaseSimObj-like]): Dict mapping object ID's to
+                ACN-Sim objects. This is returned as loaded_dict may
+                have been modified by this method.
         """
         raise NotImplementedError
