@@ -287,7 +287,6 @@ class FiniteRatesEVSE(EVSE):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-
         attribute_dict, context_dict = super().to_dict(context_dict)
         attribute_dict['allowable_rates'] = self.allowable_rates
         return attribute_dict, context_dict

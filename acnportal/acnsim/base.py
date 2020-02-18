@@ -202,8 +202,9 @@ class BaseSimObj:
                 unserialized_attr = self.__dict__[key]
                 # Try calling the attr's to_registry method.
                 try:
-                    attribute_dict[key] = unserialized_attr.to_registry(
-                        context_dict=context_dict)['id']
+                    registry, context_dict = unserialized_attr.to_registry(
+                        context_dict=context_dict)
+                    attribute_dict[key] = registry['id']
                     continue
                 except AttributeError:
                     pass
@@ -417,8 +418,9 @@ class BaseSimObj:
             for attr in unloaded_attrs:
                 # Try reading this attribute from an ID in attribute_dict.
                 try:
-                    setattr(out_obj, attr, build_from_id(
-                        attribute_dict[attr], context_dict, loaded_dict=loaded_dict))
+                    out_attr, loaded_dict = build_from_id(
+                        attribute_dict[attr], context_dict, loaded_dict=loaded_dict)
+                    setattr(out_obj, attr, out_attr)
                 except (KeyError, TypeError):
                     warnings.warn(
                         f"Loader for attribute {attr} not found. Setting "

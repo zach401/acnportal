@@ -80,11 +80,6 @@ class TestSimulator(TestCase):
         self.assertIsInstance(new_scheduler.interface, Interface)
         self.assertEqual(self.simulator.max_recompute, 1)
 
-    def test_update_signals(self):
-        new_signals = {'a': [1]}
-        self.simulator.update_signals(new_signals)
-        self.assertEqual(self.simulator.signals, new_signals)
-
 
 class TestSimulatorWarnings(TestCase):
     def test_update_schedules_infeasible_schedule(self):

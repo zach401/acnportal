@@ -92,9 +92,7 @@ class EventQueue(base.BaseSimObj):
 
     def to_dict(self, context_dict=None):
         """ Implements BaseSimObj.to_dict. """
-        attribute_dict = {
-            '_timestep': self._timestep
-        }
+        attribute_dict = {'_timestep': self._timestep}
         event_queue = []
         for (ts, event) in self._queue:
             registry, context_dict = event.to_registry(
@@ -107,15 +105,14 @@ class EventQueue(base.BaseSimObj):
     def from_dict(cls, attribute_dict, context_dict,
                   loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
-        context_dict, loaded_dict, cls_kwargs = \
-            base.none_to_empty_dict(context_dict, loaded_dict, cls_kwargs)
+        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
         out_obj = cls(**cls_kwargs)
 
         event_queue = []
         for (ts, event) in attribute_dict['_queue']:
             event_elt, loaded_dict = base.build_from_id(
                 event, context_dict, loaded_dict=loaded_dict)
-            event_queue.append((ts, event))
+            event_queue.append((ts, event_elt))
         out_obj._queue = event_queue
 
         out_obj._timestep = attribute_dict['_timestep']

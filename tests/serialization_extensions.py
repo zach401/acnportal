@@ -26,33 +26,29 @@ class SetAttrEvent(acnsim.Event):
         self.extra_attr = attr_val
 
 
-class BattListEvent(acnsim.Event):
+class BatteryListEvent(acnsim.Event):
     """ An extension of Event with a list of Batteries. """
-    def __init__(self, timestamp, batt_list):
+    def __init__(self, timestamp, battery_list):
         super().__init__(timestamp)
-        self.batt_list = batt_list
+        self.battery_list = battery_list
 
     def to_dict(self, context_dict=None):
         attribute_dict, context_dict = super().to_dict(context_dict)
-
-        batt_list = []
-        for ev in self.batt_list:
+        battery_list = []
+        for ev in self.battery_list:
             registry, context_dict = ev.to_registry(context_dict=context_dict)
-            batt_list.append(registry['id'])
-        attribute_dict['batt_list'] = batt_list
-
+            battery_list.append(registry['id'])
+        attribute_dict['battery_list'] = battery_list
         return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attribute_dict,
-                  context_dict=None, loaded_dict=None, cls_kwargs=None):
+    def from_dict(cls, attribute_dict, context_dict=None,
+                  loaded_dict=None, cls_kwargs=None):
         cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
-
-        batt_list = []
-        for ev in attribute_dict['batt_list']:
+        battery_list = []
+        for ev in attribute_dict['battery_list']:
             ev_elt, loaded_dict = base.build_from_id(
                 ev, context_dict=context_dict, loaded_dict=loaded_dict)
-            batt_list.append(ev_elt)
-
-        out_obj = cls(attribute_dict['timestamp'], batt_list, **cls_kwargs)
+            battery_list.append(ev_elt)
+        out_obj = cls(attribute_dict['timestamp'], battery_list, **cls_kwargs)
         return out_obj, loaded_dict

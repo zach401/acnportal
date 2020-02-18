@@ -3,7 +3,7 @@ from unittest import TestCase
 from acnportal import acnsim
 from acnportal.algorithms import BaseAlgorithm, UncontrolledCharging
 from .serialization_extensions import NamedEvent, DefaultNamedEvent
-from .serialization_extensions import SetAttrEvent, BattListEvent
+from .serialization_extensions import SetAttrEvent, BatteryListEvent
 
 import json
 import sys
@@ -536,11 +536,11 @@ class TestExtObjJSONIO(TestJSONIO):
                          "array([[0., 0.],\n       [0., 0.]])")
 
     def test_batt_list_event_json(self):
-        batt_list_event = BattListEvent(5, [self.battery1, self.battery2])
+        batt_list_event = BatteryListEvent(5, [self.battery1, self.battery2])
         batt_list_event_json = batt_list_event.to_json()
-        batt_list_event_loaded = BattListEvent.from_json(batt_list_event_json)
+        batt_list_event_loaded = BatteryListEvent.from_json(batt_list_event_json)
         self.assertIsInstance(batt_list_event_loaded,
-                              BattListEvent)
+                              BatteryListEvent)
 
         event_fields = ['timestamp', 'event_type', 'precedence']
 
@@ -548,8 +548,8 @@ class TestExtObjJSONIO(TestJSONIO):
             self.assertEqual(getattr(batt_list_event, field),
                              getattr(batt_list_event_loaded, field))
 
-        for batt, batt_loaded in zip(batt_list_event.batt_list,
-                                     batt_list_event_loaded.batt_list):
+        for batt, batt_loaded in zip(batt_list_event.battery_list,
+                                     batt_list_event_loaded.battery_list):
             self.assertEqual(batt.__dict__, batt_loaded.__dict__)
 
     def test_event_queue_json(self):
