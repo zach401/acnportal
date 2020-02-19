@@ -100,7 +100,7 @@ class EventQueue(base.BaseSimObj):
                 context_dict=context_dict)
             event_queue.append((ts, registry['id']))
         attribute_dict['_queue'] = event_queue
-        
+
         return attribute_dict, context_dict
 
     @classmethod

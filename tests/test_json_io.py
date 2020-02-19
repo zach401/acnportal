@@ -22,8 +22,7 @@ class TestJSONIO(TestCase):
         self.battery1._current_charging_power = 10
 
         # Linear2StageBattery
-        self.battery2 = acnsim.Linear2StageBattery(
-            100, 50, 20)
+        self.battery2 = acnsim.Linear2StageBattery(100, 50, 20)
         self.battery2._current_charging_power = 10
         self.battery2._noise_level = 0.1
         self.battery2._transition_soc = 0.85
@@ -32,52 +31,64 @@ class TestJSONIO(TestCase):
         staying_time = 10
         ev1_arrival = 10
         self.ev1 = acnsim.EV(
-            ev1_arrival, ev1_arrival + staying_time, 30, 'PS-001', 'EV-001',
-            deepcopy(self.battery1), estimated_departure=25
+            ev1_arrival,
+            ev1_arrival + staying_time,
+            30,
+            'PS-001',
+            'EV-001',
+            deepcopy(self.battery1),
+            estimated_departure=25
         )
         self.ev1._energy_delivered = 0.05
         self.ev1._current_charging_rate = 10
 
         ev2_arrival = 40
         self.ev2 = acnsim.EV(
-            ev2_arrival, ev2_arrival + staying_time, 30, 'PS-002', 'EV-002',
-            deepcopy(self.battery2), estimated_departure=25
+            ev2_arrival,
+            ev2_arrival + staying_time,
+            30,
+            'PS-002',
+            'EV-002',
+            deepcopy(self.battery2),
+            estimated_departure=25
         )
         self.ev2._energy_delivered = 0.05
         self.ev2._current_charging_rate = 10
 
         ev3_arrival = 50
         self.ev3 = acnsim.EV(
-            ev3_arrival, ev3_arrival + staying_time, 30, 'PS-003', 'EV-003',
-            deepcopy(self.battery2), estimated_departure=25
+            ev3_arrival,
+            ev3_arrival + staying_time,
+            30,
+            'PS-003',
+            'EV-003',
+            deepcopy(self.battery2),
+            estimated_departure=25
         )
         self.ev3._energy_delivered = 0.05
         self.ev3._current_charging_rate = 10
 
         # EVSEs
-        self.evse0 = acnsim.EVSE('PS-000', max_rate=32,
-                                 min_rate=0)
+        self.evse0 = acnsim.EVSE('PS-000', max_rate=32, min_rate=0)
 
-        self.evse1 = acnsim.EVSE('PS-001', max_rate=32,
-                                 min_rate=0)
+        self.evse1 = acnsim.EVSE('PS-001', max_rate=32, min_rate=0)
         self.evse1.plugin(self.ev1)
         self.evse1.set_pilot(30, 220, 1)
 
-        self.evse2 = acnsim.DeadbandEVSE('PS-002', max_rate=32,
-                                         min_rate=0, deadband_end=4)
+        self.evse2 = acnsim.DeadbandEVSE(
+            'PS-002', max_rate=32, min_rate=0, deadband_end=4)
         self.evse2.plugin(self.ev2)
         self.evse2.set_pilot(30, 220, 1)
 
-        self.evse3 = acnsim.FiniteRatesEVSE('PS-003',
-                                            allowable_rates=[0, 8, 16, 24, 32])
+        self.evse3 = acnsim.FiniteRatesEVSE(
+            'PS-003', allowable_rates=[0, 8, 16, 24, 32])
         self.evse3.plugin(self.ev3)
         self.evse3.set_pilot(24, 220, 1)
 
         # Events
         self.event = acnsim.Event(0)
         self.plugin_event1 = acnsim.PluginEvent(10, self.ev1)
-        self.unplug_event = acnsim.UnplugEvent(20, 'PS-001',
-                                               'EV-001')
+        self.unplug_event = acnsim.UnplugEvent(20, 'PS-001', 'EV-001')
         self.recompute_event = acnsim.RecomputeEvent(30)
         self.plugin_event2 = acnsim.PluginEvent(40, self.ev2)
         self.plugin_event3 = acnsim.PluginEvent(50, self.ev3)
@@ -93,8 +104,8 @@ class TestJSONIO(TestCase):
         )
 
         # Network
-        self.network = acnsim.ChargingNetwork(violation_tolerance=1e-3,
-                                              relative_tolerance=1e-5)
+        self.network = acnsim.ChargingNetwork(
+            violation_tolerance=1e-3, relative_tolerance=1e-5)
 
         self.network.register_evse(self.evse1, 220, 30)
         self.network.register_evse(self.evse2, 220, 150)
@@ -107,8 +118,10 @@ class TestJSONIO(TestCase):
 
         # Simulator
         self.simulator = acnsim.Simulator(
-            self.network, UncontrolledCharging(),
-            self.event_queue, datetime(2019, 1, 1),
+            self.network,
+            UncontrolledCharging(),
+            self.event_queue,
+            datetime(2019, 1, 1),
             verbose=False,
             store_schedule_history=True
         )
@@ -207,13 +220,10 @@ class TestJSONIO(TestCase):
             self.assertIsInstance(ev._battery, bat_type)
             ev_loaded = self._obj_compare_helper(ev)
             self.assertIsInstance(ev_loaded._battery, bat_type)
-            self.assertEqual(ev_loaded._battery.__dict__,
-                             ev._battery.__dict__)
+            self.assertEqual(ev_loaded._battery.__dict__, ev._battery.__dict__)
         _load_dump_compare_helper(self.ev1, acnsim.Battery)
-        _load_dump_compare_helper(self.ev2,
-                                  acnsim.Linear2StageBattery)
-        _load_dump_compare_helper(self.ev3,
-                                  acnsim.Linear2StageBattery)
+        _load_dump_compare_helper(self.ev2, acnsim.Linear2StageBattery)
+        _load_dump_compare_helper(self.ev3, acnsim.Linear2StageBattery)
 
     def test_evse_no_ev_json(self):
         evse_loaded = self._obj_compare_helper(self.evse0)
@@ -270,8 +280,8 @@ class TestJSONIO(TestCase):
         network_loaded = self._obj_compare_helper(self.network)
         self.assertIsInstance(network_loaded, acnsim.ChargingNetwork)
 
-        network_np_fields = ['constraint_matrix', 'magnitudes', '_voltages',
-                             '_phase_angles']
+        network_np_fields = ['constraint_matrix', 'magnitudes',
+                             '_voltages', '_phase_angles']
         for field in network_np_fields:
             np.testing.assert_equal(getattr(self.network, field),
                                     getattr(network_loaded, field))
@@ -305,23 +315,22 @@ class TestJSONIO(TestCase):
             self.assertEqual(getattr(sim.network, attr),
                              getattr(simulator_loaded.network, attr))
 
-        for (ts, event), (tsl, event_loaded) in \
-                zip(sim.event_queue._queue,
-                    simulator_loaded.event_queue._queue):
+        for (ts, event), (tsl, event_loaded) in zip(
+                sim.event_queue._queue, simulator_loaded.event_queue._queue):
             self.assertEqual(ts, tsl)
             self.assertEqual(event.event_type, event_loaded.event_type)
             self.assertEqual(event.timestamp, event_loaded.timestamp)
 
-        for event, event_loaded in \
-                zip(sim.event_history,
-                    simulator_loaded.event_history):
+        for event, event_loaded in zip(
+                sim.event_history, simulator_loaded.event_history):
             self.assertEqual(event.event_type, event_loaded.event_type)
             self.assertEqual(event.timestamp, event_loaded.timestamp)
 
         for station_id, ev in sim.ev_history.items():
-            self.assertEqual(ev.session_id,
-                             simulator_loaded.ev_history[
-                                 station_id].session_id)
+            self.assertEqual(
+                ev.session_id,
+                simulator_loaded.ev_history[station_id].session_id
+            )
 
     def test_init_simulator_json(self):
         self._sim_compare_helper(self.simulator)
@@ -353,15 +362,13 @@ class TestJSONIO(TestCase):
 
     def test_acnportal_version_inequality(self):
         with open(os.path.join(os.path.dirname(__file__),
-                               'old_version.json'),
-                  'r') as infile:
+                               'old_version.json'), 'r') as infile:
             with self.assertWarns(UserWarning):
                 acnsim.Event.from_json(json.load(infile))
 
     def test_numpy_version_inequality(self):
         with open(os.path.join(os.path.dirname(__file__),
-                               'old_dependencies.json'),
-                  'r') as infile:
+                               'old_dependencies.json'), 'r') as infile:
             with self.assertWarns(UserWarning):
                 acnsim.Event.from_json(json.load(infile))
 
@@ -457,27 +464,20 @@ class TestExtObjJSONIO(TestJSONIO):
             self.assertIsInstance(event_loaded, acnsim.Event)
             if isinstance(event_loaded, acnsim.PluginEvent):
                 for field in ['timestamp', 'event_type', 'precedence']:
-                    self.assertEqual(
-                        getattr(event, field),
-                        getattr(event_loaded, field)
-                    )
+                    self.assertEqual(getattr(event, field),
+                                     getattr(event_loaded, field))
                 self.assertEqual(
-                    getattr(getattr(event_loaded, 'ev'),
-                            '_session_id'),
-                    getattr(getattr(event, 'ev'),
-                            '_session_id')
+                    getattr(getattr(event_loaded, 'ev'), '_session_id'),
+                    getattr(getattr(event, 'ev'), '_session_id')
                 )
             elif isinstance(event_loaded, SetAttrEvent):
                 for field in ['timestamp', 'event_type', 'precedence']:
-                    self.assertEqual(
-                        getattr(event, field),
-                        getattr(event_loaded, field)
-                    )
+                    self.assertEqual(getattr(event, field),
+                                     getattr(event_loaded, field))
                 self.assertEqual(
                     getattr(event_loaded, 'extra_attr').__dict__,
                     getattr(event, 'extra_attr').__dict__
                 )
             else:
                 self.assertEqual(type(event), type(event_loaded))
-                self.assertEqual(event.__dict__,
-                                 event_loaded.__dict__)
+                self.assertEqual(event.__dict__, event_loaded.__dict__)
