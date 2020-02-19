@@ -94,8 +94,8 @@ class Simulator(base.BaseSimObj):
                     self.schedule_history[self._iteration] = new_schedule
                 self._last_schedule_update = self._iteration
                 self._resolve = False
-            if self.event_queue.get_last_timestamp() is not None:
-                width_increase = max(self.event_queue.get_last_timestamp() + 1, self._iteration + 1)
+            if not self.event_queue.empty():
+                width_increase = self.event_queue.get_last_timestamp() + 1
             else:
                 width_increase = self._iteration + 1
             self.pilot_signals = _increase_width(self.pilot_signals, width_increase)
@@ -145,7 +145,7 @@ class Simulator(base.BaseSimObj):
         """ Extend the current self.pilot_signals with the new pilot signal schedule.
 
         Args:
-            new_schedule (Dict[str, List[number]]): Dictionary mappding station ids to a schedule of pilot signals.
+            new_schedule (Dict[str, List[number]]): Dictionary mapping station ids to a schedule of pilot signals.
 
         Returns:
             None
@@ -193,7 +193,11 @@ class Simulator(base.BaseSimObj):
         if self.iteration < self.charging_rates.shape[1]:
             self.charging_rates[:, self.iteration] = current_rates.T
         else:
-            self.charging_rates = _increase_width(self.charging_rates, max(self.event_queue.get_last_timestamp() + 1, self._iteration + 1))
+            if not self.event_queue.empty():
+                width_increase = self.event_queue.get_last_timestamp() + 1
+            else:
+                width_increase = self._iteration + 1
+            self.charging_rates = _increase_width(self.charging_rates, width_increase)
             self.charging_rates[:, self._iteration] = current_rates.T
         self.peak = max(self.peak, agg)
 
@@ -206,7 +210,9 @@ class Simulator(base.BaseSimObj):
         and iteration as index.
 
         Returns:
-            pandas.DataFrame
+            pandas.DataFrame: A DataFrame containing the charging rates
+                of the simulation. Columns are EVSE id, and the index is
+                the iteration.
         """
         return pd.DataFrame(data=self.charging_rates.T, columns=self.network.station_ids)
 
@@ -214,7 +220,9 @@ class Simulator(base.BaseSimObj):
         """ Return the pilot signals as a pandas DataFrame
 
         Returns:
-            pandas.DataFrame
+            pandas.DataFrame: A DataFrame containing the pilot signals
+                of the simulation. Columns are EVSE id, and the index is
+                the iteration.
         """
         return pd.DataFrame(data=self.pilot_signals.T, columns=self.network.station_ids)
 
