@@ -294,10 +294,7 @@ class TestJSONIO(TestCase):
     def _sim_compare_helper(self, sim):
         simulator_loaded = self._obj_compare_helper(sim)
 
-        if sys.version_info[1] < 7:
-            self.assertEqual(sim.start.isoformat(), simulator_loaded.start)
-        else:
-            self.assertEqual(sim.start, simulator_loaded.start)
+        self.assertEqual(sim.start, simulator_loaded.start)
 
         self.assertIsInstance(simulator_loaded.scheduler, UncontrolledCharging)
 

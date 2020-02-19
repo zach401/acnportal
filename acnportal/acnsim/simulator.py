@@ -262,12 +262,7 @@ class Simulator(base.BaseSimObj):
         attribute_dict['scheduler'] = (f'{self.scheduler.__module__}.'
                                        f'{self.scheduler.__class__.__name__}')
 
-        if sys.version_info[1] < 7:
-            warnings.warn(f"Datetime {self.start} will not be loaded "
-                          f"as datetime object. Use python 3.7 or "
-                          f"higher to load this value after "
-                          f"serialization.")
-        attribute_dict['start'] = self.start.isoformat()
+        attribute_dict['start'] = self.start.strftime('%H:%M:%S.%f %d%m%Y')
 
         try:
             base.json.dumps(self.signals)
@@ -346,13 +341,8 @@ class Simulator(base.BaseSimObj):
                           f"scheduler to BaseAlgorithm instead.")
             scheduler = BaseAlgorithm()
 
-        if sys.version_info[1] < 7:
-            warnings.warn(f"ISO format {attribute_dict['start']} "
-                          f"cannot be loaded as datetime object. Use "
-                          f"python 3.7 or higher to load this value.")
-            start = attribute_dict['start']
-        else:
-            start = datetime.fromisoformat(attribute_dict['start'])
+        start = datetime.strptime(
+            attribute_dict['start'], '%H:%M:%S.%f %d%m%Y')
 
         out_obj = cls(
             network,
