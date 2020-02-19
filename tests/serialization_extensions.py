@@ -23,6 +23,7 @@ class SetAttrEvent(acnsim.Event):
         super().__init__(timestamp)
 
     def set_extra_attr(self, attr_val):
+        # noinspection PyAttributeOutsideInit
         self.extra_attr = attr_val
 
 

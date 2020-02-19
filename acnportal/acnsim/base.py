@@ -191,11 +191,11 @@ class BaseSimObj:
             unserialized_keys = \
                 set(self.__dict__.keys()) - set(attribute_dict.keys())
             warnings.warn(
-                f"Attributes {unserialized_keys} present in object of type "
-                f"{obj_type} but not handled by object's to_dict method. "
-                f"Serialized object may not load correctly. Write a to_dict "
-                f"method and re-dump, or write an appropriate from_dict "
-                f"method to accurately load.",
+                f"Attributes {unserialized_keys} present in object of "
+                f"type {obj_type} but not handled by object's to_dict "
+                f"method. Serialized object may not load correctly. "
+                f"Write a to_dict method and re-dump, or write an "
+                f"appropriate from_dict method to accurately load.",
                 UserWarning
             )
             for key in unserialized_keys:
@@ -208,14 +208,16 @@ class BaseSimObj:
                     continue
                 except AttributeError:
                     pass
-                # Try dumping the object using the native JSON serializer.
+                # Try dumping the object using the native JSON
+                # serializer.
                 try:
                     json.dumps(unserialized_attr)
                 except TypeError:
                     warnings.warn(
-                        f"Attribute {key} could not be serialized. Dumping "
-                        f"the attribute's repr() representation. This "
-                        f"attribute will not be fully loaded.",
+                        f"Attribute {key} could not be serialized. "
+                        f"Dumping the attribute's repr() "
+                        f"representation. This attribute will not be "
+                        f"fully loaded.",
                         UserWarning
                     )
                     attribute_dict[key] = repr(unserialized_attr)
@@ -345,7 +347,8 @@ class BaseSimObj:
                 the loaded attribute will be incorrect.
 
         """
-        loaded_dict, cls_kwargs = none_to_empty_dict(loaded_dict, cls_kwargs)
+        loaded_dict, cls_kwargs = none_to_empty_dict(
+            loaded_dict, cls_kwargs)
         obj_id, context_dict, acnportal_version, dependency_versions = (
             in_registry['id'],
             in_registry['context_dict'],
@@ -359,8 +362,9 @@ class BaseSimObj:
         if (acnportal_version is not None
                 and current_version != acnportal_version):
             warnings.warn(
-                f"Version {acnportal_version} of input acnportal object does "
-                f"not match current version {current_version}."
+                f"Version {acnportal_version} of input acnportal "
+                f"object does not match current version "
+                f"{current_version}."
             )
 
         current_dependency_versions = {
@@ -372,8 +376,8 @@ class BaseSimObj:
                 if (current_dependency_versions[pkg]
                         != dependency_versions[pkg]):
                     warnings.warn(
-                        f"Current version of dependency {pkg} does not match "
-                        f"serialized version. "
+                        f"Current version of dependency {pkg} does not "
+                        f"match serialized version. "
                         f"Current: {current_dependency_versions[pkg]}, "
                         f"Serialized: {dependency_versions[pkg]}.",
                     )
@@ -391,8 +395,9 @@ class BaseSimObj:
 
         if obj_dict['class'] != f'{cls.__module__}.{cls.__name__}':
             warnings.warn(
-                f"Deserializing as type {cls.__module__}.{cls.__name__}. "
-                f"Object was serialized as type {obj_dict['class']}.",
+                f"Deserializing as type "
+                f"{cls.__module__}.{cls.__name__}. Object was "
+                f"serialized as type {obj_dict['class']}.",
                 UserWarning
             )
 
@@ -403,28 +408,35 @@ class BaseSimObj:
         # Call this class' from_dict method to convert the JSON
         # representation of this object's attributes into the actual
         # object.
-        out_obj, loaded_dict = cls.from_dict(attribute_dict, context_dict, loaded_dict, cls_kwargs)
+        out_obj, loaded_dict = cls.from_dict(
+            attribute_dict, context_dict, loaded_dict, cls_kwargs)
 
         # Check that all attributes have been loaded.
         # Warn if some attributes weren't loaded.
         if out_obj.__dict__.keys() != attribute_dict.keys():
-            unloaded_attrs = set(attribute_dict.keys()) - set(out_obj.__dict__.keys())
+            unloaded_attrs = (set(attribute_dict.keys())
+                              - set(out_obj.__dict__.keys()))
             warnings.warn(
-                f"Attributes {unloaded_attrs} present in object of type "
-                f"{obj_dict['class']} but not handled by object's from_dict "
-                f"method. Loaded object may have inaccurate attributes.",
+                f"Attributes {unloaded_attrs} present in object of "
+                f"type {obj_dict['class']} but not handled by object's "
+                f"from_dict method. Loaded object may have inaccurate "
+                f"attributes.",
                 UserWarning
             )
             for attr in unloaded_attrs:
-                # Try reading this attribute from an ID in attribute_dict.
+                # Try reading this attribute from an ID in
+                # attribute_dict.
                 try:
                     out_attr, loaded_dict = build_from_id(
-                        attribute_dict[attr], context_dict, loaded_dict=loaded_dict)
+                        attribute_dict[attr],
+                        context_dict,
+                        loaded_dict=loaded_dict
+                    )
                     setattr(out_obj, attr, out_attr)
                 except (KeyError, TypeError):
                     warnings.warn(
-                        f"Loader for attribute {attr} not found. Setting "
-                        f"attribute {attr} directly.",
+                        f"Loader for attribute {attr} not found. "
+                        f"Setting attribute {attr} directly.",
                         UserWarning
                     )
                     # If the attribute was originally JSON serializable,
@@ -443,8 +455,8 @@ class BaseSimObj:
         object into an actual ACN-Sim object.
 
         Args:
-            attribute_dict (Dict[str, JSON Serializable]): A JSON Serializable
-                representation of this object's attributes.
+            attribute_dict (Dict[str, JSON Serializable]): A JSON
+                Serializable representation of this object's attributes.
             context_dict (Dict[str, JSON Serializable]): Dict mapping
                 object ID's to object JSON serializable representations.
             loaded_dict (Dict[str, BaseSimObj-like]): Dict mapping

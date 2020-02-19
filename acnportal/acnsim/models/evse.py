@@ -163,7 +163,7 @@ class EVSE(base.BaseSimObj):
         """ Implements BaseSimObj.to_dict. """
         attribute_dict = {}
         nn_attr_lst = ['_station_id', '_max_rate', '_min_rate',
-                       '_current_pilot','is_continuous']
+                       '_current_pilot', 'is_continuous']
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
         if self._ev is not None:
@@ -240,7 +240,7 @@ class DeadbandEVSE(EVSE):
                   loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
-        cls_kwargs = {'deadband_end': attribute_dict['_deadband_end']}
+        cls_kwargs['deadband_end'] = attribute_dict['_deadband_end']
         out_obj, loaded_dict = super().from_dict(
             attribute_dict, context_dict, loaded_dict, cls_kwargs)
         return out_obj, loaded_dict
