@@ -166,12 +166,14 @@ class EVSE(base.BaseSimObj):
                        '_current_pilot', 'is_continuous']
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
+
         if self._ev is not None:
             registry, context_dict = self.ev.to_registry(
                 context_dict=context_dict)
             attribute_dict['_ev'] = registry['id']
         else:
             attribute_dict['_ev'] = None
+
         return attribute_dict, context_dict
 
     @classmethod
@@ -179,11 +181,6 @@ class EVSE(base.BaseSimObj):
                   loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
-        if attribute_dict['_ev'] is not None:
-            ev, loaded_dict = base.build_from_id(
-                attribute_dict['_ev'], context_dict, loaded_dict=loaded_dict)
-        else:
-            ev = None
         out_obj = cls(
             attribute_dict['_station_id'],
             max_rate=attribute_dict['_max_rate'],
@@ -191,8 +188,15 @@ class EVSE(base.BaseSimObj):
             **cls_kwargs
         )
         out_obj._current_pilot = attribute_dict['_current_pilot']
+        out_obj.is_continuous = attribute_dict['is_continuous']
+
+        if attribute_dict['_ev'] is not None:
+            ev, loaded_dict = base.build_from_id(
+                attribute_dict['_ev'], context_dict, loaded_dict=loaded_dict)
+        else:
+            ev = None
         out_obj._ev = ev
-        out_obj.is_continuous = True
+
         return out_obj, loaded_dict
 
 
@@ -296,11 +300,6 @@ class FiniteRatesEVSE(EVSE):
                   loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
-        if attribute_dict['_ev'] is not None:
-            ev, loaded_dict = base.build_from_id(
-                attribute_dict['_ev'], context_dict, loaded_dict=loaded_dict)
-        else:
-            ev = None
         out_obj = cls(
             attribute_dict['_station_id'],
             attribute_dict['allowable_rates'],
@@ -309,6 +308,13 @@ class FiniteRatesEVSE(EVSE):
         out_obj._max_rate = attribute_dict['_max_rate']
         out_obj._min_rate = attribute_dict['_min_rate']
         out_obj._current_pilot = attribute_dict['_current_pilot']
-        out_obj._ev = ev
         out_obj.is_continuous = attribute_dict['is_continuous']
+
+        if attribute_dict['_ev'] is not None:
+            ev, loaded_dict = base.build_from_id(
+                attribute_dict['_ev'], context_dict, loaded_dict=loaded_dict)
+        else:
+            ev = None
+        out_obj._ev = ev
+
         return out_obj, loaded_dict

@@ -77,9 +77,11 @@ class PluginEvent(Event):
         """ Implements BaseSimObj.to_dict. """
         attribute_dict, context_dict = super().to_dict(context_dict)
         # Plugin-specific attributes
+
         registry, context_dict = self.ev.to_registry(
             context_dict=context_dict)
         attribute_dict['ev'] = registry['id']
+
         return attribute_dict, context_dict
 
     @classmethod
@@ -87,9 +89,11 @@ class PluginEvent(Event):
                   loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
+
         ev, loaded_dict = base.build_from_id(
             attribute_dict['ev'], context_dict, loaded_dict=loaded_dict)
         cls_kwargs['ev'] = ev
+
         out_obj, loaded_dict = super().from_dict(
             attribute_dict, context_dict, loaded_dict, cls_kwargs)
         return out_obj, loaded_dict

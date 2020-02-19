@@ -145,9 +145,11 @@ class EV(base.BaseSimObj):
                        '_current_charging_rate']
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
+
         registry, context_dict = self._battery.to_registry(
             context_dict=context_dict)
         attribute_dict['_battery'] = registry['id']
+
         return attribute_dict, context_dict
 
     @classmethod
@@ -155,8 +157,10 @@ class EV(base.BaseSimObj):
                   loaded_dict=None, cls_kwargs=None):
         """ Implements BaseSimObj.from_dict. """
         cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
+
         battery, loaded_dict = base.build_from_id(
             attribute_dict['_battery'], context_dict, loaded_dict=loaded_dict)
+
         out_obj = cls(
             attribute_dict['_arrival'],
             attribute_dict['_departure'],

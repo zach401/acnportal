@@ -369,14 +369,12 @@ class ChargingNetwork(base.BaseSimObj):
             evses[station_id] = evse_elt
         out_obj._EVSEs = evses
 
-        out_obj.constraint_matrix = \
-            np.array(attribute_dict['constraint_matrix'])
-        out_obj.magnitudes = \
-            np.array(attribute_dict['magnitudes'])
-
-        out_obj.constraint_index = attribute_dict['constraint_index']
+        out_obj.constraint_matrix = np.array(
+            attribute_dict['constraint_matrix'])
+        out_obj.magnitudes = np.array(attribute_dict['magnitudes'])
         out_obj._voltages = np.array(attribute_dict['_voltages'])
         out_obj._phase_angles = np.array(attribute_dict['_phase_angles'])
+        out_obj.constraint_index = attribute_dict['constraint_index']
 
         return out_obj, loaded_dict
 

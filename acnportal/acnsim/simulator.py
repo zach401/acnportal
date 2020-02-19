@@ -242,31 +242,25 @@ class Simulator(base.BaseSimObj):
         Only the scheduler's name is serialized.
         """
         attribute_dict = {}
-        # Serialize non-nested attributes.
-        nn_attr_lst = ['period', 'max_recompute', 'verbose', 'peak',
-                       '_iteration', '_resolve', '_last_schedule_update',
-                       'schedule_history']
-        for attr in nn_attr_lst:
-            attribute_dict[attr] = getattr(self, attr)
 
         registry, context_dict = self.network.to_registry(
             context_dict=context_dict)
         attribute_dict['network'] = registry['id']
 
-        attribute_dict['scheduler'] = (f'{self.scheduler.__module__}.'
-                                       f'{self.scheduler.__class__.__name__}')
-
         registry, context_dict = self.event_queue.to_registry(
             context_dict=context_dict)
         attribute_dict['event_queue'] = registry['id']
+
+        attribute_dict['scheduler'] = (f'{self.scheduler.__module__}.'
+                                       f'{self.scheduler.__class__.__name__}')
 
         if sys.version_info[1] < 7:
             warnings.warn(f"Datetime {self.start} will not be loaded "
                           f"as datetime object. Use python 3.7 or "
                           f"higher to load this value after "
                           f"serialization.")
-
         attribute_dict['start'] = self.start.isoformat()
+
         try:
             base.json.dumps(self.signals)
         except TypeError:
@@ -276,6 +270,13 @@ class Simulator(base.BaseSimObj):
             attribute_dict['signals'] = None
         else:
             attribute_dict['signals'] = self.signals
+
+        # Serialize non-nested attributes.
+        nn_attr_lst = ['period', 'max_recompute', 'verbose', 'peak',
+                       '_iteration', '_resolve', '_last_schedule_update',
+                       'schedule_history']
+        for attr in nn_attr_lst:
+            attribute_dict[attr] = getattr(self, attr)
 
         attribute_dict['pilot_signals'] = self.pilot_signals.tolist()
         attribute_dict['charging_rates'] = self.charging_rates.tolist()
