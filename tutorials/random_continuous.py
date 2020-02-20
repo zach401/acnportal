@@ -62,7 +62,7 @@ def sim_gen_func():
     period = 1
 
     # Make random event queue
-    cn = acnsim.sites.simple_acn(basic_evse=True, voltage=voltage)
+    cn = acnsim.sites.simple_acn(["SA-001", "SA-002", "SA-003", "SA-004"], aggregate_cap=80*208/1000)
     event_list = []
     for station_id in cn.station_ids:
         event_list.extend(random_plugin(10, 100, station_id))
