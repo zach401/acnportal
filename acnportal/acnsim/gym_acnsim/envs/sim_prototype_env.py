@@ -3,6 +3,7 @@ import numpy as np
 from gym import spaces
 from copy import deepcopy
 from .. import reward_functions as rf
+from ...interface import GymTrainingInterface
 
 
 class BaseSimEnv(gym.Env):
@@ -119,10 +120,10 @@ class BaseSimEnv(gym.Env):
         Returns:
             None.
         """
-        self._observation = self.observation_from_state()
-        self._reward = self.reward_from_state()
-        self._done = self.done_from_state()
-        self._info = self.info_from_state()
+        self.observation = self.observation_from_state()
+        self.reward = self.reward_from_state()
+        self.done = self.done_from_state()
+        self.info = self.info_from_state()
 
     def store_previous_state(self):
         """ Store the previous state of the simulation in the
@@ -131,11 +132,9 @@ class BaseSimEnv(gym.Env):
         Returns:
             None.
         """
-        self._prev_interface = deepcopy(self.interface)
+        self._prev_interface = self.interface
 
     def step(self, action):
-        # TODO: add error check if step is called while a non-steppable
-        #  interface is registered.
         """ Step the simulation one timestep with an agent's action.
 
         Accepts an action and returns a tuple (observation, reward,
@@ -156,8 +155,15 @@ class BaseSimEnv(gym.Env):
             info (dict): contains auxiliary diagnostic information 
                 (helpful for debugging, and sometimes learning)
         """
-        self._action = action
-        self._schedule = deepcopy(self.action_to_schedule())
+        if not isinstance(self._interface, GymTrainingInterface):
+            raise TypeError(
+                "Environment interface must be of type "
+                "GymTrainingInterface to call step function. Either "
+                "use sim.run() to progress the environment or set a "
+                "new interface."
+            )
+        self.action = action
+        self.schedule = self.action_to_schedule()
         
         self.store_previous_state()
         self._interface.step(self.schedule)
