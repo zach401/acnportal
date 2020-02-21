@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 from gym import spaces
-import copy
+from copy import deepcopy
 from .. import reward_functions as rf
 
 
@@ -10,15 +10,15 @@ class BaseSimEnv(gym.Env):
     new ACN-Sim Environments.
 
     Subclasses must implement the following methods:
-        _action_to_schedule
-        _observation_from_state
-        _reward_from_state
-        _done_from_state
+        action_to_schedule
+        observation_from_state
+        reward_from_state
+        done_from_state
 
     Subclasses must also specify observation_space and action_space,
     either as class or instance variables.
 
-    Optionally, subclasses may implement _info_from_state, which here
+    Optionally, subclasses may implement info_from_state, which here
     returns an empty dict.
     
     Subclasses may override __init__, step, and reset functions.
@@ -27,34 +27,115 @@ class BaseSimEnv(gym.Env):
     is not required for internal functionality.
 
     Attributes:
-        interface (GymInterface): An interface to a simulation to be
+        _interface (GymInterface): An interface to a simulation to be
             stepped by this environment.
-        init_snapshot (GymInterface): A deep copy of the initial
+        _init_snapshot (GymInterface): A deep copy of the initial
             interface, used for environment resets.
-        prev_interface (GymInterface): A deep copy of the interface
+        _prev_interface (GymInterface): A deep copy of the interface
             at the previous time step; used for calculating action 
             rewards.
-        action (object): The action taken by the agent in this
+        _action (object): The action taken by the agent in this
             agent-environment loop iteration.
-        schedule (Dict[str, List[number]]): Dictionary mapping
+        _schedule (Dict[str, List[number]]): Dictionary mapping
             station ids to a schedule of pilot signals.
-        observation (object): The observation given to the agent in
+        _observation (object): The observation given to the agent in
             this agent-environment loop iteration.
-        done (object): An object representing whether or not the
+        _done (object): An object representing whether or not the
             execution of the environment is complete.
-        info (object): An object that gives info about the environment.
+        _info (object): An object that gives info about the environment.
     """
     def __init__(self, interface):
-        self.interface = interface
-        self.init_snapshot = copy.deepcopy(interface)
-        self.prev_interface = copy.deepcopy(interface)
-        self.action = None
-        self.schedule = {}
-        self.observation = None
-        self.done = None
-        self.info = None
+        self._interface = interface
+        self._init_snapshot = deepcopy(interface)
+        self._prev_interface = deepcopy(interface)
+        self._action = None
+        self._schedule = {}
+        self._observation = None
+        self._reward = None
+        self._done = None
+        self._info = None
+
+    @property
+    def interface(self):
+        return deepcopy(self._interface)
+
+    @interface.setter
+    def interface(self, new_interface):
+        self._interface = new_interface
+
+    @property
+    def action(self):
+        return deepcopy(self._action)
+
+    @action.setter
+    def action(self, new_action):
+        self._action = new_action
+
+    @property
+    def schedule(self):
+        return deepcopy(self._schedule)
+
+    @schedule.setter
+    def schedule(self, new_schedule):
+        self._schedule = new_schedule
+
+    @property
+    def observation(self):
+        return deepcopy(self._observation)
+
+    @observation.setter
+    def observation(self, new_observation):
+        self._observation = new_observation
+
+    @property
+    def reward(self):
+        return deepcopy(self._reward)
+
+    @reward.setter
+    def reward(self, new_reward):
+        self._reward = new_reward
+
+    @property
+    def done(self):
+        return deepcopy(self._done)
+
+    @done.setter
+    def done(self, new_done):
+        self._done = new_done
+
+    @property
+    def info(self):
+        return deepcopy(self._info)
+
+    @info.setter
+    def info(self, new_info):
+        self._info = new_info
+
+    def update_state(self):
+        """ Update the state of the environment. Namely, the
+        observation, reward, done, and info attributes of the
+        environment.
+
+        Returns:
+            None.
+        """
+        self._observation = self.observation_from_state()
+        self._reward = self.reward_from_state()
+        self._done = self.done_from_state()
+        self._info = self.info_from_state()
+
+    def store_previous_state(self):
+        """ Store the previous state of the simulation in the
+        prev_interface environment attribute.
+
+        Returns:
+            None.
+        """
+        self._prev_interface = deepcopy(self.interface)
 
     def step(self, action):
+        # TODO: add error check if step is called while a non-steppable
+        #  interface is registered.
         """ Step the simulation one timestep with an agent's action.
 
         Accepts an action and returns a tuple (observation, reward,
@@ -75,18 +156,15 @@ class BaseSimEnv(gym.Env):
             info (dict): contains auxiliary diagnostic information 
                 (helpful for debugging, and sometimes learning)
         """
-        self.action = action
-        self.schedule = self._action_to_schedule()
+        self._action = action
+        self._schedule = deepcopy(self.action_to_schedule())
         
-        self.prev_interface = copy.deepcopy(self.interface)
-        self.interface.step(self.schedule)
+        self.store_previous_state()
+        self._interface.step(self.schedule)
         
-        observation = self._observation_from_state()
-        reward = self._reward_from_state()
-        done = self._done_from_state()
-        info = self._info_from_state()
+        self.update_state()
 
-        return observation, reward, done, info
+        return self.observation, self.reward, self.done, self.info
 
     def reset(self):
         """ Resets the state of the simulation and returns an initial
@@ -99,15 +177,15 @@ class BaseSimEnv(gym.Env):
         Returns:
             observation (object): the initial observation.
         """
-        self.interface = copy.deepcopy(self.init_snapshot)
-        self.prev_interface = copy.deepcopy(self.init_snapshot)
-        return self._observation_from_state()
+        self.interface = deepcopy(self._init_snapshot)
+        self._prev_interface = deepcopy(self._init_snapshot)
+        return self.observation_from_state()
 
     def render(self, mode='human'):
         """ Renders the environment. Implements gym.Env.render(). """
         raise NotImplementedError
 
-    def _action_to_schedule(self):
+    def action_to_schedule(self):
         """ Convert an agent action to a schedule to be input to the
         simulator.
 
@@ -117,7 +195,7 @@ class BaseSimEnv(gym.Env):
         """
         raise NotImplementedError
 
-    def _observation_from_state(self):
+    def observation_from_state(self):
         """ Construct an environment observation from the state of the
         simulator
 
@@ -127,7 +205,7 @@ class BaseSimEnv(gym.Env):
         """
         raise NotImplementedError
 
-    def _reward_from_state(self):
+    def reward_from_state(self):
         """ Calculate a reward from the state of the simulator
 
         Returns:
@@ -136,7 +214,7 @@ class BaseSimEnv(gym.Env):
         """
         raise NotImplementedError
 
-    def _done_from_state(self):
+    def done_from_state(self):
         """ Determine if the simulation is done from the state of the
         simulator
 
@@ -145,7 +223,7 @@ class BaseSimEnv(gym.Env):
         """
         raise NotImplementedError
 
-    def _info_from_state(self):
+    def info_from_state(self):
         """ Give information about the environment using the state of
         the simulator
 
@@ -278,7 +356,7 @@ class DefaultSimEnv(BaseSimEnv):
         """ Renders the environment. Implements gym.Env.render(). """
         raise NotImplementedError
 
-    def _action_to_schedule(self):
+    def action_to_schedule(self):
         """ Convert an agent action to a schedule to be input to the 
         simulator.
 
@@ -291,7 +369,7 @@ class DefaultSimEnv(BaseSimEnv):
                         for i in range(len(offset_action))}
         return new_schedule
 
-    def _observation_from_state(self):
+    def observation_from_state(self):
         """ Construct an environment observation from the state of 
         the simulator
 
@@ -330,7 +408,7 @@ class DefaultSimEnv(BaseSimEnv):
 
         return curr_obs
 
-    def _reward_from_state(self):
+    def reward_from_state(self):
         """ Calculate a reward from the state of the simulator
 
         Returns:
@@ -343,7 +421,7 @@ class DefaultSimEnv(BaseSimEnv):
 
         return total_reward
 
-    def _done_from_state(self):
+    def done_from_state(self):
         """ Determine if the simulation is done from the state of the 
         simulator
 
@@ -388,9 +466,9 @@ class RebuildingEnv(DefaultSimEnv):
             temp_interface = self.sim_gen_func()
         else:
             temp_interface = self.sim_gen_func(self.event_lst)
-        self.interface = copy.deepcopy(temp_interface)
-        self.prev_interface = copy.deepcopy(temp_interface)
-        self.init_snapshot = copy.deepcopy(temp_interface)
+        self.interface = deepcopy(temp_interface)
+        self.prev_interface = deepcopy(temp_interface)
+        self.init_snapshot = deepcopy(temp_interface)
 
     def reset(self):
         """ Resets the state of the simulation and returns an initial 
@@ -405,10 +483,10 @@ class RebuildingEnv(DefaultSimEnv):
             temp_interface = self.sim_gen_func()
         else:
             temp_interface = self.sim_gen_func(self.event_lst)
-        self.interface = copy.deepcopy(temp_interface)
-        self.prev_interface = copy.deepcopy(temp_interface)
-        self.init_snapshot = copy.deepcopy(temp_interface)
-        return self._observation_from_state()
+        self.interface = deepcopy(temp_interface)
+        self.prev_interface = deepcopy(temp_interface)
+        self.init_snapshot = deepcopy(temp_interface)
+        return self.observation_from_state()
 
     def render(self, mode='human'):
         """ Renders the environment. Implements gym.Env.render(). """

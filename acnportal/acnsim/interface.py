@@ -358,6 +358,34 @@ class GymInterface(Interface):
 
         return constraints_satisfied and evse_satisfied
 
+    def last_energy_delivered(self):
+        """ Return the actual energy delivered in the last period, in
+        amp-periods.
+
+        Returns:
+            number: Total energy delivered in the last period, in
+                amp-periods.
+        """
+        return sum([ev.current_charging_rate for ev in self.active_evs])
+
+    def constraint_currents(self, input_schedule):
+        return abs(self._simulator.network.constraint_current(
+            input_schedule, time_indices=[0]))
+
+
+class GymTrainingInterface(GymInterface):
+    """ Interface between OpenAI Environments and the ACN Simulation
+     Environment.
+
+    This class of interface facilitates training by allowing an agent
+    to step the Simulator by a single iteration.
+    """
+
+    @classmethod
+    def from_interface(cls, interface):
+        gym_interface = GymTrainingInterface(interface._simulator)
+        return gym_interface
+
     def step(self, new_schedule, force_feasibility=True):
         """ Step the simulation using the input new_schedule until the
         simulator requires a new charging schedule. If the provided
@@ -398,20 +426,6 @@ class GymInterface(Interface):
         if force_feasibility and not schedule_is_feasible:
             return self._simulator.event_queue.empty(), schedule_is_feasible
         return self._simulator.step(new_schedule), schedule_is_feasible
-
-    def last_energy_delivered(self):
-        """ Return the actual energy delivered in the last period, in
-        amp-periods.
-
-        Returns:
-            number: Total energy delivered in the last period, in
-                amp-periods.
-        """
-        return sum([ev.current_charging_rate for ev in self.active_evs])
-
-    def constraint_currents(self, input_schedule):
-        return abs(self._simulator.network.constraint_current(
-            input_schedule, time_indices=[0]))
 
 
 class InvalidScheduleError(Exception):
