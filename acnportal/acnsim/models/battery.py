@@ -157,6 +157,7 @@ class Linear2StageBattery(Battery):
             raise ValueError(
                 'period must be greater than 0. Got {0}'.format(period))
         if pilot == 0:
+            self._current_charging_power = 0
             return 0
         # All calculations are done in terms of battery SoC, so we
         # convert pilot signal and max power into pilot and max rate of
@@ -167,7 +168,7 @@ class Linear2StageBattery(Battery):
         if pilot_dsoc > max_dsoc:
             pilot_dsoc = max_dsoc
 
-        # The pilot SoC rate of change has a new transition SoC at
+        # The pilot SoC rate of change has a new transition SoC at˚
         # which decreasing of max charging rate occurs.
         pilot_transition_soc = (
             self._transition_soc

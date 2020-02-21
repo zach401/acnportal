@@ -81,6 +81,14 @@ class TestLinear2StageBattery(TestBatteryBase):
             self.batt = Linear2StageBattery(
                 100, 0, 7.68, 0, transition_soc=1.1)
 
+    def test_zero_pilot_charge(self):
+        self.batt = Linear2StageBattery(100, 0, 7.68, 0)
+        with patch('numpy.random.normal', return_value=1.2):
+            rate = self.batt.charge(0, 240, 5)
+        self.assertAlmostEqual(rate, 0)
+        self.assertAlmostEqual(self.batt.current_charging_power, 0)
+        self.assertAlmostEqual(self.batt._current_charge, 0)
+
     def test_valid_charge_no_noise_not_tail(self):
         self.batt = Linear2StageBattery(100, 0, 7.68, 0)
         with patch('numpy.random.normal', return_value=1.2):
