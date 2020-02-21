@@ -27,6 +27,6 @@ setuptools.setup(
         'pytz'
     ],
     extras_require={
-        "gym": ['gym<=0.15.3']
+        "gym": ['gym>=0.15.4']
     }
 )
