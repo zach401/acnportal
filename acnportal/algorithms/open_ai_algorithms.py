@@ -1,6 +1,9 @@
 from .base_algorithm import BaseAlgorithm
 from ..acnsim.interface import GymInterface
-from ..acnsim.gym_acnsim.envs import BaseSimEnv
+from importlib.util import find_spec
+if find_spec("gym") is not None:
+    from ..acnsim.gym_acnsim.envs import BaseSimEnv
+del find_spec
 
 
 class SimRLModelWrapper:
