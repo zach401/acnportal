@@ -33,7 +33,8 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         for ev in ev_queue:
             continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
             schedule[ev.station_id][0] = allowable_rates[0] if continuous else allowable_rates[1]
-            if schedule[ev.station_id][0] > self.interface.remaining_amp_periods(ev) or not self.interface.is_feasible(schedule):
+            if schedule[ev.station_id][0] > self.interface.remaining_amp_periods(ev) or\
+                    not self.interface.is_feasible(schedule):
                 schedule[ev.station_id][0] = 0
                 removed.add(ev.station_id)
         return schedule, removed
@@ -61,15 +62,19 @@ class SortedSchedulingAlgo(BaseAlgorithm):
 
         if self.rampdown is not None:
             rampdown_max = self.rampdown.get_maximum_rates(active_evs)
+            # Prevent rampdown from pushing the upper bound below the minimum rate.
+            if self.minimum_charge:
+                for ev in active_evs:
+                    rampdown_max[ev.session_id] = max(rampdown_max[ev.session_id], schedule[ev.station_id][0])
 
         for ev in ev_queue:
             continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
             if continuous:
-                max_rate = min(allowable_rates[-1], self.interface.remaining_amp_periods(ev))
+                max_rate_limit = min(allowable_rates[-1], self.interface.remaining_amp_periods(ev))
                 if self.rampdown is not None:
-                    max_rate = min(rampdown_max[ev.session_id], max_rate)
-                charging_rate = self.max_feasible_rate(ev.station_id, max_rate, schedule, lb=schedule[ev.station_id][0],
-                                                       eps=0.01)
+                    max_rate_limit = min(rampdown_max[ev.session_id], max_rate_limit)
+                charging_rate = self.max_feasible_rate(ev.station_id, max_rate_limit, schedule,
+                                                       lb=schedule[ev.station_id][0], eps=0.01)
             else:
                 max_rate_limit = self.interface.remaining_amp_periods(ev)
                 if self.rampdown is not None:
@@ -182,10 +187,16 @@ class RoundRobin(SortedSchedulingAlgo):
         schedule = {ev.station_id: [0] for ev in active_evs}
         rate_idx_map = {ev.station_id: 0 for ev in active_evs}
         allowable_rates = {}
+        if self.rampdown is not None:
+            rd_maxes = self.rampdown.get_maximum_rates(active_evs)
         for ev in ev_queue:
             evse_continuous, evse_rates = self.interface.allowable_pilot_signals(ev.station_id)
             if evse_continuous:
                 evse_rates = np.arange(evse_rates[0], evse_rates[1], continuous_inc)
+            max_rate_limit = self.interface.remaining_amp_periods(ev)
+            if self.rampdown is not None:
+                max_rate_limit = max(rd_maxes[ev.session_id], max_rate_limit)
+            allowable_rates[ev.station_id] = [x for x in evse_rates if x <= max_rate_limit]
             allowable_rates[ev.station_id] = evse_rates
 
         while len(ev_queue) > 0:
