@@ -170,7 +170,6 @@ class ChargingNetwork:
         self.remove_constraint(name)
         self.add_constraint(current, limit, name=new_name)
 
-
     def plugin(self, ev, station_id):
         """ Attach EV to a specific EVSE.
 

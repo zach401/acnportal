@@ -3,7 +3,11 @@ import numpy as np
 from gym import spaces
 from copy import deepcopy
 from .. import reward_functions as rf
-from ...interface import GymTrainingInterface
+from ..action_spaces import SimAction, zero_centered_single_charging_schedule
+from ..observation import SimObservation
+from .. import observation as obs
+from ...interface import GymInterface, GymTrainingInterface
+from typing import Optional, Dict, List, Any, Tuple, Callable
 
 
 class BaseSimEnv(gym.Env):
@@ -39,13 +43,23 @@ class BaseSimEnv(gym.Env):
             agent-environment loop iteration.
         _schedule (Dict[str, List[number]]): Dictionary mapping
             station ids to a schedule of pilot signals.
-        _observation (object): The observation given to the agent in
+        _observation (np.ndarray): The observation given to the agent in
             this agent-environment loop iteration.
         _done (object): An object representing whether or not the
             execution of the environment is complete.
         _info (object): An object that gives info about the environment.
     """
-    def __init__(self, interface):
+    _interface: GymInterface
+    _init_snapshot: GymInterface
+    _prev_interface: GymInterface
+    _action: Optional[np.ndarray]
+    _schedule: Dict[str, List[float]]
+    _observation: Optional[np.ndarray]
+    _reward: Optional[float]
+    _done: Optional[bool]
+    _info: Optional[Dict[Any, Any]]
+
+    def __init__(self, interface: GymInterface) -> None:
         self._interface = interface
         self._init_snapshot = deepcopy(interface)
         self._prev_interface = deepcopy(interface)
@@ -57,62 +71,62 @@ class BaseSimEnv(gym.Env):
         self._info = None
 
     @property
-    def interface(self):
+    def interface(self) -> GymInterface:
         return deepcopy(self._interface)
 
     @interface.setter
-    def interface(self, new_interface):
+    def interface(self, new_interface: GymInterface) -> None:
         self._interface = new_interface
 
     @property
-    def action(self):
+    def action(self) -> np.ndarray:
         return deepcopy(self._action)
 
     @action.setter
-    def action(self, new_action):
+    def action(self, new_action: np.ndarray) -> None:
         self._action = new_action
 
     @property
-    def schedule(self):
+    def schedule(self) -> Dict[str, List[float]]:
         return deepcopy(self._schedule)
 
     @schedule.setter
-    def schedule(self, new_schedule):
+    def schedule(self, new_schedule: Dict[str, List[float]]) -> None:
         self._schedule = new_schedule
 
     @property
-    def observation(self):
+    def observation(self) -> np.ndarray:
         return deepcopy(self._observation)
 
     @observation.setter
-    def observation(self, new_observation):
+    def observation(self, new_observation: np.ndarray) -> None:
         self._observation = new_observation
 
     @property
-    def reward(self):
+    def reward(self) -> float:
         return deepcopy(self._reward)
 
     @reward.setter
-    def reward(self, new_reward):
+    def reward(self, new_reward: float) -> None:
         self._reward = new_reward
 
     @property
-    def done(self):
+    def done(self) -> bool:
         return deepcopy(self._done)
 
     @done.setter
-    def done(self, new_done):
+    def done(self, new_done: bool) -> None:
         self._done = new_done
 
     @property
-    def info(self):
+    def info(self) -> Dict[Any, Any]:
         return deepcopy(self._info)
 
     @info.setter
-    def info(self, new_info):
+    def info(self, new_info: Dict[Any, Any]) -> None:
         self._info = new_info
 
-    def update_state(self):
+    def update_state(self) -> None:
         """ Update the state of the environment. Namely, the
         observation, reward, done, and info attributes of the
         environment.
@@ -125,7 +139,7 @@ class BaseSimEnv(gym.Env):
         self.done = self.done_from_state()
         self.info = self.info_from_state()
 
-    def store_previous_state(self):
+    def store_previous_state(self) -> None:
         """ Store the previous state of the simulation in the
         prev_interface environment attribute.
 
@@ -134,7 +148,8 @@ class BaseSimEnv(gym.Env):
         """
         self._prev_interface = self.interface
 
-    def step(self, action):
+    def step(self, action: np.ndarray
+             ) -> Tuple[np.ndarray, float, bool, Dict[Any, Any]]:
         """ Step the simulation one timestep with an agent's action.
 
         Accepts an action and returns a tuple (observation, reward,
@@ -146,7 +161,7 @@ class BaseSimEnv(gym.Env):
             action (object): an action provided by the agent
 
         Returns:
-            observation (object): agent's observation of the current 
+            observation (np.ndarray): agent's observation of the current 
                 environment
             reward (float) : amount of reward returned after previous 
                 action
@@ -172,7 +187,7 @@ class BaseSimEnv(gym.Env):
 
         return self.observation, self.reward, self.done, self.info
 
-    def reset(self):
+    def reset(self) -> Dict[str, np.ndarray]:
         """ Resets the state of the simulation and returns an initial
         observation. Resetting is done by setting the interface to the
         simulation to an interface to the simulation in its initial 
@@ -181,7 +196,7 @@ class BaseSimEnv(gym.Env):
         Implements gym.Env.reset()
 
         Returns:
-            observation (object): the initial observation.
+            observation (np.ndarray): the initial observation.
         """
         self.interface = deepcopy(self._init_snapshot)
         self._prev_interface = deepcopy(self._init_snapshot)
@@ -191,27 +206,27 @@ class BaseSimEnv(gym.Env):
         """ Renders the environment. Implements gym.Env.render(). """
         raise NotImplementedError
 
-    def action_to_schedule(self):
+    def action_to_schedule(self) -> Dict[str, List[float]]:
         """ Convert an agent action to a schedule to be input to the
         simulator.
 
         Returns:
-            schedule (Dict[str, List[number]]): Dictionary mappding 
+            schedule (Dict[str, List[float]]): Dictionary mapping
                 station ids to a schedule of pilot signals.
         """
         raise NotImplementedError
 
-    def observation_from_state(self):
+    def observation_from_state(self) -> Dict[str, np.ndarray]:
         """ Construct an environment observation from the state of the
         simulator
 
         Returns:
-            observation (object): an environment observation 
-                generated from the simulation state
+            observation (Dict[str, np.ndarray]): an environment
+                observation generated from the simulation state
         """
         raise NotImplementedError
 
-    def reward_from_state(self):
+    def reward_from_state(self) -> float:
         """ Calculate a reward from the state of the simulator
 
         Returns:
@@ -220,7 +235,7 @@ class BaseSimEnv(gym.Env):
         """
         raise NotImplementedError
 
-    def done_from_state(self):
+    def done_from_state(self) -> bool:
         """ Determine if the simulation is done from the state of the
         simulator
 
@@ -229,7 +244,8 @@ class BaseSimEnv(gym.Env):
         """
         raise NotImplementedError
 
-    def info_from_state(self):
+    @staticmethod
+    def info_from_state():
         """ Give information about the environment using the state of
         the simulator
 
@@ -239,7 +255,118 @@ class BaseSimEnv(gym.Env):
         return {}
 
 
-class DefaultSimEnv(BaseSimEnv):
+class CustomSimEnv(BaseSimEnv):
+    """ A simulator environment with customizable observations, action
+    spaces, and rewards.
+
+    Observations are specified as objects, where each object specifies a
+    function to generate a space from a simulation interface and a
+    function to generate an observation from a simulation interface.
+
+    Action spaces are specified as functions that generate a space from
+    a simulation interface.
+
+    Rewards are specified as functions that generate a number (reward)
+    from an environment.
+
+    Users may define their own objects/functions to input to this
+    environment, use the objects/functions defined in the gym_acnsim
+    package, or use an environment factory function defined in the
+    sim_prototype_env module.
+    """
+    observation_objects: List[SimObservation]
+    observation_space: spaces.Space
+    action_object: SimAction
+    action_space: spaces.Space
+    reward_functions: List[Callable[[BaseSimEnv], float]]
+
+    def __init__(
+            self,
+            interface: GymInterface,
+            observation_objects: List[SimObservation],
+            action_object: SimAction,
+            reward_functions: List[Callable[[BaseSimEnv], float]]
+    ) -> None:
+        """ Initialize this environment. Every CustomSimEnv needs a list
+        of SimObservation objects, action space functions, and reward
+        functions.
+
+        Args:
+            interface (acnsim.GymInterface): See BaseSimEnv.__init__.
+            observation_objects (List[SimObservation]): List of objects
+                that specify how to calculate observation spaces and
+                observations from an interface to a simulation.
+            action_object (SimAction): List of functions that
+                specify how to calculate action spaces from an interface
+                to a simulation.
+            reward_functions (List[Callable[[BaseSimEnv], float]]): List
+                of functions which take as input a BaseSimEnv instance
+                and return a number.
+        """
+        super().__init__(interface)
+
+        self.observation_objects = observation_objects
+        self.observation_space = spaces.Dict({
+            observation_object.name: observation_object.get_space(
+                self.interface)
+            for observation_object in observation_objects
+        })
+
+        self.action_object = action_object
+        self.action_space = action_object.get_space(interface)
+
+        self.reward_functions = reward_functions
+
+    def render(self, mode='human'):
+        """ Renders the environment. Implements gym.Env.render(). """
+        raise NotImplementedError
+
+    def action_to_schedule(self) -> Dict[str, List[float]]:
+        """ Convert an agent action to a schedule to be input to the
+        simulator.
+
+        Returns:
+            schedule (Dict[str, List[float]]): Dictionary mapping
+                station ids to a schedule of pilot signals.
+        """
+        return self.action_object.get_schedule(self.interface, self.action)
+
+    def observation_from_state(self) -> Dict[str, np.ndarray]:
+        """ Construct an environment observation from the state of the
+        simulator using the environment's observation construction
+        functions.
+
+        Returns:
+            observation (Dict[str, np.ndarray]): An environment
+                observation generated from the simulation state
+        """
+        return {
+            observation_object.name: observation_object.get_space(
+                self.interface)
+            for observation_object in self.observation_objects
+        }
+
+    def reward_from_state(self) -> float:
+        """ Calculate a reward from the state of the simulator
+
+        Returns:
+            reward (float): a reward generated from the simulation
+                state
+        """
+        return sum([
+            reward_func(self) for reward_func in self.reward_functions])
+
+    def done_from_state(self) -> bool:
+        """ Determine if the simulation is done from the state of the
+        simulator
+
+        Returns:
+            done (bool): True if the simulation is done, False if not
+        """
+        return self.interface.is_done
+
+
+def make_default_sim_env(interface: GymInterface) -> CustomSimEnv:
     """ A simulator environment with the following characteristics:
 
     The action and observation spaces are continuous.
@@ -251,244 +378,106 @@ class DefaultSimEnv(BaseSimEnv):
     in the observations):
         arrivals: arrival time of the EV at each EVSE (or 0 if there's
              no EV plugged in)
-        departures: departure time of the EV at each EVSE (or 0 if 
+        departures: departure time of the EV at each EVSE (or 0 if
             there's no EV plugged in)
-        demand: energy demand of the EV at each EVSE (unoccupied 
+        demand: energy demand of the EV at each EVSE (unoccupied
             EVSEs have demand 0)
         constraint_matrix: matrix of aggregate current coefficients
         magnitudes: magnitude vector constraining aggregate currents
         timestep: timestep of the simulation
 
     The reward is calculated as follows:
-        If no constraints (on the network or on the EVSEs) were 
+        If no constraints (on the network or on the EVSEs) were
             violated by the action,
-        a reward equal to the total charge delivered (in A) is 
+        a reward equal to the total charge delivered (in A) is
             returned
-        If any constraint violation occurred, a negative reward equal 
+        If any constraint violation occurred, a negative reward equal
             to the magnitude of the violation is returned.
         Network constraint violations are scaled by the number of EVs
-        Finally, a user-input reward function is added to the total 
+        Finally, a user-input reward function is added to the total
             reward.
 
     The simulation is considered done if the event queue is empty.
     """
-    def __init__(self, interface, reward_funcs=None):
-        """ Initialize this environment. Every Sim environment needs 
-        an interface to a simulator which runs an iteration every 
-        time the environment is stepped.
-
-        Args:
-            interface (acnsim.GymInterface): OpenAI Interface with 
-                ACN simulation for this environment to use.
-            reward_funcs (List[BaseSimEnv -> number]): 
-                List of functions which take as input a BaseSimEnv
-                instance and return a number.
-        """
-        super().__init__(interface)
-
-        # Get parameters that constrain the action/observation spaces
-        self.num_evses = len(self.interface.station_ids)
-        self.min_rates = np.array(
-            [evse.min_rate for evse in self.interface.evse_list])
-        self.max_rates = np.array(
-            [evse.max_rate for evse in self.interface.evse_list])
-        constraint_obj = self.interface.get_constraints()
-        constraint_matrix, magnitudes = \
-            constraint_obj.constraint_matrix, constraint_obj.magnitudes
-
-        # Some baselines require zero-centering; subtract this offset 
-        # from actions to do this
-        self.rate_offset_array = (self.max_rates + self.min_rates) / 2
-        
-        if reward_funcs is None:
-            self.reward_funcs = [
-                rf.evse_violation,
-                rf.unplugged_ev_violation,
-                rf.constraint_violation,
-                rf.hard_charging_reward
-            ]
-        self.reward_funcs = reward_funcs
-
-        # Action space is the set of possible schedules (0 - 32 A for 
-        # each EVSE)
-        # Re-centered about 0
-        self.action_space = spaces.Box(
-            low=self.min_rates-self.rate_offset_array, 
-            high=self.max_rates-self.rate_offset_array, 
-            dtype='float32')
-
-        # Observation space contains vectors with the following info
-        # arrival time
-        arrival_space = spaces.Box(
-            low=0, high=np.inf, shape=(self.num_evses,), 
-            dtype='float32')
-        # departure time
-        departure_space = spaces.Box(
-            low=0, high=np.inf, shape=(self.num_evses,), dtype='float32')
-        # remaining amp-period demand
-        remaining_demand_space = spaces.Box(
-            low=0, high=np.inf, shape=(self.num_evses,), dtype='float32')
-        # constraint matrix (coefficients in aggregate currents)
-        constraint_matrix_space = spaces.Box(
-            low=-1*np.inf, high=np.inf,
-            shape=constraint_matrix.shape, dtype='float32'
-        )
-        # magnitude vector (upper limits on aggregate currents)
-        magnitudes_space = spaces.Box(
-            low=-1*np.inf, high=np.inf,
-            shape=magnitudes.shape, dtype='float32'
-        )
-        # current sim timestep
-        timestep_space = spaces.Box(
-            low=0, high=np.inf, shape=(1,), dtype='float32')
-
-        # Total observation space is a Dict space of the subspaces
-        self.observation_dict = {
-            'arrivals': arrival_space,
-            'departures': departure_space,
-            'demands': remaining_demand_space,
-            'constraint_matrix': constraint_matrix_space,
-            'magnitudes': magnitudes_space,
-            'timestep': timestep_space
-        }
-        self.observation_space = spaces.Dict(self.observation_dict)
-
-        # Portion of the observation that is independent of agent 
-        # action
-        self.static_obs = {'constraint_matrix': constraint_matrix,
-                           'magnitudes': magnitudes}
-
-    def render(self, mode='human'):
-        """ Renders the environment. Implements gym.Env.render(). """
-        raise NotImplementedError
-
-    def action_to_schedule(self):
-        """ Convert an agent action to a schedule to be input to the 
-        simulator.
-
-        Returns:
-            schedule (Dict[str, List[number]]): Dictionary mappding 
-                station ids to a schedule of pilot signals.
-        """
-        offset_action = self.action + self.rate_offset_array
-        new_schedule = {self.interface.station_ids[i]: [offset_action[i]]
-                        for i in range(len(offset_action))}
-        return new_schedule
-
-    def observation_from_state(self):
-        """ Construct an environment observation from the state of 
-        the simulator
-
-        Returns:
-            observation (object): an environment observation 
-                generated from the simulation state
-        """
-        # Note constraint_matrix and magnitudes don't change in time, 
-        # stored in self.static_obs
-        curr_obs = self.static_obs
-
-        # Time-like observations are 1 indexed as 0 means no EV is 
-        # plugged in.
-        curr_obs['arrivals'] = np.array([
-            evse.ev.arrival + 1
-            if evse.ev is not None
-            else 0
-            for evse in self.interface.evse_list
-        ])
-
-        curr_obs['departures'] = np.array([
-            evse.ev.departure + 1
-            if evse.ev is not None
-            else 0
-            for evse in self.interface.evse_list
-        ])
-
-        curr_obs['demand'] = np.array([
-            self.interface.remaining_amp_periods(evse.ev)
-            if evse.ev is not None
-            else 0
-            for evse in self.interface.evse_list
-        ])
-
-        curr_obs['timestep'] = self.interface.current_time + 1
-
-        return curr_obs
-
-    def reward_from_state(self):
-        """ Calculate a reward from the state of the simulator
-
-        Returns:
-            reward (float): a reward generated from the simulation 
-                state
-        """
-        total_reward = 0
-        for reward_func in self.reward_funcs:
-            total_reward += reward_func(self)
-
-        return total_reward
-
-    def done_from_state(self):
-        """ Determine if the simulation is done from the state of the 
-        simulator
-
-        Returns:
-            done (bool): True if the simulation is done, False if not
-        """
-        return self.interface.is_done
+    observation_objects: List[SimObservation] = [
+        obs.arrival_observation(),
+        obs.departure_observation(),
+        obs.remaining_demand_observation(),
+        obs.constraint_matrix_observation(),
+        obs.magnitudes_observation(),
+        obs.timestep_observation()
+    ]
+    action_object: SimAction = zero_centered_single_charging_schedule()
+    reward_functions: List[Callable[[BaseSimEnv], float]] = [
+        rf.evse_violation,
+        rf.unplugged_ev_violation,
+        rf.constraint_violation,
+        rf.hard_charging_reward
+    ]
+    return CustomSimEnv(
+        interface, observation_objects, action_object, reward_functions)
 
 
-class RebuildingEnv(DefaultSimEnv):
-    """ A simulator environment that subclasses DefaultSimEnv, with 
+class RebuildingEnv(CustomSimEnv):
+    """ A simulator environment that subclasses CustomSimEnv, with
     the extra property that the entire simulation is rebuilt within 
     the environment when __init__ or reset are called
 
     This is especially useful if the network or event queue have 
     stochastic elements.
     """
-    def __init__(self, interface, reward_funcs=None,
-                 sim_gen_func=None, event_lst=None):
-        """ Initialize this environment. Every Sim environment needs 
-        an interface to a simulator which runs an iteration every 
-        time the environment is stepped.
+    def __init__(
+            self,
+            interface: GymInterface,
+            observation_objects: List[SimObservation],
+            action_object: SimAction,
+            reward_functions: List[Callable[[BaseSimEnv], float]],
+            sim_gen_function: Optional[Callable[[], GymInterface]] = None
+    ) -> None:
+        """ Initialize this environment. Every CustomSimEnv needs a list
+        of SimObservation objects, action space functions, and reward
+        functions.
 
         Args:
-            interface (acnsim.GymInterface): OpenAI Gym Interface 
-                with ACN simulation for this environment to use.
-            reward_funcs (List[-> number]): A list of functions which
-                take no arguments and return a number.
-            sim_gen_func (-> acnsim.GymInterface): function which
-                returns a GymInterface to a generated simulator.
+            interface (acnsim.GymInterface): See BaseSimEnv.__init__.
+            observation_objects (List[SimObservation]): List of objects
+                that specify how to calculate observation spaces and
+                observations from an interface to a simulation.
+            action_object (SimAction): List of functions that
+                specify how to calculate action spaces from an interface
+                to a simulation.
+            reward_functions (List[Callable[[BaseSimEnv], float]]): List
+                of functions which take as input a BaseSimEnv instance
+                and return a number.
+            sim_gen_function (Optional[Callable[[], GymInterface]]):
+                Function which returns a GymInterface to a generated
+                simulator.
         """
-        if sim_gen_func is None:
-            def sim_gen_func(self, *args, **kwargs): 
+        if sim_gen_function is None:
+            def sim_gen_function():
                 return self.init_snapshot
-        else:
-            self.sim_gen_func = sim_gen_func
-            self.event_lst = event_lst
-        
-        super().__init__(interface, reward_funcs=reward_funcs)
+        self.sim_gen_function = sim_gen_function
 
-        if self.event_lst is None:
-            temp_interface = self.sim_gen_func()
-        else:
-            temp_interface = self.sim_gen_func(self.event_lst)
+        super().__init__(interface,
+                         observation_objects,
+                         action_object,
+                         reward_functions)
+
+        temp_interface = self.sim_gen_function()
         self.interface = deepcopy(temp_interface)
         self.prev_interface = deepcopy(temp_interface)
         self.init_snapshot = deepcopy(temp_interface)
 
-    def reset(self):
+    def reset(self) -> Dict[str, np.ndarray]:
         """ Resets the state of the simulation and returns an initial 
         observation. Resetting is done by setting the interface to 
         the simulation to an interface to the simulation in its 
         initial state.
         
         Returns:
-            observation (object): the initial observation.
+            observation (np.ndarray): the initial observation.
         """
-        if self.event_lst is None:
-            temp_interface = self.sim_gen_func()
-        else:
-            temp_interface = self.sim_gen_func(self.event_lst)
+        temp_interface = self.sim_gen_function()
         self.interface = deepcopy(temp_interface)
         self.prev_interface = deepcopy(temp_interface)
         self.init_snapshot = deepcopy(temp_interface)

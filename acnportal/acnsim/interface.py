@@ -153,10 +153,15 @@ class Interface:
         return kwh * 1000 / self.evse_voltage(station_id) * 60 / self.period
 
     def get_constraints(self):
-        """ Get the constraint matrix and corresponding EVSE ids for the network.
+        """ Get the constraint matrix and corresponding EVSE ids for the
+         network.
 
         Returns:
-            np.ndarray: Matrix representing the constraints of the network. Each row is a constraint and each
+            Constraint: namedtuple including the following attributes:
+                constraint_matrix: Matrix representing the constraints
+                    of the network. Each row is a constraint and each
+                    column is an index.
+            TODO: The rest of these docs.
         """
         Constraint = namedtuple('Constraint', ['constraint_matrix', 'magnitudes', 'constraint_index', 'evse_index'])
         network = self._simulator.network

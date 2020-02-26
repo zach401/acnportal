@@ -1,5 +1,7 @@
-import numpy as np
 """
+Module containing definitions of various reward functions for use with
+gym_acnsim environments.
+
 All reward functions have signature
 
     acnportal.acnsim.gym_acnsim.BaseSimEnv -> Number
@@ -9,6 +11,7 @@ and return a number (reward) based on the characteristics of that
 environment; namely, the previous state, previous action, and current
 state.
 """
+import numpy as np
 
 
 def evse_violation(env):
