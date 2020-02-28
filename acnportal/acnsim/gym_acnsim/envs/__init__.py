@@ -4,4 +4,5 @@ if find_spec("gym") is not None:
     from .sim_prototype_env import CustomSimEnv
     from .sim_prototype_env import RebuildingEnv
     from .sim_prototype_env import make_default_sim_env
+    from .sim_prototype_env import make_rebuilding_default_sim_env
 del find_spec

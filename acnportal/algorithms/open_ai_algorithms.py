@@ -66,7 +66,8 @@ class GymAlgorithm(BaseAlgorithm):
         else:
             gym_interface = interface
         super().register_interface(gym_interface)
-        self.env.interface = interface
+        if self._env is not None:
+            self.env.interface = interface
 
     @property
     def model(self):

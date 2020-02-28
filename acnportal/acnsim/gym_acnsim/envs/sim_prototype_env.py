@@ -439,7 +439,9 @@ class RebuildingEnv(CustomSimEnv):
         functions.
 
         Args:
-            interface (acnsim.GymInterface): See BaseSimEnv.__init__.
+            interface (acnsim.GymInterface): This argument is unused;
+                it is included to comply with CustomSimEnv.__init__()'s
+                type signature.
             observation_objects (List[SimObservation]): List of objects
                 that specify how to calculate observation spaces and
                 observations from an interface to a simulation.
@@ -457,16 +459,28 @@ class RebuildingEnv(CustomSimEnv):
             def sim_gen_function():
                 return self.init_snapshot
         self.sim_gen_function = sim_gen_function
+        temp_interface = self.sim_gen_function()
+        interface = deepcopy(temp_interface)
 
         super().__init__(interface,
                          observation_objects,
                          action_object,
                          reward_functions)
 
-        temp_interface = self.sim_gen_function()
-        self.interface = deepcopy(temp_interface)
         self.prev_interface = deepcopy(temp_interface)
         self.init_snapshot = deepcopy(temp_interface)
+
+    @classmethod
+    def from_custom_sim_env(
+            cls,
+            env: CustomSimEnv,
+            sim_gen_function: Optional[Callable[[], GymInterface]] = None
+    ) -> 'RebuildingEnv':
+        return cls(env.interface,
+                   env.observation_objects,
+                   env.action_object,
+                   env.reward_functions,
+                   sim_gen_function=sim_gen_function)
 
     def reset(self) -> Dict[str, np.ndarray]:
         """ Resets the state of the simulation and returns an initial 
@@ -486,3 +500,17 @@ class RebuildingEnv(CustomSimEnv):
     def render(self, mode='human'):
         """ Renders the environment. Implements gym.Env.render(). """
         raise NotImplementedError
+
+
+def make_rebuilding_default_sim_env(
+        sim_gen_function: Optional[Callable[[], GymInterface]]
+) -> RebuildingEnv:
+    """ A simulator environment with the same characteristics as the
+    environment returned by make_default_sim_env except on every reset,
+    the simulation is completely rebuilt using sim_gen_function.
+
+    See make_default_sim_env for more info.
+    """
+    interface = sim_gen_function()
+    return RebuildingEnv.from_custom_sim_env(make_default_sim_env(interface),
+                                             sim_gen_function=sim_gen_function)

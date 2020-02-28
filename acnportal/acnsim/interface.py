@@ -388,7 +388,7 @@ class GymTrainingInterface(GymInterface):
 
     @classmethod
     def from_interface(cls, interface):
-        gym_interface = GymTrainingInterface(interface._simulator)
+        gym_interface = cls(interface._simulator)
         return gym_interface
 
     def step(self, new_schedule, force_feasibility=True):
