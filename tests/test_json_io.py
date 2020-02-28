@@ -6,7 +6,6 @@ from .serialization_extensions import NamedEvent, DefaultNamedEvent
 from .serialization_extensions import SetAttrEvent, BatteryListEvent
 
 import json
-import sys
 import os
 import numpy as np
 from copy import deepcopy
