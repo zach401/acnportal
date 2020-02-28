@@ -251,14 +251,14 @@ class Interface:
         return self._simulator.peak
 
 
-class GymInterface(Interface):
+class GymTrainedInterface(Interface):
     """ Interface between OpenAI Environments and the ACN Simulation
      Environment.
     """
 
     @classmethod
     def from_interface(cls, interface):
-        gym_interface = GymInterface(interface._simulator)
+        gym_interface = GymTrainedInterface(interface._simulator)
         return gym_interface
 
     @property
@@ -378,7 +378,7 @@ class GymInterface(Interface):
             input_schedule, time_indices=[0]))
 
 
-class GymTrainingInterface(GymInterface):
+class GymTrainingInterface(GymTrainedInterface):
     """ Interface between OpenAI Environments and the ACN Simulation
      Environment.
 

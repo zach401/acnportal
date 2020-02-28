@@ -31,12 +31,14 @@ import gym
 import pytz
 from gym.wrappers import FlattenObservation
 from stable_baselines import PPO2
+from stable_baselines.common import BaseRLModel
 from stable_baselines.common.vec_env import DummyVecEnv
 
 from acnportal import acnsim
 from acnportal import algorithms
 from acnportal.acnsim import events
 from acnportal.acnsim import models
+from acnportal.algorithms import SimRLModelWrapper
 
 
 # For this lesson, we will use a simple example. Imagine we have a
@@ -116,7 +118,7 @@ def sim_gen_function():
 
     # For training, this algorithm isn't run. So, we need not provide
     # any arguments.
-    schedule_rl = algorithms.GymAlgorithm()
+    schedule_rl = algorithms.GymTrainedAlgorithm()
 
     # Simulation to be wrapped
     _ = acnsim.Simulator(deepcopy(cn), schedule_rl,
@@ -169,3 +171,18 @@ env = DummyVecEnv([lambda: FlattenObservation(
     gym.make('default-rebuilding-acnsim-v0',
              sim_gen_function=sim_gen_function))])
 model = PPO2('MlpPolicy', env, verbose=2).learn(10000)
+
+
+class StableBaselinesRLModel(SimRLModelWrapper):
+    """ Default RL model wrapping class.
+    """
+    model: BaseRLModel
+
+    def predict(self, observation, reward, done, info, **kwargs):
+        return self.model.predict(observation, **kwargs)
+
+    def learn(self, total_timesteps, **kwargs):
+        return self.model.learn(total_timesteps, **kwargs)
+
+    def save(self, save_path, **kwargs):
+        return self.model.save(save_path, **kwargs)

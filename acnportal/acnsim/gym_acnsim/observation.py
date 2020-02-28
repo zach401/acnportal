@@ -23,7 +23,7 @@ import numpy as np
 from gym import spaces
 
 from .. import EV
-from ..interface import GymInterface
+from ..interface import GymTrainedInterface
 
 
 class SimObservation:
@@ -61,13 +61,13 @@ class SimObservation:
             environment to distinguish between different types of
             observation.
     """
-    _space_function: Callable[[GymInterface], spaces.Space]
-    _obs_function: Callable[[GymInterface], np.ndarray]
+    _space_function: Callable[[GymTrainedInterface], spaces.Space]
+    _obs_function: Callable[[GymTrainedInterface], np.ndarray]
     name: str
 
     def __init__(self,
-                 space_function: Callable[[GymInterface], spaces.Space],
-                 obs_function: Callable[[GymInterface], np.ndarray],
+                 space_function: Callable[[GymTrainedInterface], spaces.Space],
+                 obs_function: Callable[[GymTrainedInterface], np.ndarray],
                  name: str) -> None:
         """
         Args:
@@ -89,7 +89,7 @@ class SimObservation:
         self._obs_function = obs_function
         self.name = name
 
-    def get_space(self, interface: GymInterface) -> spaces.Space:
+    def get_space(self, interface: GymTrainedInterface) -> spaces.Space:
         """
         Returns the gym space in which all observations for this
         observation type exist. The characteristics of the interface
@@ -98,7 +98,7 @@ class SimObservation:
         requires a GymInterface as input.
 
         Args:
-            interface (GymInterface): Interface to an ACN-Sim Simulation
+            interface (GymTrainedInterface): Interface to an ACN-Sim Simulation
                 that contains details of and functions to generate
                 details about the current Simulation.
 
@@ -108,7 +108,7 @@ class SimObservation:
         """
         return self._space_function(interface)
 
-    def get_obs(self, interface: GymInterface) -> np.ndarray:
+    def get_obs(self, interface: GymTrainedInterface) -> np.ndarray:
         """
         Returns a gym observation for the state of the simulation given
         by interface. The exact observation depends on both the input
@@ -116,7 +116,7 @@ class SimObservation:
         which this object was initialized.
 
         Args:
-            interface (GymInterface): Interface to an ACN-Sim Simulation
+            interface (GymTrainedInterface): Interface to an ACN-Sim Simulation
                 that contains details of and functions to generate
                 details about the current Simulation.
 
@@ -128,15 +128,15 @@ class SimObservation:
 
 
 # Per active EV observation factory functions.
-def _ev_observation(attribute_function: Callable[[GymInterface, EV], float],
+def _ev_observation(attribute_function: Callable[[GymTrainedInterface, EV], float],
                     name: str) -> SimObservation:
-    def space_function(interface: GymInterface) -> spaces.Space:
+    def space_function(interface: GymTrainedInterface) -> spaces.Space:
         return spaces.Box(
             low=0, high=np.inf,
             shape=(len(interface.station_ids),), dtype='float32'
         )
 
-    def obs_function(interface: GymInterface) -> np.ndarray:
+    def obs_function(interface: GymTrainedInterface) -> np.ndarray:
         attribute_values: dict = {station_id: 0
                                   for station_id in interface.station_ids}
         for ev in interface.active_evs:
@@ -170,7 +170,7 @@ def remaining_demand_observation() -> SimObservation:
 
 # Network-wide observation factory functions.
 def _constraints_observation(attribute: str, name: str) -> SimObservation:
-    def space_function(interface: GymInterface) -> spaces.Space:
+    def space_function(interface: GymTrainedInterface) -> spaces.Space:
         return spaces.Box(
             low=-1 * np.inf,
             high=np.inf,
@@ -178,7 +178,7 @@ def _constraints_observation(attribute: str, name: str) -> SimObservation:
             dtype='float32'
         )
 
-    def obs_function(interface: GymInterface) -> np.ndarray:
+    def obs_function(interface: GymTrainedInterface) -> np.ndarray:
         return getattr(interface.get_constraints(), attribute)
     return SimObservation(space_function, obs_function, name=name)
 
@@ -202,9 +202,9 @@ def timestep_observation() -> SimObservation:
     observe the current timestep of the simulation, in periods.
     """
     # noinspection PyUnusedLocal
-    def space_function(interface: GymInterface) -> spaces.Space:
+    def space_function(interface: GymTrainedInterface) -> spaces.Space:
         return spaces.Box(low=0, high=np.inf, shape=(1,), dtype='float32')
 
-    def obs_function(interface: GymInterface) -> np.ndarray:
+    def obs_function(interface: GymTrainedInterface) -> np.ndarray:
         return np.array(interface.current_time + 1)
     return SimObservation(space_function, obs_function, name='arrival')

@@ -23,7 +23,7 @@ import numpy as np
 from gym import Space
 from gym.spaces import Box
 
-from ..interface import GymInterface
+from ..interface import GymTrainedInterface
 
 
 class SimAction:
@@ -65,13 +65,13 @@ class SimAction:
             environment to distinguish between different types of
             actions.
     """
-    _space_function: Callable[[GymInterface], Space]
-    _to_schedule: Callable[[GymInterface, np.ndarray], Dict[str, List[float]]]
+    _space_function: Callable[[GymTrainedInterface], Space]
+    _to_schedule: Callable[[GymTrainedInterface, np.ndarray], Dict[str, List[float]]]
     name: str
 
     def __init__(self,
-                 space_function: Callable[[GymInterface], Space],
-                 to_schedule: Callable[[GymInterface, np.ndarray],
+                 space_function: Callable[[GymTrainedInterface], Space],
+                 to_schedule: Callable[[GymTrainedInterface, np.ndarray],
                                        Dict[str, List[float]]],
                  name: str) -> None:
         """
@@ -95,7 +95,7 @@ class SimAction:
         self._to_schedule = to_schedule
         self.name = name
 
-    def get_space(self, interface: GymInterface) -> Space:
+    def get_space(self, interface: GymTrainedInterface) -> Space:
         """
         Returns the gym space in which all actions for this action
         type exist. The characteristics of the interface (for
@@ -104,7 +104,7 @@ class SimAction:
         requires a GymInterface as input.
 
         Args:
-            interface (GymInterface): Interface to an ACN-Sim Simulation
+            interface (GymTrainedInterface): Interface to an ACN-Sim Simulation
                 that contains details of and functions to generate
                 details about the current Simulation.
 
@@ -114,13 +114,13 @@ class SimAction:
         """
         return self._space_function(interface)
 
-    def get_schedule(self, interface: GymInterface,
+    def get_schedule(self, interface: GymTrainedInterface,
                      action: np.ndarray) -> Dict[str, List[float]]:
         """
         Returns an ACN-Sim schedule given an input action.
 
         Args:
-            interface (GymInterface): Interface to a simulation.
+            interface (GymTrainedInterface): Interface to a simulation.
             action (np.ndarray): Action to be converted into an ACN-Sim
                 schedule.
 
@@ -140,7 +140,7 @@ def single_charging_schedule() -> SimAction:
     pilot signals above the maximum allowable rate over all EVSEs or
     below the minimum allowable rate over all EVSEs.
     """
-    def space_function(interface: GymInterface) -> Space:
+    def space_function(interface: GymTrainedInterface) -> Space:
         num_evses: int = len(interface.station_ids)
         max_rate: float = max([interface.max_pilot_signal(station_id)
                                for station_id in interface.station_ids])
@@ -151,7 +151,7 @@ def single_charging_schedule() -> SimAction:
         return Box(low=min_rate, high=max_rate,
                    shape=(num_evses,), dtype='float32')
 
-    def to_schedule(interface: GymInterface,
+    def to_schedule(interface: GymTrainedInterface,
                     action: np.ndarray) -> Dict[str, List[float]]:
         return {interface.station_ids[i]: [action[i]]
                 for i in range(len(action))}
@@ -166,7 +166,7 @@ def zero_centered_single_charging_schedule() -> SimAction:
     to convert to a schedule, actions need to be shifted by a certain
     amount and converted to a dictionary.
     """
-    def space_function(interface: GymInterface) -> Space:
+    def space_function(interface: GymTrainedInterface) -> Space:
         num_evses: int = len(interface.station_ids)
         max_rates: np.ndarray = np.array(
             [interface.max_pilot_signal(station_id)
@@ -182,7 +182,7 @@ def zero_centered_single_charging_schedule() -> SimAction:
                    shape=(num_evses,),
                    dtype='float32')
 
-    def to_schedule(interface: GymInterface,
+    def to_schedule(interface: GymTrainedInterface,
                     action: np.ndarray) -> Dict[str, List[float]]:
         max_rates: np.ndarray = np.array(
             [interface.max_pilot_signal(station_id)
