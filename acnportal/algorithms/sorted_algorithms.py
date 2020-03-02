@@ -21,11 +21,12 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             sorted according to some metric.
     """
 
-    def __init__(self, sort_fn, minimum_charge=False, rampdown=None):
+    def __init__(self, sort_fn, minimum_charge=False, rampdown=None, peak_limit=float('inf')):
         super().__init__(rampdown)
         self._sort_fn = sort_fn
         self.max_recompute = 1  # Call algorithm each period since it only returns a rate for the next period.
         self.minimum_charge = minimum_charge
+        self.peak_limit = peak_limit
 
     def _find_minimum_charge(self, ev_queue):
         schedule = {ev.station_id: [0] for ev in ev_queue}
@@ -34,12 +35,40 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
             schedule[ev.station_id][0] = allowable_rates[0] if continuous else allowable_rates[1]
             if schedule[ev.station_id][0] > self.interface.remaining_amp_periods(ev) or\
-                    not self.interface.is_feasible(schedule):
+                    not self.is_feasible(schedule):
                 schedule[ev.station_id][0] = 0
                 removed.add(ev.station_id)
         return schedule, removed
+    
+    def is_feasible(self, load_currents, linear=False, violation_tolerance=None, relative_tolerance=None):
+        """ Return if a set of current magnitudes for each load are feasible.
 
-    def schedule(self, active_evs):
+        Wraps Network's is_feasible method.
+
+        For a given constraint, the larger of the violation_tolerance
+        and relative_tolerance is used to evaluate feasibility.
+
+        Args:
+            load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
+            linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
+                ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
+            violation_tolerance (float): Absolute amount by which
+                schedule may violate network constraints. Default
+                None, in which case the network's violation_tolerance
+                attribute is used.
+            relative_tolerance (float): Relative amount by which
+                schedule may violate network constraints. Default
+                None, in which case the network's relative_tolerance
+                attribute is used.
+
+        Returns:
+            bool: If load_currents is feasible at time t according to this set of constraints.
+        """
+        network_constraints = self.interface.is_feasible(load_currents, linear, violation_tolerance, relative_tolerance)
+        peak_limit = np.sum(np.array(x) for x in load_currents.values()) <= self.peak_limit
+        return network_constraints and peak_limit  
+
+    def schedule(self, active_evs, init_schedule=None):
         """ Schedule EVs by first sorting them by sort_fn, then allocating them their maximum feasible rate.
 
         Implements abstract method schedule from BaseAlgorithm.
@@ -52,10 +81,12 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Returns:
             Dict[str, List[float]]: see BaseAlgorithm
         """
+        if init_schedule is not None:
+            schedule = init_schedule
         if self.minimum_charge:
             active_evs = self.remove_active_evs_less_than_deadband(active_evs)
             ev_queue = self._sort_fn(active_evs, self.interface)
-            schedule, removed = self._find_minimum_charge(ev_queue)
+            schedule, _ = self._find_minimum_charge(ev_queue)
         else:
             ev_queue = self._sort_fn(active_evs, self.interface)
             schedule = {ev.station_id: [0] for ev in ev_queue}
@@ -108,12 +139,12 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             new_schedule[_station_id][time] = mid
             if (_ub - _lb) <= eps:
                 return _lb
-            elif self.interface.is_feasible(new_schedule, time):
+            elif self.is_feasible(new_schedule):
                 return bisection(_station_id, mid, _ub, new_schedule)
             else:
                 return bisection(_station_id, _lb, mid, new_schedule)
 
-        if not self.interface.is_feasible(schedule):
+        if not self.is_feasible(schedule):
             raise ValueError('The initial schedule is not feasible.')
         return bisection(station_id, lb, ub, schedule)
 
@@ -133,12 +164,12 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Returns:
             float: maximum feasible rate less than ub subject to the environment's constraints. [A]
         """
-        if not self.interface.is_feasible(schedule):
+        if not self.is_feasible(schedule):
             raise ValueError('The initial schedule is not feasible.')
         new_schedule = copy(schedule)
         feasible_idx = len(allowable_rates) - 1
         new_schedule[station_id][time] = allowable_rates[feasible_idx]
-        while not self.interface.is_feasible(new_schedule):
+        while not self.is_feasible(new_schedule):
             feasible_idx -= 1
             if feasible_idx < 0:
                 new_schedule[station_id][time] = 0
@@ -166,7 +197,7 @@ class RoundRobin(SortedSchedulingAlgo):
             sorted according to some metric.
     """
 
-    def schedule(self, active_evs):
+    def schedule(self, active_evs, init_schedule=None):
         """ Schedule EVs using a round robin based equal sharing scheme.
 
         Implements abstract method schedule from BaseAlgorithm.
@@ -183,9 +214,7 @@ class RoundRobin(SortedSchedulingAlgo):
         if self.minimum_charge:
             active_evs = self.remove_active_evs_less_than_deadband(active_evs)
 
-        ev_queue = deque(self._sort_fn(active_evs, self.interface))
-        schedule = {ev.station_id: [0] for ev in active_evs}
-        rate_idx_map = {ev.station_id: 0 for ev in active_evs}
+        ev_queue = deque(self._sort_fn(active_evs, self.interface))            
         allowable_rates = {}
         if self.rampdown is not None:
             rd_maxes = self.rampdown.get_maximum_rates(active_evs)
@@ -196,14 +225,22 @@ class RoundRobin(SortedSchedulingAlgo):
             max_rate_limit = self.interface.remaining_amp_periods(ev)
             if self.rampdown is not None:
                 max_rate_limit = max(rd_maxes[ev.session_id], max_rate_limit)
-            allowable_rates[ev.station_id] = [x for x in evse_rates if x <= max_rate_limit]
-            allowable_rates[ev.station_id] = evse_rates
+                allowable_rates[ev.station_id] = [x for x in evse_rates if x <= max_rate_limit]
+            else:
+                allowable_rates[ev.station_id] = evse_rates
+            
+        if init_schedule is None:
+            schedule = {ev.station_id: [0] for ev in active_evs}
+            rate_idx_map = {ev.station_id: 0 for ev in active_evs}
+        else:
+            schedule = init_schedule
+            rate_idx_map = {station_id: allowable_rates[station_id].index(sch[0]) for station_id, sch in init_schedule.items()}
 
         while len(ev_queue) > 0:
             ev = ev_queue.popleft()
             if rate_idx_map[ev.station_id] < len(allowable_rates[ev.station_id]) - 1:
                 schedule[ev.station_id][0] = allowable_rates[ev.station_id][rate_idx_map[ev.station_id] + 1]
-                if self.interface.is_feasible(schedule):
+                if self.is_feasible(schedule):
                     rate_idx_map[ev.station_id] += 1
                     ev_queue.append(ev)
                 else:
