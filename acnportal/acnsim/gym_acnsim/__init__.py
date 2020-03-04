@@ -1,27 +1,22 @@
 from importlib.util import find_spec
+from typing import List, Dict
+
 if find_spec("gym") is not None:
+    from gym.envs import registry
     from gym.envs.registration import register
-
-    register(
-        id='custom-acnsim-v0',
-        entry_point='acnportal.acnsim.gym_acnsim.envs:CustomSimEnv',
-    )
-
-    register(
-        id='default-acnsim-v0',
-        entry_point='acnportal.acnsim.gym_acnsim.envs:make_default_sim_env',
-    )
-
-    register(
-        id='rebuilding-acnsim-v0',
-        entry_point='acnportal.acnsim.gym_acnsim.envs:RebuildingEnv',
-    )
-
-    register(
-        id='default-rebuilding-acnsim-v0',
-        entry_point='acnportal.acnsim.gym_acnsim.envs:'
-                    'make_rebuilding_default_sim_env',
-    )
+    all_envs: List[str] = registry.all()
+    gym_env_dict: Dict[str, str] = {
+        'custom-acnsim-v0': 'acnportal.acnsim.gym_acnsim.envs:CustomSimEnv',
+        'default-acnsim-v0':
+            'acnportal.acnsim.gym_acnsim.envs:make_default_sim_env',
+        'rebuilding-acnsim-v0':
+            'acnportal.acnsim.gym_acnsim.envs:RebuildingEnv',
+        'default-rebuilding-acnsim-v0':
+            'acnportal.acnsim.gym_acnsim.envs:make_rebuilding_default_sim_env'
+    }
+    for env_name, env_entry_point in gym_env_dict.items():
+        if env_name not in all_envs:
+            register(id=env_name, entry_point=env_entry_point)
     from .envs import action_spaces, observation, reward_functions
-    from . import reward_functions
-del find_spec
+    del register, registry, all_envs, gym_env_dict
+del find_spec, List, Dict
