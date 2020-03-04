@@ -22,23 +22,33 @@ requires the stable-baselines package.
 # !pip install acnportal/.[gym]
 # !pip install stable-baselines
 
+import os
 import random
 from copy import deepcopy
 from datetime import datetime
-from typing import List
+from typing import List, Callable, Optional, Dict
 
+import numpy as np
 import gym
 import pytz
 from gym.wrappers import FlattenObservation
+from matplotlib import pyplot as plt
 from stable_baselines import PPO2
 from stable_baselines.common import BaseRLModel
 from stable_baselines.common.vec_env import DummyVecEnv
 
 from acnportal import acnsim
 from acnportal import algorithms
-from acnportal.acnsim import events
-from acnportal.acnsim import models
-from acnportal.algorithms import SimRLModelWrapper
+from acnportal.acnsim import events, models, Simulator
+from acnportal.acnsim.gym_acnsim.envs.action_spaces import SimAction
+from acnportal.acnsim.gym_acnsim.envs import BaseSimEnv, \
+    reward_functions, CustomSimEnv, default_action_object, \
+    default_observation_objects
+from acnportal.acnsim.gym_acnsim.envs.observation import SimObservation
+from acnportal.acnsim.interface import GymTrainedInterface, Interface
+from acnportal.algorithms import SimRLModelWrapper, BaseAlgorithm
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 # For this lesson, we will use a simple example. Imagine we have a
@@ -99,11 +109,7 @@ def random_plugin(num, time_limit, evse, laxity_ratio=1 / 2,
 # completely rebuild the simulation each time the environment is
 # reset, so that the next simulation has a new event queue. As such,
 # we will define a simulation generating function.
-def sim_gen_function():
-    """
-    Initializes a simulation with random events on a 1 phase, 1
-    constraint ACN (simple_acn), with 1 EVSE
-    """
+def _random_sim_builder(algorithm: BaseAlgorithm) -> Simulator:
     timezone = pytz.timezone('America/Los_Angeles')
     start = timezone.localize(datetime(2018, 9, 5))
     period = 1
@@ -116,14 +122,23 @@ def sim_gen_function():
         event_list.extend(random_plugin(10, 100, station_id))
     event_queue = events.EventQueue(event_list)
 
+    # Simulation to be wrapped
+    return acnsim.Simulator(deepcopy(cn), algorithm,
+                            deepcopy(event_queue), start, period=period,
+                            verbose=False)
+
+
+def interface_generating_function() -> BaseAlgorithm:
+    """
+    Initializes a simulation with random events on a 1 phase, 1
+    constraint ACN (simple_acn), with 1 EVSE
+    """
     # For training, this algorithm isn't run. So, we need not provide
     # any arguments.
-    schedule_rl = algorithms.GymTrainedAlgorithm()
+    schedule_rl = algorithms.GymTrainingAlgorithm()
 
     # Simulation to be wrapped
-    _ = acnsim.Simulator(deepcopy(cn), schedule_rl,
-                         deepcopy(event_queue), start, period=period,
-                         verbose=False)
+    _ = _random_sim_builder(schedule_rl)
     return schedule_rl.interface
 
 
@@ -135,7 +150,7 @@ def sim_gen_function():
 # all the customization features of the latter). As an example,
 # let's make a rebuilding simulation environment with the following
 # characteristics:
-# 
+#
 # - Observations:
 #     - Arrival times of all currently plugged-in EVs.
 #     - Departure times of all currently plugged-in EVs.
@@ -154,7 +169,7 @@ def sim_gen_function():
 #     - A negative reward for each amp of network constraint violation.
 #     - A positive charging reward for each amp of charge delivered if
 #       the above penalties are all 0.
-# 
+#
 # The observations, actions, and rewards listed here are all already
 # encoded in the `gym_acnsim` package; see the package documentation
 # for more details. Broadly, each observation object has space and
@@ -167,22 +182,187 @@ def sim_gen_function():
 # a registered gym environment that provides this functionality. To
 # make this environment, we need to input as a `kwarg` the
 # `sim_gen_func` we defined earlier.
-env = DummyVecEnv([lambda: FlattenObservation(
+vec_env = DummyVecEnv([lambda: FlattenObservation(
     gym.make('default-rebuilding-acnsim-v0',
-             sim_gen_function=sim_gen_function))])
-model = PPO2('MlpPolicy', env, verbose=2).learn(10000)
+             interface_generating_function=interface_generating_function)
+)])
+model = PPO2('MlpPolicy', vec_env, verbose=2)
+num_iterations: int = int(1e3)
+model_name: str = f"PPO2_{num_iterations}_test_{'today'}.zip"
+# model.learn(num_iterations)
+# model.save(model_name)
+
+# We've trained the above model for 10000 iterations. Packaged with this
+# library is the same model trained for 1000000 iterations, which we
+# will now load
+model.load(model_name)
 
 
+# This is a stable_baselines PPO2 model. PPO2 requires vectorized
+# environments to run, so the model wrapper should convert between
+# vectorized and non-vectorized environments.
 class StableBaselinesRLModel(SimRLModelWrapper):
-    """ Default RL model wrapping class.
+    """ An RL model wrapper that wraps stable_baselines style models.
     """
     model: BaseRLModel
 
-    def predict(self, observation, reward, done, info, **kwargs):
+    def predict(self, observation, reward, done, info, **kwargs) -> np.ndarray:
         return self.model.predict(observation, **kwargs)
 
-    def learn(self, total_timesteps, **kwargs):
-        return self.model.learn(total_timesteps, **kwargs)
 
-    def save(self, save_path, **kwargs):
-        return self.model.save(save_path, **kwargs)
+class GymTrainedAlgorithmVectorized(algorithms.BaseAlgorithm):
+    """ Abstract algorithm class for Simulations using a
+    reinforcement learning agent that operates in an Open AI Gym
+    environment that is vectorized via stable-baselines VecEnv style
+    constructions.
+
+    Implements abstract class BaseAlgorithm.
+
+    Vectorized environments in stable-baselines do not inherit from
+    gym Env, so we must define a new algorithm class that handles
+    models that use these environments.
+
+    Args:
+        max_recompute (int): See BaseAlgorithm.
+    """
+
+    _env: Optional[DummyVecEnv]
+    max_recompute: Optional[int]
+    _model: Optional[SimRLModelWrapper]
+
+    def __init__(self, max_recompute: int = 1) -> None:
+        super().__init__()
+        self._env = None
+        self.max_recompute = max_recompute
+        self._model = None
+
+    def __deepcopy__(self, memodict: Optional[Dict] = None
+                     ) -> "GymTrainedAlgorithmVectorized":
+        return type(self)(max_recompute=self.max_recompute)
+
+    def register_interface(self, interface: Interface) -> None:
+        """ NOTE: Registering an interface sets the environment's
+        interface to GymTrainedInterface.
+        """
+        if not isinstance(interface, GymTrainedInterface):
+            gym_interface: GymTrainedInterface = \
+                GymTrainedInterface.from_interface(interface)
+        else:
+            gym_interface: GymTrainedInterface = interface
+        super().register_interface(gym_interface)
+        if self._env is not None:
+            self.env.interface = interface
+
+    @property
+    def env(self) -> DummyVecEnv:
+        """ Return the algorithm's gym environment.
+
+        Returns:
+            DummyVecEnv: A gym environment that wraps a simulation.
+
+        Raises:
+            ValueError: Exception raised if vec_env is accessed prior to
+                an vec_env being registered.
+        """
+        if self._env is not None:
+            return self._env
+        else:
+            raise ValueError(
+                'No vec_env has been registered yet. Please call '
+                'register_env with an appropriate environment before '
+                'attempting to call vec_env or schedule.'
+            )
+
+    def register_env(self, env: DummyVecEnv) -> None:
+        """ Register a model that outputs schedules for the simulation.
+
+        Args:
+            env (DummyVecEnv): An vec_env wrapping a simulation.
+
+        Returns:
+            None
+        """
+        self._env = env
+
+    @property
+    def model(self) -> SimRLModelWrapper:
+        """ Return the algorithm's predictive model.
+
+        Returns:
+            SimRLModelWrapper: A predictive model that returns an array
+                of actions given an environment wrapping a simulation.
+
+        Raises:
+            ValueError: Exception raised if model is accessed prior to
+                a model being registered.
+        """
+        if self._model is not None:
+            return self._model
+        else:
+            raise ValueError(
+                'No model has been registered yet. Please call '
+                'register_model with an appropriate model before '
+                'attempting to call model or schedule.'
+            )
+
+    def register_model(self, new_model: SimRLModelWrapper) -> None:
+        """ Register a model that outputs schedules for the simulation.
+
+        Args:
+            new_model (SimRLModelWrapper): A model that can be used for
+                predictions in ACN-Sim.
+
+        Returns:
+            None
+        """
+        self._model = new_model
+
+    def schedule(self, active_evs) -> Dict[str, List[float]]:
+        """ Creates a schedule of charging rates for each EVSE in the
+        network. This only works if a model and environment have been
+        registered.
+
+        Overrides BaseAlgorithm.schedule().
+
+        The environment is assumed to be vectorized.
+        """
+        if self._model is None or self._env is None:
+            raise TypeError(
+                f"A model and environment must be set to call the "
+                f"schedule function for GymAlgorithm."
+            )
+        env: BaseSimEnv = self._env.envs[0].env
+        if not isinstance(env.interface, GymTrainedInterface):
+            raise TypeError(
+                "GymAlgorithm environment must have an interface of "
+                "type GymTrainedInterface to call schedule(). "
+            )
+        env.update_state()
+        env.store_previous_state()
+        env.action = self.model.predict(
+            self._env.env_method("observation", env.observation)[0],
+            env.reward, env.done, env.info
+        )[0]
+        env.schedule = env.action_to_schedule()
+        return env.schedule
+
+
+evaluation_algorithm = GymTrainedAlgorithmVectorized()
+evaluation_simulation = _random_sim_builder(evaluation_algorithm)
+
+# Make a new, single-use environment with only charging rewards.
+observation_objects: List[SimObservation] = default_observation_objects
+action_object: SimAction = default_action_object
+reward_functions: List[Callable[[BaseSimEnv], float]] = [
+    reward_functions.hard_charging_reward]
+eval_env: DummyVecEnv = DummyVecEnv([lambda: FlattenObservation(CustomSimEnv(evaluation_algorithm.interface,
+                                      observation_objects,
+                                      action_object,
+                                      reward_functions))])
+evaluation_algorithm.register_env(eval_env)
+evaluation_algorithm.register_model(StableBaselinesRLModel(model))
+
+evaluation_simulation.run()
+
+plt.plot(acnsim.aggregate_current(evaluation_simulation))
+plt.show()

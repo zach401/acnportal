@@ -4,7 +4,7 @@ gym_acnsim environments.
 
 All reward functions have signature
 
-    acnportal.acnsim.gym_acnsim.BaseSimEnv -> Number
+    acnportal.acnsim.gym_acnsim.envs.base_env.BaseSimEnv -> Number
 
 That is, reward functions take in an environment instance
 and return a number (reward) based on the characteristics of that
@@ -13,8 +13,10 @@ state.
 """
 import numpy as np
 
+from .base_env import BaseSimEnv
 
-def evse_violation(env):
+
+def evse_violation(env: BaseSimEnv) -> float:
     """
     If a single EVSE constraint was violated by the last schedule, a
     negative reward equal to the magnitude of the violation is added to
@@ -57,7 +59,7 @@ def evse_violation(env):
     return -violation
 
 
-def unplugged_ev_violation(env):
+def unplugged_ev_violation(env: BaseSimEnv) -> float:
     """
     If charge is attempted to be delivered to an EVSE with no EV, or to
     an EVSE with an EV that is done charging, the charging rate is
@@ -65,7 +67,7 @@ def unplugged_ev_violation(env):
     schedules for the current iteration.
     """
     violation = 0
-    if len(env.schedule) > 0 and len(env.schedule.values()[0]) == 0:
+    if len(env.schedule) > 0 and len(list(env.schedule.values())[0]) == 0:
         return violation
     active_evse_ids = env.interface.active_station_ids
     for station_id in env.schedule:
@@ -74,12 +76,14 @@ def unplugged_ev_violation(env):
     return -violation
 
 
-def constraint_violation(env):
+def constraint_violation(env: BaseSimEnv) -> float:
     """
     If a network constraint is violated, a negative reward equal to the
     norm of the total constraint violation, times the number of EVSEs,
     is added.
     """
+    if env.action is None:
+        return 0
     magnitudes = env.interface.get_constraints().magnitudes
     # Calculate aggregate currents for this charging schedule.
     out_vector = abs(env.interface.constraint_currents(
@@ -94,15 +98,15 @@ def constraint_violation(env):
     return -violation
 
 
-def soft_charging_reward(env):
+def soft_charging_reward(env: BaseSimEnv) -> float:
     """
     Rewards for charge delivered in the last timestep.
     """
-    return np.sum(env.interface.charging_rates
-                  - env.prev_interface.charging_rates)
+    return float(np.sum(env.interface.charging_rates
+                        - env.prev_interface.charging_rates))
 
 
-def hard_charging_reward(env):
+def hard_charging_reward(env: BaseSimEnv) -> float:
     """
     Rewards for charge delivered in the last timestep, but only
     if constraint and evse violations are 0.

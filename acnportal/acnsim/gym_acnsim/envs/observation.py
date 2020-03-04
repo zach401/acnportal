@@ -22,8 +22,8 @@ from typing import Callable
 import numpy as np
 from gym import spaces
 
-from .. import EV
-from ..interface import GymTrainedInterface
+from acnportal.acnsim import EV
+from acnportal.acnsim.interface import GymTrainedInterface
 
 
 class SimObservation:
@@ -128,8 +128,10 @@ class SimObservation:
 
 
 # Per active EV observation factory functions.
-def _ev_observation(attribute_function: Callable[[GymTrainedInterface, EV], float],
-                    name: str) -> SimObservation:
+def _ev_observation(
+        attribute_function: Callable[[GymTrainedInterface, EV], float],
+        name: str
+) -> SimObservation:
     def space_function(interface: GymTrainedInterface) -> spaces.Space:
         return spaces.Box(
             low=0, high=np.inf,

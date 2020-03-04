@@ -418,10 +418,10 @@ class GymTrainingInterface(GymTrainedInterface):
         # Check that length of new schedules is not less than
         # max_recompute.
         if (len(new_schedule) == 0
-                or len(new_schedule.values()[0])
+                or len(list(new_schedule.values())[0])
                 < self._simulator.max_recompute):
             warnings.warn(
-                f"Length of schedules {len(new_schedule.values()[0])} "
+                f"Length of schedules {len(list(new_schedule.values())[0])} "
                 f"is less than this simulation's max_recompute "
                 f"parameter {self._simulator.max_recompute}. Pilots "
                 f"may be updated with zeros."

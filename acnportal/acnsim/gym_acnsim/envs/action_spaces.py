@@ -23,7 +23,7 @@ import numpy as np
 from gym import Space
 from gym.spaces import Box
 
-from ..interface import GymTrainedInterface
+from acnportal.acnsim.interface import GymTrainedInterface
 
 
 class SimAction:
@@ -66,7 +66,8 @@ class SimAction:
             actions.
     """
     _space_function: Callable[[GymTrainedInterface], Space]
-    _to_schedule: Callable[[GymTrainedInterface, np.ndarray], Dict[str, List[float]]]
+    _to_schedule: Callable[[GymTrainedInterface, np.ndarray],
+                           Dict[str, List[float]]]
     name: str
 
     def __init__(self,
@@ -104,9 +105,9 @@ class SimAction:
         requires a GymInterface as input.
 
         Args:
-            interface (GymTrainedInterface): Interface to an ACN-Sim Simulation
-                that contains details of and functions to generate
-                details about the current Simulation.
+            interface (GymTrainedInterface): Interface to an ACN-Sim
+                Simulation that contains details of and functions to
+                generate details about the current Simulation.
 
         Returns:
             Space: A gym space in which all actions for this

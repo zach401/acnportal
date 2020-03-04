@@ -1,7 +1,11 @@
+import numpy as np
+
 from .base_algorithm import BaseAlgorithm
-from ..acnsim.interface import GymTrainedInterface, GymTrainingInterface
+from ..acnsim.interface import GymTrainedInterface, \
+    GymTrainingInterface, Interface
 from importlib.util import find_spec
-from typing import Optional
+from typing import Optional, Dict, List
+
 if find_spec("gym") is not None:
     from ..acnsim.gym_acnsim.envs import BaseSimEnv
 del find_spec
@@ -10,11 +14,11 @@ del find_spec
 class SimRLModelWrapper:
     """ Abstract wrapper class that wraps a reinforcement learning
     agent for general use with ACN-Sim. Users should define a new
-    class that implements the predict, learn, and save methods.
+    class that implements the predict method.
     """
     model: object
 
-    def __init__(self, model: object):
+    def __init__(self, model: object) -> None:
         """
         Wrap an input model.
 
@@ -23,13 +27,7 @@ class SimRLModelWrapper:
         """
         self.model = model
 
-    def predict(self, observation, reward, done, info):
-        raise NotImplementedError
-
-    def learn(self, *args):
-        raise NotImplementedError
-
-    def save(self, *args):
+    def predict(self, observation, reward, done, info) -> np.ndarray:
         raise NotImplementedError
 
 
@@ -41,7 +39,7 @@ class GymBaseAlgorithm(BaseAlgorithm):
 
     Simulations that run GymAlgorithm-style schedulers have two entry
     points for simulation control. First, a reinforcement learning
-    agent may call model.learn(env), which will step through the
+    agent may call model.learn(vec_env), which will step through the
     simulation. In this case, schedule() will never be called as all
     simulation progression would be handled by the agent stepping the
     environment. As such, the GymTrainingAlgorithm class does not
@@ -52,46 +50,54 @@ class GymBaseAlgorithm(BaseAlgorithm):
     this GymAlgorithm to run model.predict() on a trained model. See
     GymTrainedAlgorithm for this case.
 
+    Args:
+        max_recompute (int): See BaseAlgorithm.
     """
 
     _env: Optional[BaseSimEnv]
+    max_recompute: Optional[int]
 
-    def __init__(self):
+    def __init__(self, max_recompute: int = 1) -> None:
         super().__init__()
         self._env = None
+        self.max_recompute = max_recompute
+
+    def __deepcopy__(self, memodict: Optional[Dict] = None
+                     ) -> "GymBaseAlgorithm":
+        return type(self)(max_recompute=self.max_recompute)
 
     @property
-    def env(self):
+    def env(self) -> BaseSimEnv:
         """ Return the algorithm's gym environment.
 
         Returns:
             BaseSimEnv: A gym environment that wraps a simulation.
 
         Raises:
-            ValueError: Exception raised if env is accessed prior to
-                an env being registered.
+            ValueError: Exception raised if vec_env is accessed prior to
+                an vec_env being registered.
         """
         if self._env is not None:
             return self._env
         else:
             raise ValueError(
-                'No env has been registered yet. Please call '
+                'No vec_env has been registered yet. Please call '
                 'register_env with an appropriate environment before '
-                'attempting to call env or schedule.'
+                'attempting to call vec_env or schedule.'
             )
 
-    def register_env(self, env):
+    def register_env(self, env: BaseSimEnv) -> None:
         """ Register a model that outputs schedules for the simulation.
 
         Args:
-            env (BaseSimEnv): An env wrapping a simulation.
+            env (BaseSimEnv): An vec_env wrapping a simulation.
 
         Returns:
             None
         """
         self._env = env
 
-    def schedule(self, active_evs):
+    def schedule(self, active_evs) -> Dict[str, List[float]]:
         """ NOT IMPLEMENTED IN GymBaseAlgorithm. """
         raise NotImplementedError
 
@@ -113,14 +119,15 @@ class GymTrainingAlgorithm(GymBaseAlgorithm):
 
     """
 
-    def register_interface(self, interface):
+    def register_interface(self, interface: Interface) -> None:
         """ NOTE: Registering an interface sets the environment's
         interface to GymTrainingInterface.
         """
         if not isinstance(interface, GymTrainingInterface):
-            gym_interface = GymTrainingInterface.from_interface(interface)
+            gym_interface: GymTrainingInterface = \
+                GymTrainingInterface.from_interface(interface)
         else:
-            gym_interface = interface
+            gym_interface: GymTrainingInterface = interface
         super().register_interface(gym_interface)
         if self._env is not None:
             self.env.interface = interface
@@ -139,34 +146,31 @@ class GymTrainedAlgorithm(GymBaseAlgorithm):
     Simulations that run GymAlgorithm-style schedulers have two entry
     points for simulation control. First, the Simulator may call
     scheduler.run(), causing this GymAlgorithm to run model.predict().
-    Alternatively, one may call model.learn(env), which instead will
+    Alternatively, one may call model.learn(vec_env), which instead will
     step through the simulation. See GymTrainingAlgorithm for this case.
-
-    Args:
-        max_recompute (int): See BaseAlgorithm.
     """
+    _env: BaseSimEnv
     _model: Optional[SimRLModelWrapper]
-    max_recompute: int
 
-    def __init__(self, max_recompute=1):
-        super().__init__()
+    def __init__(self, max_recompute: int = 1) -> None:
+        super().__init__(max_recompute=max_recompute)
         self._model = None
-        self.max_recompute = max_recompute
 
-    def register_interface(self, interface):
+    def register_interface(self, interface: Interface) -> None:
         """ NOTE: Registering an interface sets the environment's
         interface to GymTrainedInterface.
         """
         if not isinstance(interface, GymTrainedInterface):
-            gym_interface = GymTrainedInterface.from_interface(interface)
+            gym_interface: GymTrainedInterface = \
+                GymTrainedInterface.from_interface(interface)
         else:
-            gym_interface = interface
+            gym_interface: GymTrainedInterface = interface
         super().register_interface(gym_interface)
         if self._env is not None:
             self.env.interface = interface
 
     @property
-    def model(self):
+    def model(self) -> SimRLModelWrapper:
         """ Return the algorithm's predictive model.
 
         Returns:
@@ -186,7 +190,7 @@ class GymTrainedAlgorithm(GymBaseAlgorithm):
                 'attempting to call model or schedule.'
             )
 
-    def register_model(self, model):
+    def register_model(self, model: SimRLModelWrapper) -> None:
         """ Register a model that outputs schedules for the simulation.
 
         Args:
@@ -198,53 +202,22 @@ class GymTrainedAlgorithm(GymBaseAlgorithm):
         """
         self._model = model
 
-    @property
-    def env(self):
-        """ Return the algorithm's gym environment.
-
-        Returns:
-            BaseSimEnv: A gym environment that wraps a simulation.
-
-        Raises:
-            ValueError: Exception raised if env is accessed prior to
-                an env being registered.
-        """
-        if self._env is not None:
-            return self._env
-        else:
-            raise ValueError(
-                'No env has been registered yet. Please call '
-                'register_env with an appropriate environment before '
-                'attempting to call env or schedule.'
-            )
-
-    def register_env(self, env):
-        """ Register a model that outputs schedules for the simulation.
-
-        Args:
-            env (BaseSimEnv): An env wrapping a simulation.
-
-        Returns:
-            None
-        """
-        self._env = env
-
     def schedule(self, active_evs):
         """ Creates a schedule of charging rates for each EVSE in the
-        network. This only works if a model and environment
+        network. This only works if a model and environment have been
+        registered.
 
         Implements BaseAlgorithm.schedule().
         """
-        if self.model is None or self.env is None:
+        if self._model is None or self._env is None:
             raise TypeError(
                 f"A model and environment must be set to call the "
                 f"schedule function for GymAlgorithm."
             )
-        if isinstance(self.env.interface, GymTrainingInterface):
+        if not isinstance(self.env.interface, GymTrainedInterface):
             raise TypeError(
-                "GymAlgorithm environment interface is of type "
-                "GymTrainingInterface. The environment must have an "
-                "interface of type GymInterface to call schedule()."
+                "GymAlgorithm environment must have an interface of "
+                "type GymTrainedInterface to call schedule(). "
             )
         self.env.update_state()
         self.env.store_previous_state()
