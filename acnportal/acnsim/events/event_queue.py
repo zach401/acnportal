@@ -75,7 +75,7 @@ class EventQueue:
         current_events = []
         while not self.empty() and self._queue[0][0] <= self._timestep:
             current_events.append(self.get_event())
-        return sorted(current_events)
+        return current_events
 
     def get_last_timestamp(self):
         """ Return the timestamp of the last event (chronologically) in the event queue
