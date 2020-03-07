@@ -135,7 +135,7 @@ def _ev_observation(
     def space_function(interface: GymTrainedInterface) -> spaces.Space:
         return spaces.Box(
             low=0, high=np.inf,
-            shape=(len(interface.station_ids),), dtype='float32'
+            shape=(len(interface.station_ids),)
         )
 
     def obs_function(interface: GymTrainedInterface) -> np.ndarray:
@@ -176,8 +176,7 @@ def _constraints_observation(attribute: str, name: str) -> SimObservation:
         return spaces.Box(
             low=-1 * np.inf,
             high=np.inf,
-            shape=getattr(interface.get_constraints(), attribute).shape,
-            dtype='float32'
+            shape=getattr(interface.get_constraints(), attribute).shape
         )
 
     def obs_function(interface: GymTrainedInterface) -> np.ndarray:
@@ -205,7 +204,7 @@ def timestep_observation() -> SimObservation:
     """
     # noinspection PyUnusedLocal
     def space_function(interface: GymTrainedInterface) -> spaces.Space:
-        return spaces.Box(low=0, high=np.inf, shape=(1,), dtype='float32')
+        return spaces.Box(low=0, high=np.inf, shape=(1,))
 
     def obs_function(interface: GymTrainedInterface) -> np.ndarray:
         return np.array(interface.current_time + 1)

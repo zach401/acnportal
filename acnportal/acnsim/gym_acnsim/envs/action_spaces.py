@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Module containing definition of a gym_acnsim action and factory
 functions for different builtin actions.
@@ -15,7 +16,10 @@ to_schedule:
     Callable[[GymInterface, np.ndarray], Dict[str, List[float]]]
 
 The space_function gives a gym space for a given action type.
-to_schedule gives an ACN-Sim schedule for a given action.
+to_schedule gives an ACN-Sim schedule for a given action. The
+to_schedule method does not enforce action space constraints, as some
+learning algorithms treat action space constraints as loose rather than
+strict.
 """
 from typing import Callable, Dict, List
 
@@ -137,11 +141,16 @@ def single_charging_schedule() -> SimAction:
     """ Generates a SimAction instance that wraps functions to handle
     actions taking the form of a vector of pilot signals. For this
     action type, a single entry represents the pilot signal sent to
-    single EVSE at the current timestep. The space does not allow
-    pilot signals above the maximum allowable rate over all EVSEs or
+    single EVSE at the current timestep. The space bounds
+    pilot signals above the maximum allowable rate over all EVSEs and
     below the minimum allowable rate over all EVSEs.
+
+    As a 0 min rate is assumed to be allowed, the action space lower
+    bound is set to 0 if the station min rates are all greater than 0.
     """
-    def space_function(interface: GymTrainedInterface) -> Space:
+
+    # noinspection PyMissingOrEmptyDocstring
+    def space_function(interface: GymTrainedInterface) -> Box:
         num_evses: int = len(interface.station_ids)
         max_rate: float = max([interface.max_pilot_signal(station_id)
                                for station_id in interface.station_ids])
@@ -150,10 +159,17 @@ def single_charging_schedule() -> SimAction:
              for station_id in interface.station_ids]
         ))
         return Box(low=min_rate, high=max_rate,
-                   shape=(num_evses,), dtype='float32')
+                   shape=(num_evses,), dtype='float')
 
+    # noinspection PyMissingOrEmptyDocstring
     def to_schedule(interface: GymTrainedInterface,
                     action: np.ndarray) -> Dict[str, List[float]]:
+        if len(action.shape) > 1:
+            raise TypeError(
+                f"Single schedule action type only accepts schedules "
+                f"of length <= 1 in a 1-D numpy array. Got shape = "
+                f"{len(action.shape)}."
+            )
         return {interface.station_ids[i]: [action[i]]
                 for i in range(len(action))}
     return SimAction(space_function, to_schedule, 'single schedule')
@@ -166,8 +182,14 @@ def zero_centered_single_charging_schedule() -> SimAction:
     an action of 0 corresponds to a pilot signal of max_rate/2. So,
     to convert to a schedule, actions need to be shifted by a certain
     amount and converted to a dictionary.
+
+    As a 0 min rate is assumed to be allowed, the action space lower
+    bound is set to -rate_offset_array if the station min rates are all
+    greater than 0.
     """
-    def space_function(interface: GymTrainedInterface) -> Space:
+
+    # noinspection PyMissingOrEmptyDocstring
+    def space_function(interface: GymTrainedInterface) -> Box:
         num_evses: int = len(interface.station_ids)
         max_rates: np.ndarray = np.array(
             [interface.max_pilot_signal(station_id)
@@ -178,13 +200,20 @@ def zero_centered_single_charging_schedule() -> SimAction:
              for station_id in interface.station_ids]
         )
         rate_offset_array: np.ndarray = (max_rates + min_rates) / 2
-        return Box(low=min(0.0, min(min_rates - rate_offset_array)),
+        return Box(low=min(min(-rate_offset_array),
+                           min(min_rates - rate_offset_array)),
                    high=max(max_rates - rate_offset_array),
-                   shape=(num_evses,),
-                   dtype='float32')
+                   shape=(num_evses,), dtype='float')
 
+    # noinspection PyMissingOrEmptyDocstring
     def to_schedule(interface: GymTrainedInterface,
                     action: np.ndarray) -> Dict[str, List[float]]:
+        if len(action.shape) > 1:
+            raise TypeError(
+                f"Single schedule action type only accepts schedules "
+                f"of length <= 1 in a 1-D numpy array. Got shape = "
+                f"{len(action.shape)}."
+            )
         max_rates: np.ndarray = np.array(
             [interface.max_pilot_signal(station_id)
              for station_id in interface.station_ids]
@@ -197,4 +226,5 @@ def zero_centered_single_charging_schedule() -> SimAction:
         offset_action: np.ndarray = action + rate_offset_array
         return {interface.station_ids[i]: [offset_action[i]]
                 for i in range(len(offset_action))}
-    return SimAction(space_function, to_schedule, 'single schedule')
+    return SimAction(space_function, to_schedule,
+                     'zero-centered single schedule')
