@@ -1,24 +1,5 @@
 # coding=utf-8
-""" Tests for SimAction and action space functions.
-TODO: Turn this idea dump into by function documentation.
-
-T1: max_rate: 16; min_rate: 0
-T2: max_rate: 16, min_rate: {0, 6, -4}
-
-Uncentered schedule:
-Space 1: Space(low=0, high=16) -> [0, 16]
-Space 2 (negative_min): Space(low=-4, high=16) [-4, 16]
-Space 3 (deadband_min): Space(low=0, high=16) [0, 16]
-
-Zero-centered schedule:
-T1 offset: 8. Range of values is [-8, 8]
-T2 offset in case 1: 8, range [-8, 8] -> -8.0, 8
-T2 offset in case 3: 6, range [-10, 10] -> -10, 10
-T2 offset in case 2: 11, range [-11, 5] -> -11.0, 8
-
-input array to case 1: 0, 16
-output schedule: T1: 8, T2: 24
-"""
+""" Tests for SimAction and action space functions. """
 import unittest
 from importlib.util import find_spec
 from typing import Callable, Dict, List, Any

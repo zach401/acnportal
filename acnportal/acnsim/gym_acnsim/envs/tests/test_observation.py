@@ -18,6 +18,7 @@ from ....interface import GymTrainedInterface
 
 @unittest.skipIf(find_spec("gym") is None, "Requires gym install.")
 class TestSimObservation(unittest.TestCase):
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         # The type here is Any as space_function is actually a Mock
@@ -45,6 +46,7 @@ class TestSimObservation(unittest.TestCase):
 
 @unittest.skipIf(find_spec("gym") is None, "Requires gym install.")
 class TestEVObservationClass(unittest.TestCase):
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         # The type here is Any as space_function is actually a Mock
@@ -89,6 +91,7 @@ class TestEVObservationClass(unittest.TestCase):
 
 
 class TestArrivalObservation(TestEVObservationClass):
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -103,6 +106,7 @@ class TestArrivalObservation(TestEVObservationClass):
 
 
 class TestDepartureObservation(TestEVObservationClass):
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -117,6 +121,7 @@ class TestDepartureObservation(TestEVObservationClass):
 
 
 class TestDemandObservation(TestEVObservationClass):
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -139,6 +144,7 @@ class TestConstraintObservation(unittest.TestCase):
     # object, but there's no Mock type in the typing library.
     interface: Any = create_autospec(GymTrainedInterface)
 
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         cls.sim_observation: Optional[obs.SimObservation] = None
@@ -165,6 +171,7 @@ class TestConstraintObservation(unittest.TestCase):
 
 @unittest.skipIf(find_spec("gym") is None, "Requires gym install.")
 class TestConstraintMatrixObservation(TestConstraintObservation):
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -176,13 +183,14 @@ class TestConstraintMatrixObservation(TestConstraintObservation):
         cls.interface.get_constraints = lambda: namedtuple(
             'Constraint', [cls.attribute_name])(cls.constraint_matrix)
 
-    def test_constraint_matrix_observation(self):
+    def test_constraint_matrix_observation(self) -> None:
         np.testing.assert_equal(self.sim_observation.get_obs(self.interface),
                                 self.constraint_matrix)
 
 
 @unittest.skipIf(find_spec("gym") is None, "Requires gym install.")
 class TestMagnitudesObservation(TestConstraintObservation):
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -194,13 +202,14 @@ class TestMagnitudesObservation(TestConstraintObservation):
         cls.interface.get_constraints = lambda: namedtuple(
             'Constraint', [cls.attribute_name])(cls.magnitudes)
 
-    def test_constraint_matrix_observation(self):
+    def test_constraint_matrix_observation(self) -> None:
         np.testing.assert_equal(self.sim_observation.get_obs(self.interface),
                                 self.magnitudes)
 
 
 @unittest.skipIf(find_spec("gym") is None, "Requires gym install.")
 class TestTimestepObservation(unittest.TestCase):
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         # The type here is Any as space_function is actually a Mock
@@ -220,7 +229,7 @@ class TestTimestepObservation(unittest.TestCase):
     def test_correct_on_init_name(self) -> None:
         self.assertEqual(self.sim_observation.name, self.obs_name)
 
-    def test_timestep_observation(self):
+    def test_timestep_observation(self) -> None:
         np.testing.assert_equal(self.sim_observation.get_obs(self.interface),
                                 self.interface.current_time + 1)
 
