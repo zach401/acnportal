@@ -33,9 +33,9 @@ if find_spec("gym") is not None:
 from ....interface import GymTrainedInterface
 
 
-# noinspection PyMissingOrEmptyDocstring
 @unittest.skipIf(find_spec("gym") is None, "Requires gym install.")
 class TestSimAction(unittest.TestCase):
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         # The type here is Any as space_function is actually a Mock
@@ -65,15 +65,20 @@ class TestSimAction(unittest.TestCase):
 
 @unittest.skipIf(find_spec("gym") is None, "Requires gym install.")
 class TestSingleChargingSchedule(unittest.TestCase):
+    # Some class variables are defined outside of setUpClass so that
+    # the code inspector knows that inherited classes have these
+    # attributes.
+    max_rate: float = 16.
+    min_rate: float = 0.
+    negative_rate: float = -4.
+    deadband_rate: float = 6.
+
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         cls.sim_action: SimAction = single_charging_schedule()
         cls.station_ids: List[str] = ['T1', 'T2']
-        cls.max_rate: float = 16.
-        cls.min_rate: float = 0.
         cls.offset: float = 0.5
-        cls.deadband_rate: float = 6.
-        cls.negative_rate: float = -4.
 
         def _interface_builder(interface: Any, min_rate: float) -> Any:
             interface.station_ids = cls.station_ids
@@ -153,11 +158,11 @@ class TestSingleChargingSchedule(unittest.TestCase):
 
 @unittest.skipIf(find_spec("gym") is None, "Requires gym install.")
 class TestZeroCenteredSingleChargingSchedule(TestSingleChargingSchedule):
+    # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
         cls.sim_action: SimAction = zero_centered_single_charging_schedule()
-        # TODO (sunash): determine how to avoid these warnings.
         cls.shifted_max = cls.max_rate - (cls.max_rate
                                           + cls.min_rate) / 2
         cls.shifted_minimums = [
@@ -186,7 +191,7 @@ class TestZeroCenteredSingleChargingSchedule(TestSingleChargingSchedule):
                                          self.shifted_minimums[2],
                                          self.shifted_max)
 
-    def test_single_to_schedule(self) -> None:
+    def test_single_to_bad_schedule(self) -> None:
         # The get_schedule function does not test if the input schedule
         # array is within the action space.
         bad_schedule: Dict[str, List[float]] = self.sim_action.get_schedule(
@@ -195,11 +200,13 @@ class TestZeroCenteredSingleChargingSchedule(TestSingleChargingSchedule):
                       self.max_rate + self.offset])
         )
         self.assertEqual(bad_schedule, {
-            self.station_ids[0]: [13.0 - self.offset],
-            self.station_ids[1]: [45 + self.offset]
+            self.station_ids[0]: [self.min_rate - self.offset
+                                  + (self.max_rate + self.min_rate) / 2],
+            self.station_ids[1]: [self.max_rate + self.offset
+                                  + (self.max_rate + self.min_rate) / 2]
         })
 
-    def test_single_to_bad_schedule(self) -> None:
+    def test_single_to_schedule(self) -> None:
         good_schedule: Dict[str, List[float]] = self.sim_action.get_schedule(
             self.interface,
             np.array([self.min_rate - (self.max_rate + self.min_rate) / 2,

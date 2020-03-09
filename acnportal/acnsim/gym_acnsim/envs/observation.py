@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Module containing definition of a gym_acnsim observation and factory
 functions for different builtin observations.
@@ -127,7 +128,8 @@ class SimObservation:
         return self._obs_function(interface)
 
 
-# Per active EV observation factory functions.
+# Per active EV observation factory functions. Note that all EV data
+# is shifted up by 1, as 0's indicate no EV is plugged in.
 def _ev_observation(
         attribute_function: Callable[[GymTrainedInterface, EV], float],
         name: str
@@ -135,7 +137,8 @@ def _ev_observation(
     def space_function(interface: GymTrainedInterface) -> spaces.Space:
         return spaces.Box(
             low=0, high=np.inf,
-            shape=(len(interface.station_ids),)
+            shape=(len(interface.station_ids),),
+            dtype='float'
         )
 
     def obs_function(interface: GymTrainedInterface) -> np.ndarray:
@@ -151,6 +154,9 @@ def _ev_observation(
 def arrival_observation() -> SimObservation:
     """ Generates a SimObservation instance that wraps functions to
     observe active EV arrivals.
+
+    Zeros in the output observation array indicate no EV is plugged in;
+    as such, all observations are shifted up by 1.
     """
     return _ev_observation(lambda _, ev: ev.arrival, 'arrivals')
 
@@ -158,6 +164,9 @@ def arrival_observation() -> SimObservation:
 def departure_observation() -> SimObservation:
     """ Generates a SimObservation instance that wraps functions to
     observe active EV departures.
+
+    Zeros in the output observation array indicate no EV is plugged in;
+    as such, all observations are shifted up by 1.
     """
     return _ev_observation(lambda _, ev: ev.departure, 'departures')
 
@@ -165,6 +174,9 @@ def departure_observation() -> SimObservation:
 def remaining_demand_observation() -> SimObservation:
     """ Generates a SimObservation instance that wraps functions to
     observe active EV remaining energy demands in amp periods.
+
+    Zeros in the output observation array indicate no EV is plugged in;
+    as such, all observations are shifted up by 1.
     """
     return _ev_observation(
         lambda interface, ev: interface.remaining_amp_periods(ev), 'demands')
@@ -174,9 +186,10 @@ def remaining_demand_observation() -> SimObservation:
 def _constraints_observation(attribute: str, name: str) -> SimObservation:
     def space_function(interface: GymTrainedInterface) -> spaces.Space:
         return spaces.Box(
-            low=-1 * np.inf,
+            low=-np.inf,
             high=np.inf,
-            shape=getattr(interface.get_constraints(), attribute).shape
+            shape=getattr(interface.get_constraints(), attribute).shape,
+            dtype='float'
         )
 
     def obs_function(interface: GymTrainedInterface) -> np.ndarray:
@@ -201,11 +214,16 @@ def magnitudes_observation() -> SimObservation:
 def timestep_observation() -> SimObservation:
     """ Generates a SimObservation instance that wraps functions to
     observe the current timestep of the simulation, in periods.
+
+    To comply with the timesteps returned by arrival and departure
+    observations, the observed timestep is one greater than than that
+    returned by the simulation. Simulations thus start at timestep 1
+    from an RL agent's perspective.
     """
     # noinspection PyUnusedLocal
     def space_function(interface: GymTrainedInterface) -> spaces.Space:
-        return spaces.Box(low=0, high=np.inf, shape=(1,))
+        return spaces.Box(low=0, high=np.inf, shape=(1,), dtype='float')
 
     def obs_function(interface: GymTrainedInterface) -> np.ndarray:
         return np.array(interface.current_time + 1)
-    return SimObservation(space_function, obs_function, name='arrival')
+    return SimObservation(space_function, obs_function, name='timestep')
