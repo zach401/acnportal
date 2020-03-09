@@ -4,8 +4,9 @@ import unittest
 from unittest.mock import create_autospec
 from importlib.util import find_spec
 
-from ....interface import GymTrainingInterface
-from .. import reward_functions as rf, CustomSimEnv
+if find_spec("gym") is not None:
+    from ....interface import GymTrainingInterface
+    from .. import reward_functions as rf, CustomSimEnv
 
 
 @unittest.skipIf(find_spec("gym") is None, "Requires gym install.")
