@@ -42,21 +42,23 @@ class Event(base.BaseSimObj):
                       DeprecationWarning)
         return self.event_type
 
-    def to_dict(self, context_dict=None):
-        """ Implements BaseSimObj.to_dict. """
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
         attribute_dict = {'timestamp': self.timestamp,
                           'event_type': self.event_type,
                           'precedence': self.precedence}
         return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attribute_dict, context_dict,
-                  loaded_dict=None, cls_kwargs=None):
-        """ Implements BaseSimObj.from_dict. """
-        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
-        out_obj = cls(attribute_dict['timestamp'], **cls_kwargs)
+    def _from_dict_helper(cls, out_obj, attribute_dict):
         out_obj.event_type = attribute_dict['event_type']
         out_obj.precedence = attribute_dict['precedence']
+
+    @classmethod
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls(attribute_dict['timestamp'])
+        cls._from_dict_helper(out_obj, attribute_dict)
         return out_obj, loaded_dict
 
 
@@ -73,29 +75,26 @@ class PluginEvent(Event):
         self.ev = ev
         self.precedence = 10
 
-    def to_dict(self, context_dict=None):
-        """ Implements BaseSimObj.to_dict. """
-        attribute_dict, context_dict = super().to_dict(context_dict)
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
+        attribute_dict, context_dict = super()._to_dict(context_dict)
         # Plugin-specific attributes
 
-        registry, context_dict = self.ev.to_registry(
+        # noinspection PyProtectedMember
+        registry, context_dict = self.ev._to_registry(
             context_dict=context_dict)
         attribute_dict['ev'] = registry['id']
 
         return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attribute_dict, context_dict,
-                  loaded_dict=None, cls_kwargs=None):
-        """ Implements BaseSimObj.from_dict. """
-        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
-
-        ev, loaded_dict = base.build_from_id(
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        # noinspection PyProtectedMember
+        ev, loaded_dict = base._build_from_id(
             attribute_dict['ev'], context_dict, loaded_dict=loaded_dict)
-        cls_kwargs['ev'] = ev
-
-        out_obj, loaded_dict = super().from_dict(
-            attribute_dict, context_dict, loaded_dict, cls_kwargs)
+        out_obj = cls(attribute_dict['timestamp'], ev)
+        cls._from_dict_helper(out_obj, attribute_dict)
         return out_obj, loaded_dict
 
 
@@ -114,23 +113,21 @@ class UnplugEvent(Event):
         self.session_id = session_id
         self.precedence = 0
 
-    def to_dict(self, context_dict=None):
-        """ Implements BaseSimObj.to_dict. """
-        attribute_dict, context_dict = super().to_dict(context_dict)
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
+        attribute_dict, context_dict = super()._to_dict(context_dict)
         # Unplug-specific attributes
         attribute_dict['station_id'] = self.station_id
         attribute_dict['session_id'] = self.session_id
         return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attribute_dict, context_dict,
-                  loaded_dict=None, cls_kwargs=None):
-        """ Implements BaseSimObj.from_dict. """
-        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
-        cls_kwargs['station_id'] = attribute_dict['station_id']
-        cls_kwargs['session_id'] = attribute_dict['session_id']
-        out_obj, loaded_dict = super().from_dict(
-            attribute_dict, context_dict, loaded_dict, cls_kwargs)
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls(attribute_dict['timestamp'],
+                      attribute_dict['station_id'],
+                      attribute_dict['session_id'])
+        cls._from_dict_helper(out_obj, attribute_dict)
         return out_obj, loaded_dict
 
 

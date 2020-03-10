@@ -328,8 +328,8 @@ class ChargingNetwork(base.BaseSimObj):
         schedule_length = schedule_matrix.shape[1]
         return np.all(np.tile(self.magnitudes + np.maximum(violation_tolerance, rel_magnitude_tol), (schedule_length, 1)).T >= np.abs(aggregate_currents))
 
-    def to_dict(self, context_dict=None):
-        """ Implements BaseSimObj.to_dict. """
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
 
         attribute_dict = {}
         # Serialize non-nested attributes.
@@ -339,7 +339,8 @@ class ChargingNetwork(base.BaseSimObj):
 
         evses = {}
         for station_id, evse in self._EVSEs.items():
-            registry, context_dict = evse.to_registry(
+            # noinspection PyProtectedMember
+            registry, context_dict = evse._to_registry(
                 context_dict=context_dict)
             evses[station_id] = registry['id']
         attribute_dict['_EVSEs'] = evses
@@ -352,19 +353,17 @@ class ChargingNetwork(base.BaseSimObj):
         return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attribute_dict, context_dict,
-                  loaded_dict=None, cls_kwargs=None):
-        """ Implements BaseSimObj.from_dict. """
-        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             violation_tolerance=attribute_dict['violation_tolerance'],
-            relative_tolerance=attribute_dict['relative_tolerance'],
-            **cls_kwargs
+            relative_tolerance=attribute_dict['relative_tolerance']
         )
 
         evses = {}
         for station_id, evse in attribute_dict['_EVSEs'].items():
-            evse_elt, loaded_dict = base.build_from_id(
+            # noinspection PyProtectedMember
+            evse_elt, loaded_dict = base._build_from_id(
                 evse, context_dict, loaded_dict=loaded_dict)
             evses[station_id] = evse_elt
         out_obj._EVSEs = evses

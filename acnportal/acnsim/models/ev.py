@@ -136,8 +136,8 @@ class EV(base.BaseSimObj):
         self._energy_delivered = 0
         self._battery.reset()
 
-    def to_dict(self, context_dict=None):
-        """ Implements BaseSimObj.to_dict. """
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
         attribute_dict = {}
         nn_attr_lst = ['_arrival', '_departure', '_session_id',
                        '_station_id', '_requested_energy',
@@ -146,19 +146,18 @@ class EV(base.BaseSimObj):
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
 
-        registry, context_dict = self._battery.to_registry(
+        # noinspection PyProtectedMember
+        registry, context_dict = self._battery._to_registry(
             context_dict=context_dict)
         attribute_dict['_battery'] = registry['id']
 
         return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attribute_dict, context_dict,
-                  loaded_dict=None, cls_kwargs=None):
-        """ Implements BaseSimObj.from_dict. """
-        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
-
-        battery, loaded_dict = base.build_from_id(
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        # noinspection PyProtectedMember
+        battery, loaded_dict = base._build_from_id(
             attribute_dict['_battery'], context_dict, loaded_dict=loaded_dict)
 
         out_obj = cls(
@@ -168,8 +167,7 @@ class EV(base.BaseSimObj):
             attribute_dict['_station_id'],
             attribute_dict['_session_id'],
             battery,
-            estimated_departure=attribute_dict['_estimated_departure'],
-            **cls_kwargs
+            estimated_departure=attribute_dict['_estimated_departure']
         )
         out_obj._energy_delivered = attribute_dict['_energy_delivered']
         out_obj._current_charging_rate = \

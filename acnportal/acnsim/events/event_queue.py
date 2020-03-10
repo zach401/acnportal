@@ -90,13 +90,14 @@ class EventQueue(base.BaseSimObj):
         else:
             return None
 
-    def to_dict(self, context_dict=None):
-        """ Implements BaseSimObj.to_dict. """
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
         attribute_dict = {'_timestep': self._timestep}
 
         event_queue = []
         for (ts, event) in self._queue:
-            registry, context_dict = event.to_registry(
+            # noinspection PyProtectedMember
+            registry, context_dict = event._to_registry(
                 context_dict=context_dict)
             event_queue.append((ts, registry['id']))
         attribute_dict['_queue'] = event_queue
@@ -104,18 +105,17 @@ class EventQueue(base.BaseSimObj):
         return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attribute_dict, context_dict,
-                  loaded_dict=None, cls_kwargs=None):
-        """ Implements BaseSimObj.from_dict. """
-        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
-        out_obj = cls(**cls_kwargs)
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls()
         out_obj._timestep = attribute_dict['_timestep']
 
         event_queue = []
         for (ts, event) in attribute_dict['_queue']:
-            event_elt, loaded_dict = base.build_from_id(
+            # noinspection PyProtectedMember
+            loaded_event, loaded_dict = base._build_from_id(
                 event, context_dict, loaded_dict=loaded_dict)
-            event_queue.append((ts, event_elt))
+            event_queue.append((ts, loaded_event))
         out_obj._queue = event_queue
 
         return out_obj, loaded_dict

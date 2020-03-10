@@ -14,138 +14,140 @@ from datetime import datetime
 
 class TestJSONIO(TestCase):
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         # Make instance of each class in registry.
         # Battery
-        self.battery1 = acnsim.Battery(100, 50, 20)
-        self.battery1._current_charging_power = 10
+        cls.battery1 = acnsim.Battery(100, 50, 20)
+        cls.battery1._current_charging_power = 10
 
         # Linear2StageBattery
-        self.battery2 = acnsim.Linear2StageBattery(100, 50, 20)
-        self.battery2._current_charging_power = 10
-        self.battery2._noise_level = 0.1
-        self.battery2._transition_soc = 0.85
+        cls.battery2 = acnsim.Linear2StageBattery(100, 50, 20)
+        cls.battery2._current_charging_power = 10
+        cls.battery2._noise_level = 0.1
+        cls.battery2._transition_soc = 0.85
 
         # EVs
         staying_time = 10
         ev1_arrival = 10
-        self.ev1 = acnsim.EV(
+        cls.ev1 = acnsim.EV(
             ev1_arrival,
             ev1_arrival + staying_time,
             30,
             'PS-001',
             'EV-001',
-            deepcopy(self.battery1),
+            deepcopy(cls.battery1),
             estimated_departure=25
         )
-        self.ev1._energy_delivered = 0.05
-        self.ev1._current_charging_rate = 10
+        cls.ev1._energy_delivered = 0.05
+        cls.ev1._current_charging_rate = 10
 
         ev2_arrival = 40
-        self.ev2 = acnsim.EV(
+        cls.ev2 = acnsim.EV(
             ev2_arrival,
             ev2_arrival + staying_time,
             30,
             'PS-002',
             'EV-002',
-            deepcopy(self.battery2),
+            deepcopy(cls.battery2),
             estimated_departure=25
         )
-        self.ev2._energy_delivered = 0.05
-        self.ev2._current_charging_rate = 10
+        cls.ev2._energy_delivered = 0.05
+        cls.ev2._current_charging_rate = 10
 
         ev3_arrival = 50
-        self.ev3 = acnsim.EV(
+        cls.ev3 = acnsim.EV(
             ev3_arrival,
             ev3_arrival + staying_time,
             30,
             'PS-003',
             'EV-003',
-            deepcopy(self.battery2),
+            deepcopy(cls.battery2),
             estimated_departure=25
         )
-        self.ev3._energy_delivered = 0.05
-        self.ev3._current_charging_rate = 10
+        cls.ev3._energy_delivered = 0.05
+        cls.ev3._current_charging_rate = 10
 
         # EVSEs
-        self.evse0 = acnsim.EVSE('PS-000', max_rate=32, min_rate=0)
+        cls.evse0 = acnsim.EVSE('PS-000', max_rate=32)
 
-        self.evse1 = acnsim.EVSE('PS-001', max_rate=32, min_rate=0)
-        self.evse1.plugin(self.ev1)
-        self.evse1.set_pilot(30, 220, 1)
+        cls.evse1 = acnsim.EVSE('PS-001', max_rate=32)
+        cls.evse1.plugin(cls.ev1)
+        cls.evse1.set_pilot(30, 220, 1)
 
-        self.evse2 = acnsim.DeadbandEVSE(
-            'PS-002', max_rate=32, min_rate=0, deadband_end=4)
-        self.evse2.plugin(self.ev2)
-        self.evse2.set_pilot(30, 220, 1)
+        cls.evse2 = acnsim.DeadbandEVSE(
+            'PS-002', max_rate=32, deadband_end=4)
+        cls.evse2.plugin(cls.ev2)
+        cls.evse2.set_pilot(30, 220, 1)
 
-        self.evse3 = acnsim.FiniteRatesEVSE(
+        cls.evse3 = acnsim.FiniteRatesEVSE(
             'PS-003', allowable_rates=[0, 8, 16, 24, 32])
-        self.evse3.plugin(self.ev3)
-        self.evse3.set_pilot(24, 220, 1)
+        cls.evse3.plugin(cls.ev3)
+        cls.evse3.set_pilot(24, 220, 1)
 
         # Events
-        self.event = acnsim.Event(0)
-        self.plugin_event1 = acnsim.PluginEvent(10, self.ev1)
-        self.unplug_event = acnsim.UnplugEvent(20, 'PS-001', 'EV-001')
-        self.recompute_event = acnsim.RecomputeEvent(30)
-        self.plugin_event2 = acnsim.PluginEvent(40, self.ev2)
-        self.plugin_event3 = acnsim.PluginEvent(50, self.ev3)
+        cls.event = acnsim.Event(0)
+        cls.plugin_event1 = acnsim.PluginEvent(10, cls.ev1)
+        cls.unplug_event = acnsim.UnplugEvent(20, 'PS-001', 'EV-001')
+        cls.recompute_event = acnsim.RecomputeEvent(30)
+        cls.plugin_event2 = acnsim.PluginEvent(40, cls.ev2)
+        cls.plugin_event3 = acnsim.PluginEvent(50, cls.ev3)
+        # Modify a default attribute to check if it's loaded correctly.
+        cls.plugin_event1.event_type = 'Plugin Modified'
 
         # EventQueue
-        self.event_queue = acnsim.EventQueue()
-        self.event_queue.add_events(
-            [self.event,
-             self.plugin_event1,
-             self.recompute_event,
-             self.plugin_event2,
-             self.plugin_event3]
+        cls.event_queue = acnsim.EventQueue()
+        cls.event_queue.add_events(
+            [cls.event,
+             cls.plugin_event1,
+             cls.recompute_event,
+             cls.plugin_event2,
+             cls.plugin_event3]
         )
 
         # Network
-        self.network = acnsim.ChargingNetwork(
+        cls.network = acnsim.ChargingNetwork(
             violation_tolerance=1e-3, relative_tolerance=1e-5)
 
-        self.network.register_evse(self.evse1, 220, 30)
-        self.network.register_evse(self.evse2, 220, 150)
-        self.network.register_evse(self.evse3, 220, -90)
-        self.network.constraint_matrix = np.array([[1, 0, 0],
-                                                   [0, 1, 0],
-                                                   [0, 0, 1]])
-        self.network.magnitudes = np.array([32, 32, 32])
-        self.network.constraint_index = ['C1', 'C2', 'C3']
+        cls.network.register_evse(cls.evse1, 220, 30)
+        cls.network.register_evse(cls.evse2, 220, 150)
+        cls.network.register_evse(cls.evse3, 220, -90)
+        cls.network.constraint_matrix = np.array([[1, 0, 0],
+                                                  [0, 1, 0],
+                                                  [0, 0, 1]])
+        cls.network.magnitudes = np.array([32, 32, 32])
+        cls.network.constraint_index = ['C1', 'C2', 'C3']
 
         # Simulator
-        self.simulator = acnsim.Simulator(
-            self.network,
+        cls.simulator = acnsim.Simulator(
+            cls.network,
             UncontrolledCharging(),
-            self.event_queue,
+            cls.event_queue,
             datetime(2019, 1, 1),
             verbose=False,
             store_schedule_history=True
         )
 
         # Make a copy of the simulator to run
-        self.simulator_run = deepcopy(self.simulator)
+        cls.simulator_run = deepcopy(cls.simulator)
         # Do necessary unplugs.
-        for evse in self.simulator_run.network._EVSEs.values():
+        for evse in cls.simulator_run.network._EVSEs.values():
             if evse.ev is not None:
                 evse.unplug()
         # Run simulation
-        self.simulator_run.run()
+        cls.simulator_run.run()
 
         # Make a copy of the simulator with signals
-        self.simulator_signal = deepcopy(self.simulator)
-        self.simulator_signal.signals = {'a': [0, 1, 2], 'b': [3, 4]}
+        cls.simulator_signal = deepcopy(cls.simulator)
+        cls.simulator_signal.signals = {'a': [0, 1, 2], 'b': [3, 4]}
 
-        self.simulator_hard_signal = deepcopy(self.simulator)
-        self.simulator_hard_signal.signals = {'a': BaseAlgorithm()}
+        cls.simulator_hard_signal = deepcopy(cls.simulator)
+        cls.simulator_hard_signal.signals = {'a': BaseAlgorithm()}
 
-        self.simulator_no_sch_hist = deepcopy(self.simulator)
-        self.simulator_no_sch_hist.schedule_history = None
+        cls.simulator_no_sch_hist = deepcopy(cls.simulator)
+        cls.simulator_no_sch_hist.schedule_history = None
 
         # Class data used for testing.
-        self.simple_attributes = {
+        cls.simple_attributes = {
             'Battery': [
                 '_max_power', '_current_charging_power', '_current_charge',
                 '_capacity', '_init_charge'
@@ -168,7 +170,7 @@ class TestJSONIO(TestCase):
                 '_deadband_end', 'is_continuous'
             ],
             'FiniteRatesEVSE': [
-                '_station_id', '_max_rate', '_min_rate','_current_pilot',
+                '_station_id', '_max_rate', '_min_rate', '_current_pilot',
                 'is_continuous', 'allowable_rates'
             ],
             'Event': [
@@ -358,34 +360,38 @@ class TestJSONIO(TestCase):
 
     def test_acnportal_version_inequality(self):
         with open(os.path.join(os.path.dirname(__file__),
-                               'old_version.json'), 'r') as infile:
+                               'old_version.json')) as infile:
             with self.assertWarns(UserWarning):
                 acnsim.Event.from_json(json.load(infile))
 
     def test_numpy_version_inequality(self):
         with open(os.path.join(os.path.dirname(__file__),
-                               'old_dependencies.json'), 'r') as infile:
+                               'old_dependencies.json')) as infile:
             with self.assertWarns(UserWarning):
                 acnsim.Event.from_json(json.load(infile))
 
 
 class TestExtObjJSONIO(TestJSONIO):
+    battery1 = None
+    event_queue = None
+    simple_attributes = None
+
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         super().setUpClass()
 
-        self.set_battery_event = SetAttrEvent(5)
-        self.set_battery_event.set_extra_attr(self.battery1)
+        cls.set_battery_event = SetAttrEvent(5)
+        cls.set_battery_event.set_extra_attr(cls.battery1)
 
-        self.event_queue.add_event(self.set_battery_event)
+        cls.event_queue.add_event(cls.set_battery_event)
 
-        self.simple_attributes['DefaultNamedEvent'] = [
+        cls.simple_attributes['DefaultNamedEvent'] = [
             'timestamp', 'event_type', 'precedence'
         ]
-        self.simple_attributes['SetAttrEvent'] = [
+        cls.simple_attributes['SetAttrEvent'] = [
             'timestamp', 'event_type', 'precedence', 'extra_attr'
         ]
-        self.simple_attributes['BatteryListEvent'] = [
+        cls.simple_attributes['BatteryListEvent'] = [
             'timestamp', 'event_type', 'precedence'
         ]
 

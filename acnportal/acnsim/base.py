@@ -2,6 +2,7 @@
 This module contains definitions shared by all ACN-Sim objects.
 """
 import json
+# noinspection PyProtectedMember
 from pydoc import locate
 import warnings
 import pkg_resources
@@ -9,7 +10,7 @@ import pandas
 import numpy
 
 
-def none_to_empty_dict(*args):
+def _none_to_empty_dict(*args):
     """ Returns a new args list that replaces each None arg with {}. """
     out_arg_lst = []
     for arg in args:
@@ -20,11 +21,15 @@ def none_to_empty_dict(*args):
     return out_arg_lst
 
 
-def build_from_id(obj_id, context_dict, loaded_dict=None):
+def _build_from_id(obj_id, context_dict, loaded_dict=None):
     """
     Given an object ID and a dictionary mapping object ID's to JSON
     serializable representations of ACN-Sim objects, returns the ACN-Sim
     object represented by the given object_id.
+
+    This method is protected (i.e. underscored) so users do not
+    directly use this method. PyNoInspection comments have been
+    added where this function is used within the package.
 
     Optionally, a loaded_dict that contains already-loaded objects
     may be provided to avoid duplicated work.
@@ -61,7 +66,8 @@ def build_from_id(obj_id, context_dict, loaded_dict=None):
 
     # 'version' is None since we've already checked the version of the
     # parent object.
-    obj, loaded_dict = obj_class.from_registry(
+    # noinspection PyProtectedMember
+    obj, loaded_dict = obj_class._from_registry(
         {'id': obj_id,
          'context_dict': context_dict,
          'version': None,
@@ -96,15 +102,19 @@ class BaseSimObj:
 
     def to_json(self):
         """ Returns a JSON string representing self. """
-        return json.dumps(self.to_registry()[0])
+        return json.dumps(self._to_registry()[0])
 
-    def to_registry(self, context_dict=None):
+    def _to_registry(self, context_dict=None):
         """
         Returns a JSON serializable representation of self.
 
         The serializer is invoked using `obj.to_json()`, but the
         conversion into a serializable representation occurs in this
         method.
+
+        This method is protected (i.e. underscored) so users do not
+        directly use this method. PyNoInspection comments have been
+        added where this function is used within the package.
 
         Serializer behaviors:
 
@@ -113,14 +123,14 @@ class BaseSimObj:
         accurate preservation of attributes.
 
         - An extension of an ACN-Sim object that appropriately defines a
-        `to_dict` method will dump without error and with
+        `_to_dict` method will dump without error and with
         accurate attribute preservation. This also applies to ACN-Sim
         objects that have as attributes extensions of ACN-Sim objects
-        with defined `to_dict` methods.
+        with defined `_to_dict` methods.
 
-        - An extension that doesn't define `to_dict` will dump without
+        - An extension that doesn't define `_to_dict` will dump without
         error, but with partial preservation of attributes. Objects that
-        are not JSON serializable and which do not have a `to_registry`
+        are not JSON serializable and which do not have a `_to_registry`
         method will not be completely serialized unless said objects are
         extensions of built-in ACN-Sim objects with no extra attributes.
 
@@ -128,7 +138,7 @@ class BaseSimObj:
         in the serialization.
 
         - A warning is thrown for each attribute that is neither naively
-        serializable nor handled by any object's `to_registry` method.
+        serializable nor handled by any object's `_to_registry` method.
 
         The serializer returns a dict with two keys. An `id`, and a
         `context_dict` that maps ID's to JSON serializable
@@ -166,12 +176,12 @@ class BaseSimObj:
 
         Warns:
             UserWarning: If any attributes are present in the object
-                not handled by the object's `to_dict` method.
+                not handled by the object's `_to_dict` method.
             UserWarning: If any of the unhandled attributes are not
                 JSON serializable.
 
         """
-        context_dict, = none_to_empty_dict(context_dict)
+        context_dict, = _none_to_empty_dict(context_dict)
         obj_id = f'{id(self)}'
 
         # Check if this object has already been converted, and return
@@ -182,8 +192,8 @@ class BaseSimObj:
         obj_type = f'{self.__module__}.{self.__class__.__name__}'
 
         # Get a dictionary of the attributes of this object using the
-        # object's to_dict method.
-        attribute_dict, context_dict = self.to_dict(context_dict)
+        # object's _to_dict method.
+        attribute_dict, context_dict = self._to_dict(context_dict)
 
         # Check that all attributes have been serialized.
         # Warn if some attributes weren't serialized.
@@ -192,17 +202,18 @@ class BaseSimObj:
                 set(self.__dict__.keys()) - set(attribute_dict.keys())
             warnings.warn(
                 f"Attributes {unserialized_keys} present in object of "
-                f"type {obj_type} but not handled by object's to_dict "
+                f"type {obj_type} but not handled by object's _to_dict "
                 f"method. Serialized object may not load correctly. "
-                f"Write a to_dict method and re-dump, or write an "
-                f"appropriate from_dict method to accurately load.",
+                f"Write a _to_dict method and re-dump, or write an "
+                f"appropriate _from_dict method to accurately load.",
                 UserWarning
             )
             for key in unserialized_keys:
                 unserialized_attr = self.__dict__[key]
-                # Try calling the attr's to_registry method.
+                # Try calling the attr's _to_registry method.
                 try:
-                    registry, context_dict = unserialized_attr.to_registry(
+                    # noinspection PyProtectedMember
+                    registry, context_dict = unserialized_attr._to_registry(
                         context_dict=context_dict)
                     attribute_dict[key] = registry['id']
                     continue
@@ -238,7 +249,7 @@ class BaseSimObj:
                  'dependency_versions': dependency_versions},
                 context_dict)
 
-    def to_dict(self, context_dict=None):
+    def _to_dict(self, context_dict=None):
         """ Converts the object's attributes into a JSON serializable
         dict. Each ACN-Sim object defines this method differently.
 
@@ -259,10 +270,10 @@ class BaseSimObj:
     @classmethod
     def from_json(cls, in_json):
         """ Returns an ACN-Sim object loaded from in_registry. """
-        return cls.from_registry(json.loads(in_json))[0]
+        return cls._from_registry(json.loads(in_json))[0]
 
     @classmethod
-    def from_registry(cls, in_registry, loaded_dict=None, cls_kwargs=None):
+    def _from_registry(cls, in_registry, loaded_dict=None):
         """
         Returns an object of type `cls` from a JSON serializable
         representation of the object.
@@ -271,23 +282,27 @@ class BaseSimObj:
         conversion from a serializable representation to an ACN-Sim
         object occurs in this method.
 
+        This method is protected (i.e. underscored) so users do not
+        directly use this method. PyNoInspection comments have been
+        added where this function is used within the package.
+
         Deserializer behaviors:
 
         - Any native ACN-Sim object (that is, any unaltered object
         provided in `acnsim`) that was dumped (serialized) with the
-        object's `to_registry` method loads without error and with
+        object's `_to_registry` method loads without error and with
         accurate values for each attribute, assuming the original object
         was of type `cls`.
 
         - An extension of an ACN-Sim object that appropriately defines a
-        `from_dict` method will load without error and with
+        `_from_dict` method will load without error and with
         accurate attribute values. This also applies to ACN-Sim
         objects that have as attributes extensions of ACN-Sim objects
-        with defined `from_dict` methods.
+        with defined `_from_dict` methods.
 
-        - An extension that doesn't define `from_dict` may not load
+        - An extension that doesn't define `_from_dict` may not load
         correctly. The extension will load correctly only if the
-        constructor of the object whose `from_dict` method is called
+        constructor of the object whose `_from_dict` method is called
         takes the same arguments as this object, and any extra
         attributes are JSON-serializable or readable from an ID.
 
@@ -295,7 +310,7 @@ class BaseSimObj:
         in the deserialization.
 
         - A warning is thrown for each attribute that is neither naively
-        serializable nor readable from an ID or with a `from_registry`
+        serializable nor readable from an ID or with a `_from_registry`
         method.
 
         - A warning is thrown if any of acnportal, numpy, or pandas have
@@ -321,8 +336,6 @@ class BaseSimObj:
                     ```
             loaded_dict (Dict[str, BaseSimObj-like]): Dict mapping
                 object ID's to loaded ACN-Sim objects.
-            cls_kwargs (Dict[str, object]): Optional extra arguments
-                to be passed to object's constructor.
 
         Returns:
             BaseSimObj-like: Loaded object.
@@ -340,15 +353,14 @@ class BaseSimObj:
                 version. If no version is provided ('version' maps
                 to None), no warning is raised.
             UserWarning: If any attributes are present in the object
-                not handled by the object's `from_dict` method.
+                not handled by the object's `_from_dict` method.
             UserWarning: If any of the unhandled attributes are not
                 readable from an ID. This is fine unless this attribute
                 is not meant to be JSON serializable, in which case
                 the loaded attribute will be incorrect.
 
         """
-        loaded_dict, cls_kwargs = none_to_empty_dict(
-            loaded_dict, cls_kwargs)
+        loaded_dict = _none_to_empty_dict(loaded_dict)
         obj_id, context_dict, acnportal_version, dependency_versions = (
             in_registry['id'],
             in_registry['context_dict'],
@@ -367,11 +379,11 @@ class BaseSimObj:
                 f"{current_version}."
             )
 
-        current_dependency_versions = {
-            'numpy': numpy.__version__,
-            'pandas': pandas.__version__
-        }
         if dependency_versions is not None:
+            current_dependency_versions = {
+                'numpy': numpy.__version__,
+                'pandas': pandas.__version__
+            }
             for pkg in dependency_versions.keys():
                 if (current_dependency_versions[pkg]
                         != dependency_versions[pkg]):
@@ -405,11 +417,11 @@ class BaseSimObj:
         # serializable values.
         attribute_dict = obj_dict['attributes']
 
-        # Call this class' from_dict method to convert the JSON
+        # Call this class' _from_dict method to convert the JSON
         # representation of this object's attributes into the actual
         # object.
-        out_obj, loaded_dict = cls.from_dict(
-            attribute_dict, context_dict, loaded_dict, cls_kwargs)
+        out_obj, loaded_dict = cls._from_dict(
+            attribute_dict, context_dict, loaded_dict)
 
         # Check that all attributes have been loaded.
         # Warn if some attributes weren't loaded.
@@ -419,7 +431,7 @@ class BaseSimObj:
             warnings.warn(
                 f"Attributes {unloaded_attrs} present in object of "
                 f"type {obj_dict['class']} but not handled by object's "
-                f"from_dict method. Loaded object may have inaccurate "
+                f"_from_dict method. Loaded object may have inaccurate "
                 f"attributes.",
                 UserWarning
             )
@@ -427,7 +439,7 @@ class BaseSimObj:
                 # Try reading this attribute from an ID in
                 # attribute_dict.
                 try:
-                    out_attr, loaded_dict = build_from_id(
+                    out_attr, loaded_dict = _build_from_id(
                         attribute_dict[attr],
                         context_dict,
                         loaded_dict=loaded_dict
@@ -449,8 +461,7 @@ class BaseSimObj:
         return out_obj, loaded_dict
 
     @classmethod
-    def from_dict(cls, attribute_dict, context_dict,
-                  loaded_dict=None, cls_kwargs=None):
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
         """ Converts a JSON serializable representation of an ACN-Sim
         object into an actual ACN-Sim object.
 
@@ -461,8 +472,6 @@ class BaseSimObj:
                 object ID's to object JSON serializable representations.
             loaded_dict (Dict[str, BaseSimObj-like]): Dict mapping
                 object ID's to ACN-Sim objects.
-            cls_kwargs (Dict[str, object]): Optional extra arguments
-                to be passed to object's constructor.
 
         Returns:
             BaseSimObj-like: Loaded object

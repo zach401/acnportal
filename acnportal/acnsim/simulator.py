@@ -233,9 +233,9 @@ class Simulator(base.BaseSimObj):
             raise KeyError("EVSE {0} not found in network.".format(station_id))
         return self.network.station_ids.index(station_id)
 
-    def to_dict(self, context_dict=None):
+    def _to_dict(self, context_dict=None):
         """
-        Implements BaseSimObj.to_dict. Certain simulator attributes are
+        Implements BaseSimObj._to_dict. Certain simulator attributes are
         not serialized completely as they are not ACN-Sim objects
         (signals and scheduler exist in their own modules).
 
@@ -250,11 +250,12 @@ class Simulator(base.BaseSimObj):
         """
         attribute_dict = {}
 
-        registry, context_dict = self.network.to_registry(
+        # noinspection PyProtectedMember
+        registry, context_dict = self.network._to_registry(
             context_dict=context_dict)
         attribute_dict['network'] = registry['id']
 
-        registry, context_dict = self.event_queue.to_registry(
+        registry, context_dict = self.event_queue._to_registry(
             context_dict=context_dict)
         attribute_dict['event_queue'] = registry['id']
 
@@ -285,13 +286,15 @@ class Simulator(base.BaseSimObj):
 
         ev_history = {}
         for session_id, ev in self.ev_history.items():
-            registry, context_dict = ev.to_registry(context_dict=context_dict)
+            # noinspection PyProtectedMember
+            registry, context_dict = ev._to_registry(context_dict=context_dict)
             ev_history[session_id] = registry['id']
         attribute_dict['ev_history'] = ev_history
 
         event_history = []
-        for event_elt in self.event_history:
-            registry, context_dict = event_elt.to_registry(
+        for past_event in self.event_history:
+            # noinspection PyProtectedMember
+            registry, context_dict = past_event._to_registry(
                 context_dict=context_dict)
             event_history.append(registry['id'])
         attribute_dict['event_history'] = event_history
@@ -299,10 +302,9 @@ class Simulator(base.BaseSimObj):
         return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attribute_dict, context_dict,
-                  loaded_dict=None, cls_kwargs=None):
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
         """
-        Implements BaseSimObj.from_dict. Certain simulator attributes
+        Implements BaseSimObj._from_dict. Certain simulator attributes
         are not loaded completely as they are not ACN-Sim objects
         (signals and scheduler exist in their own modules).
 
@@ -321,15 +323,19 @@ class Simulator(base.BaseSimObj):
         after the Simulator is loaded.
 
         """
-        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
+        # noinspection PyProtectedMember
+        network, loaded_dict = base._build_from_id(
+            attribute_dict['network'],
+            context_dict,
+            loaded_dict=loaded_dict
+        )
 
-        network, loaded_dict = base.build_from_id(attribute_dict['network'],
-                                                  context_dict,
-                                                  loaded_dict=loaded_dict)
-
-        events, loaded_dict = base.build_from_id(attribute_dict['event_queue'],
-                                                 context_dict,
-                                                 loaded_dict=loaded_dict)
+        # noinspection PyProtectedMember
+        events, loaded_dict = base._build_from_id(
+            attribute_dict['event_queue'],
+            context_dict,
+            loaded_dict=loaded_dict
+        )
 
         scheduler_cls = base.locate(attribute_dict['scheduler'])
         try:
@@ -350,8 +356,7 @@ class Simulator(base.BaseSimObj):
             start,
             period=attribute_dict['period'],
             signals=attribute_dict['signals'],
-            verbose=attribute_dict['verbose'],
-            **cls_kwargs
+            verbose=attribute_dict['verbose']
         )
         scheduler.register_interface(Interface(out_obj))
 
@@ -373,16 +378,18 @@ class Simulator(base.BaseSimObj):
 
         ev_history = {}
         for session_id, ev in attribute_dict['ev_history'].items():
-            ev_elt, loaded_dict = base.build_from_id(
+            # noinspection PyProtectedMember
+            ev_elt, loaded_dict = base._build_from_id(
                 ev, context_dict, loaded_dict=loaded_dict)
             ev_history[session_id] = ev_elt
         out_obj.ev_history = ev_history
 
         event_history = []
         for past_event in attribute_dict['event_history']:
-            event_elt, loaded_dict = base.build_from_id(
+            # noinspection PyProtectedMember
+            loaded_event, loaded_dict = base._build_from_id(
                 past_event, context_dict, loaded_dict=loaded_dict)
-            event_history.append(event_elt)
+            event_history.append(loaded_event)
         out_obj.event_history = event_history
 
         return out_obj, loaded_dict

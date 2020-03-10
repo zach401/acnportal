@@ -33,23 +33,23 @@ class BatteryListEvent(acnsim.Event):
         super().__init__(timestamp)
         self.battery_list = battery_list
 
-    def to_dict(self, context_dict=None):
-        attribute_dict, context_dict = super().to_dict(context_dict)
+    def _to_dict(self, context_dict=None):
+        attribute_dict, context_dict = super()._to_dict(context_dict)
         battery_list = []
         for ev in self.battery_list:
-            registry, context_dict = ev.to_registry(context_dict=context_dict)
+            # noinspection PyProtectedMember
+            registry, context_dict = ev._to_registry(context_dict=context_dict)
             battery_list.append(registry['id'])
         attribute_dict['battery_list'] = battery_list
         return attribute_dict, context_dict
 
     @classmethod
-    def from_dict(cls, attribute_dict, context_dict=None,
-                  loaded_dict=None, cls_kwargs=None):
-        cls_kwargs, = base.none_to_empty_dict(cls_kwargs)
+    def _from_dict(cls, attribute_dict, context_dict=None, loaded_dict=None):
         battery_list = []
         for ev in attribute_dict['battery_list']:
-            ev_elt, loaded_dict = base.build_from_id(
+            # noinspection PyProtectedMember
+            ev_elt, loaded_dict = base._build_from_id(
                 ev, context_dict=context_dict, loaded_dict=loaded_dict)
             battery_list.append(ev_elt)
-        out_obj = cls(attribute_dict['timestamp'], battery_list, **cls_kwargs)
+        out_obj = cls(attribute_dict['timestamp'], battery_list)
         return out_obj, loaded_dict
