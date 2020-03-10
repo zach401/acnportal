@@ -75,6 +75,11 @@ class TestIntegration(TestCase):
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_analysis_fields.json'), 'r') as infile:
             self.edf_algo_true_analysis_dict = json.load(infile)
 
+        with open(os.path.join(
+                os.path.dirname(__file__),
+                'edf_algo_true_datetimes_array.json'), 'r') as infile:
+            self.edf_algo_true_datetimes_array = json.load(infile)
+
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_info_fields.json'), 'r') as infile:
             self.edf_algo_true_info_dict = json.load(infile)
 
@@ -116,6 +121,13 @@ class TestIntegration(TestCase):
         np.testing.assert_allclose(
             acnsim.current_unbalance(self.sim, ['Secondary A', 'Secondary B', 'Secondary C']),
             np.array(self.edf_algo_true_analysis_dict['secondary_current_unbalance_nema']))
+
+    def test_datetimes_array_tutorial_2(self):
+        np.testing.assert_equal(
+            acnsim.datetimes_array(self.sim),
+            np.array([np.datetime64(date_time)
+                      for date_time in self.edf_algo_true_datetimes_array])
+        )
 
     def test_tutorial_2(self):
         old_evse_keys = list(self.edf_algo_true_info_dict['pilot_signals'].keys())
