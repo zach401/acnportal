@@ -88,18 +88,19 @@ class TestJSONIO(TestCase):
         cls.event = acnsim.Event(0)
         cls.plugin_event1 = acnsim.PluginEvent(10, cls.ev1)
         cls.unplug_event = acnsim.UnplugEvent(20, 'PS-001', 'EV-001')
-        cls.recompute_event = acnsim.RecomputeEvent(30)
+        cls.recompute_event1 = acnsim.RecomputeEvent(30)
         cls.plugin_event2 = acnsim.PluginEvent(40, cls.ev2)
         cls.plugin_event3 = acnsim.PluginEvent(50, cls.ev3)
         # Modify a default attribute to check if it's loaded correctly.
-        cls.plugin_event1.event_type = 'Plugin Modified'
+        cls.recompute_event2 = acnsim.RecomputeEvent(10)
+        cls.recompute_event2.event_type = 'Recompute Modified'
 
         # EventQueue
         cls.event_queue = acnsim.EventQueue()
         cls.event_queue.add_events(
             [cls.event,
              cls.plugin_event1,
-             cls.recompute_event,
+             cls.recompute_event1,
              cls.plugin_event2,
              cls.plugin_event3]
         )
@@ -257,7 +258,10 @@ class TestJSONIO(TestCase):
         _ = self._obj_compare_helper(self.unplug_event)
 
     def test_recompute_event_json(self):
-        _ = self._obj_compare_helper(self.recompute_event)
+        _ = self._obj_compare_helper(self.recompute_event1)
+
+    def test_altered_recompute_event_json(self):
+        _ = self._obj_compare_helper(self.recompute_event2)
 
     def test_event_queue_json(self):
         event_queue_loaded = self._obj_compare_helper(self.event_queue)

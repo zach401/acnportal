@@ -360,7 +360,7 @@ class BaseSimObj:
                 the loaded attribute will be incorrect.
 
         """
-        loaded_dict = _none_to_empty_dict(loaded_dict)
+        loaded_dict, = _none_to_empty_dict(loaded_dict)
         obj_id, context_dict, acnportal_version, dependency_versions = (
             in_registry['id'],
             in_registry['context_dict'],
