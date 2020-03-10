@@ -85,6 +85,7 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
 from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from copy import deepcopy
 
 from acnportal import acnsim
@@ -128,12 +129,25 @@ sim2.run()
 # We see from these plots that our implementation matches th included one quite well. If we look closely however, we
 # might see a small difference. This is because the included algorithm uses a more efficient bisection based method
 # instead of our simpler linear search to find a feasible rate.
-fig, ax = plt.subplots(1, 2, sharey=True, sharex=True)
-ax[0].plot(acnsim.aggregate_current(sim), label='Our EDF')
-ax[1].plot(acnsim.aggregate_current(sim2), label='Included EDF')
-ax[1].set_xlabel('Time (periods)')
-ax[0].set_ylabel('Current (A)')
-ax[1].set_ylabel('Current (A)')
-ax[0].set_title('Our EDF')
-ax[1].set_title('Included EDF')
+
+# Get list of datetimes over which the simulations were run.
+sim_dates = mdates.date2num(acnsim.datetimes_array(sim))
+sim2_dates = mdates.date2num(acnsim.datetimes_array(sim2))
+
+# Set locator and formatter for datetimes on x-axis.
+locator = mdates.AutoDateLocator(maxticks=6)
+formatter = mdates.ConciseDateFormatter(locator)
+
+fig, axs = plt.subplots(1, 2, sharey=True, sharex=True)
+axs[0].plot(sim_dates, acnsim.aggregate_current(sim), label='Our EDF')
+axs[1].plot(sim2_dates, acnsim.aggregate_current(sim2), label='Included EDF')
+axs[0].set_title('Our EDF')
+axs[1].set_title('Included EDF')
+for ax in axs:
+    ax.set_ylabel('Current (A)')
+    for label in ax.get_xticklabels():
+        label.set_rotation(40)
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
+
 plt.show()
