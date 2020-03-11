@@ -3,10 +3,10 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 import warnings
-from .. import base
+from ..base import BaseSimObj
 
 
-class ChargingNetwork(base.BaseSimObj):
+class ChargingNetwork(BaseSimObj):
     """
     The ChargingNetwork class describes the infrastructure of the charging network with
     information about the types of the charging station_schedule.
@@ -345,7 +345,11 @@ class ChargingNetwork(base.BaseSimObj):
             evses[station_id] = registry['id']
         attribute_dict['_EVSEs'] = evses
 
-        attribute_dict['constraint_matrix'] = self.constraint_matrix.tolist()
+        if self.constraint_matrix is not None:
+            attribute_dict['constraint_matrix'] = \
+                self.constraint_matrix.tolist()
+        else:
+            attribute_dict['constraint_matrix'] = self.constraint_matrix
         attribute_dict['magnitudes'] = self.magnitudes.tolist()
         attribute_dict['_voltages'] = self._voltages.tolist()
         attribute_dict['_phase_angles'] = self._phase_angles.tolist()
@@ -363,13 +367,16 @@ class ChargingNetwork(base.BaseSimObj):
         evses = {}
         for station_id, evse in attribute_dict['_EVSEs'].items():
             # noinspection PyProtectedMember
-            evse_elt, loaded_dict = base._build_from_id(
+            evse_elt, loaded_dict = BaseSimObj._build_from_id(
                 evse, context_dict, loaded_dict=loaded_dict)
             evses[station_id] = evse_elt
         out_obj._EVSEs = evses
 
-        out_obj.constraint_matrix = np.array(
-            attribute_dict['constraint_matrix'])
+        if attribute_dict['constraint_matrix'] is not None:
+            out_obj.constraint_matrix = np.array(
+                attribute_dict['constraint_matrix'])
+        else:
+            out_obj.constraint_matrix = attribute_dict['constraint_matrix']
         out_obj.magnitudes = np.array(attribute_dict['magnitudes'])
         out_obj._voltages = np.array(attribute_dict['_voltages'])
         out_obj._phase_angles = np.array(attribute_dict['_phase_angles'])

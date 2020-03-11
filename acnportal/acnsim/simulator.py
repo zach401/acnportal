@@ -3,6 +3,9 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 import warnings
+import json
+# noinspection PyProtectedMember
+from pydoc import locate
 
 from .events import *
 from .models import EV
@@ -10,10 +13,10 @@ from .events import UnplugEvent
 from .interface import Interface
 from .interface import InvalidScheduleError
 from acnportal.algorithms import BaseAlgorithm
-from . import base
+from .base import BaseSimObj
 
 
-class Simulator(base.BaseSimObj):
+class Simulator(BaseSimObj):
     """ Central class of the acnsim package.
 
     The Simulator class is the central place where everything about a particular simulation is stored including the
@@ -265,7 +268,7 @@ class Simulator(base.BaseSimObj):
         attribute_dict['start'] = self.start.strftime('%H:%M:%S.%f %d%m%Y')
 
         try:
-            base.json.dumps(self.signals)
+            json.dumps(self.signals)
         except TypeError:
             warnings.warn("Not serializing signals as value types"
                           "are not natively JSON serializable.",
@@ -324,20 +327,20 @@ class Simulator(base.BaseSimObj):
 
         """
         # noinspection PyProtectedMember
-        network, loaded_dict = base._build_from_id(
+        network, loaded_dict = BaseSimObj._build_from_id(
             attribute_dict['network'],
             context_dict,
             loaded_dict=loaded_dict
         )
 
         # noinspection PyProtectedMember
-        events, loaded_dict = base._build_from_id(
+        events, loaded_dict = BaseSimObj._build_from_id(
             attribute_dict['event_queue'],
             context_dict,
             loaded_dict=loaded_dict
         )
 
-        scheduler_cls = base.locate(attribute_dict['scheduler'])
+        scheduler_cls = locate(attribute_dict['scheduler'])
         try:
             scheduler = scheduler_cls()
         except TypeError:
@@ -379,7 +382,7 @@ class Simulator(base.BaseSimObj):
         ev_history = {}
         for session_id, ev in attribute_dict['ev_history'].items():
             # noinspection PyProtectedMember
-            ev_elt, loaded_dict = base._build_from_id(
+            ev_elt, loaded_dict = BaseSimObj._build_from_id(
                 ev, context_dict, loaded_dict=loaded_dict)
             ev_history[session_id] = ev_elt
         out_obj.ev_history = ev_history
@@ -387,7 +390,7 @@ class Simulator(base.BaseSimObj):
         event_history = []
         for past_event in attribute_dict['event_history']:
             # noinspection PyProtectedMember
-            loaded_event, loaded_dict = base._build_from_id(
+            loaded_event, loaded_dict = BaseSimObj._build_from_id(
                 past_event, context_dict, loaded_dict=loaded_dict)
             event_history.append(loaded_event)
         out_obj.event_history = event_history

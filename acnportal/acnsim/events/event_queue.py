@@ -1,9 +1,9 @@
 import heapq
 from .event import Event
-from .. import base
+from ..base import BaseSimObj
 
 
-class EventQueue(base.BaseSimObj):
+class EventQueue(BaseSimObj):
     """ Queue which stores simulation events.
 
     Args:
@@ -113,7 +113,7 @@ class EventQueue(base.BaseSimObj):
         event_queue = []
         for (ts, event) in attribute_dict['_queue']:
             # noinspection PyProtectedMember
-            loaded_event, loaded_dict = base._build_from_id(
+            loaded_event, loaded_dict = BaseSimObj._build_from_id(
                 event, context_dict, loaded_dict=loaded_dict)
             event_queue.append((ts, loaded_event))
         out_obj._queue = event_queue

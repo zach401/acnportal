@@ -1,12 +1,12 @@
 import numpy as np
-from .. import base
+from ..base import BaseSimObj
 
 IDEAL = 'Ideal'
 NOISY = 'Noisy'
 TWO_STAGE = 'TwoStage'
 
 
-class Battery(base.BaseSimObj):
+class Battery(BaseSimObj):
     """This class models the behavior of a battery and battery management system (BMS).
 
     Args:

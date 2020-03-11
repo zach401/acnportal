@@ -117,6 +117,7 @@ class TestJSONIO(TestCase):
                                                   [0, 0, 1]])
         cls.network.magnitudes = np.array([32, 32, 32])
         cls.network.constraint_index = ['C1', 'C2', 'C3']
+        cls.empty_network = acnsim.ChargingNetwork()
 
         # Simulator
         cls.simulator = acnsim.Simulator(
@@ -280,6 +281,19 @@ class TestJSONIO(TestCase):
                     getattr(getattr(event_loaded, 'ev'), '_session_id'),
                     getattr(getattr(event, 'ev'), '_session_id')
                 )
+
+    def test_empty_charging_network_json(self):
+        empty_network_loaded = self._obj_compare_helper(self.empty_network)
+        self.assertIsInstance(empty_network_loaded, acnsim.ChargingNetwork)
+
+        network_np_fields = ['magnitudes', '_voltages', '_phase_angles']
+        for field in network_np_fields:
+            np.testing.assert_equal(getattr(self.empty_network, field),
+                                    getattr(empty_network_loaded, field))
+        extra_simple_attributes = ['constraint_matrix', '_EVSEs']
+        for attribute in extra_simple_attributes:
+            self.assertEqual(getattr(self.empty_network, attribute),
+                             getattr(empty_network_loaded, attribute))
 
     def test_charging_network_json(self):
         network_loaded = self._obj_compare_helper(self.network)
@@ -487,3 +501,7 @@ class TestExtObjJSONIO(TestJSONIO):
             else:
                 self.assertEqual(type(event), type(event_loaded))
                 self.assertEqual(event.__dict__, event_loaded.__dict__)
+
+    def test_init_simulator_json(self):
+        with self.assertWarns(UserWarning):
+            self._sim_compare_helper(self.simulator)

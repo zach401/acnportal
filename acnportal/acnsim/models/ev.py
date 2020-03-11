@@ -1,8 +1,8 @@
 from builtins import property
-from .. import base
+from ..base import BaseSimObj
 
 
-class EV(base.BaseSimObj):
+class EV(BaseSimObj):
     """Class to model the behavior of an Electrical Vehicle (ev).
 
     Args:
@@ -157,7 +157,7 @@ class EV(base.BaseSimObj):
     def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
         """ Implements BaseSimObj._from_dict. """
         # noinspection PyProtectedMember
-        battery, loaded_dict = base._build_from_id(
+        battery, loaded_dict = BaseSimObj._build_from_id(
             attribute_dict['_battery'], context_dict, loaded_dict=loaded_dict)
 
         out_obj = cls(

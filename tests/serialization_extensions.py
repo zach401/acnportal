@@ -1,6 +1,6 @@
 """ This file contains extensions of ACN-Sim for testing purposes. """
 from acnportal import acnsim
-import acnportal.acnsim.base as base
+from acnportal.acnsim.base import BaseSimObj
 
 
 class NamedEvent(acnsim.Event):
@@ -48,7 +48,7 @@ class BatteryListEvent(acnsim.Event):
         battery_list = []
         for ev in attribute_dict['battery_list']:
             # noinspection PyProtectedMember
-            ev_elt, loaded_dict = base._build_from_id(
+            ev_elt, loaded_dict = BaseSimObj._build_from_id(
                 ev, context_dict=context_dict, loaded_dict=loaded_dict)
             battery_list.append(ev_elt)
         out_obj = cls(attribute_dict['timestamp'], battery_list)

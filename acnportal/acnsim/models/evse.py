@@ -1,5 +1,5 @@
 import numpy as np
-from .. import base
+from ..base import BaseSimObj
 
 BASIC = 'BASIC'
 AV = 'AeroVironment'
@@ -37,7 +37,7 @@ class StationOccupiedError(Exception):
     pass
 
 
-class EVSE(base.BaseSimObj):
+class EVSE(BaseSimObj):
     """ Class to model Electric Vehicle Supply Equipment (charging station).
 
     This base class allows for charging in a continuous range from min_rate to max_rate.
@@ -185,7 +185,7 @@ class EVSE(base.BaseSimObj):
 
         if attribute_dict['_ev'] is not None:
             # noinspection PyProtectedMember
-            ev, loaded_dict = base._build_from_id(
+            ev, loaded_dict = BaseSimObj._build_from_id(
                 attribute_dict['_ev'], context_dict, loaded_dict=loaded_dict)
         else:
             ev = None

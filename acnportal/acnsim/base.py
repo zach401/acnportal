@@ -10,75 +10,6 @@ import pandas
 import numpy
 
 
-def _none_to_empty_dict(*args):
-    """ Returns a new args list that replaces each None arg with {}. """
-    out_arg_lst = []
-    for arg in args:
-        if arg is None:
-            out_arg_lst.append({})
-        else:
-            out_arg_lst.append(arg)
-    return out_arg_lst
-
-
-def _build_from_id(obj_id, context_dict, loaded_dict=None):
-    """
-    Given an object ID and a dictionary mapping object ID's to JSON
-    serializable representations of ACN-Sim objects, returns the ACN-Sim
-    object represented by the given object_id.
-
-    This method is protected (i.e. underscored) so users do not
-    directly use this method. PyNoInspection comments have been
-    added where this function is used within the package.
-
-    Optionally, a loaded_dict that contains already-loaded objects
-    may be provided to avoid duplicated work.
-
-    Args:
-        obj_id (str): Object ID of ACN-Sim object to be loaded.
-        context_dict (Dict[str, JSON Serializable]): Dict mapping object
-            ID's to object JSON serializable representations.
-        loaded_dict (Dict[str, BaseSimObj-like]): Dict mapping object
-            ID's to ACN-Sim objects.
-
-    Returns:
-        BaseSimObj-like: The loaded ACN-Sim object.
-        Dict[str, BaseSimObj-like]: Dict mapping object ID's to ACN-Sim
-            objects. This is the loaded_dict passed to and modified by
-            this function.
-
-    Raises:
-        KeyError: Raised if `obj_id` is not found in `context_dict`.
-    """
-    # Check if this object has already been loaded; return the loaded
-    # object if this is the case.
-    if obj_id in loaded_dict:
-        return loaded_dict[obj_id], loaded_dict
-
-    if obj_id not in context_dict:
-        raise KeyError(
-            f"Object with ID {obj_id} not found in context_dict."
-        )
-
-    # Get the class of this object from the context_dict.
-    obj_type = context_dict[obj_id]['class']
-    obj_class = locate(obj_type)
-
-    # 'version' is None since we've already checked the version of the
-    # parent object.
-    # noinspection PyProtectedMember
-    obj, loaded_dict = obj_class._from_registry(
-        {'id': obj_id,
-         'context_dict': context_dict,
-         'version': None,
-         'dependency_versions': None},
-        loaded_dict=loaded_dict
-    )
-
-    loaded_dict[obj_id] = obj
-    return obj, loaded_dict
-
-
 class BaseSimObj:
     """
     Base class for all ACN-Sim objects. Includes functions for
@@ -86,7 +17,9 @@ class BaseSimObj:
     """
     def __repr__(self):
         """
-        General string representation of an ACN-Sim object.
+        General string representation of an ACN-Sim object. Unless they
+        are non-iterable builtins, attributes' default (object) repr
+        functions are used.
 
         Returns:
             str: A representation of the object in the following form:
@@ -96,11 +29,30 @@ class BaseSimObj:
         """
         attr_repr_lst = []
         for key, value in self.__dict__.items():
-            attr_repr_lst.append(f'{key}={value}')
+            if value.__class__.__module__ == 'builtins':
+                try:
+                    _ = iter(value)
+                except TypeError:
+                    attr_repr_lst.append(f'{key}={value}')
+                else:
+                    attr_repr_lst.append(f'{key}={object.__repr__(value)}')
+            else:
+                attr_repr_lst.append(f'{key}={object.__repr__(value)}')
         attr_repr = ', '.join(attr_repr_lst)
         return f'{self.__module__}.{self.__class__.__name__}({attr_repr})'
 
-    def to_json(self):
+    @staticmethod
+    def _none_to_empty_dict(*args):
+        """ Returns a new args list that replaces each None arg with {}. """
+        out_arg_lst = []
+        for arg in args:
+            if arg is None:
+                out_arg_lst.append({})
+            else:
+                out_arg_lst.append(arg)
+        return out_arg_lst
+
+    def to_json(self, path_or_buf=None):
         """ Returns a JSON string representing self. """
         return json.dumps(self._to_registry()[0])
 
@@ -181,7 +133,7 @@ class BaseSimObj:
                 JSON serializable.
 
         """
-        context_dict, = _none_to_empty_dict(context_dict)
+        context_dict, = self._none_to_empty_dict(context_dict)
         obj_id = f'{id(self)}'
 
         # Check if this object has already been converted, and return
@@ -239,9 +191,13 @@ class BaseSimObj:
         context_dict[obj_id] = obj_dict
 
         # Check versions of acnportal and certain dependencies.
-        acnportal_version = pkg_resources.require('acnportal')[0].version
-        dependency_versions = {'numpy': numpy.__version__,
-                               'pandas': pandas.__version__}
+        # We only need to check the versions if the context dict is
+        # empty, indicating the first level of the recursive call.
+        acnportal_version, dependency_versions = None, None
+        if context_dict == {}:
+            acnportal_version = pkg_resources.require('acnportal')[0].version
+            dependency_versions = {'numpy': numpy.__version__,
+                                   'pandas': pandas.__version__}
 
         return ({'id': obj_id,
                  'context_dict': context_dict,
@@ -266,6 +222,64 @@ class BaseSimObj:
                 by this method.
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _build_from_id(obj_id, context_dict, loaded_dict=None):
+        """
+        Given an object ID and a dictionary mapping object ID's to JSON
+        serializable representations of ACN-Sim objects, returns the ACN-Sim
+        object represented by the given object_id.
+
+        This method is protected (i.e. underscored) so users do not
+        directly use this method. PyNoInspection comments have been
+        added where this function is used within the package.
+
+        Optionally, a loaded_dict that contains already-loaded objects
+        may be provided to avoid duplicated work.
+
+        Args:
+            obj_id (str): Object ID of ACN-Sim object to be loaded.
+            context_dict (Dict[str, JSON Serializable]): Dict mapping object
+                ID's to object JSON serializable representations.
+            loaded_dict (Dict[str, BaseSimObj-like]): Dict mapping object
+                ID's to ACN-Sim objects.
+
+        Returns:
+            BaseSimObj-like: The loaded ACN-Sim object.
+            Dict[str, BaseSimObj-like]: Dict mapping object ID's to ACN-Sim
+                objects. This is the loaded_dict passed to and modified by
+                this function.
+
+        Raises:
+            KeyError: Raised if `obj_id` is not found in `context_dict`.
+        """
+        # Check if this object has already been loaded; return the loaded
+        # object if this is the case.
+        if obj_id in loaded_dict:
+            return loaded_dict[obj_id], loaded_dict
+
+        if obj_id not in context_dict:
+            raise KeyError(
+                f"Object with ID {obj_id} not found in context_dict."
+            )
+
+        # Get the class of this object from the context_dict.
+        obj_type = context_dict[obj_id]['class']
+        obj_class = locate(obj_type)
+
+        # 'version' is None since we've already checked the version of the
+        # parent object.
+        # noinspection PyProtectedMember
+        obj, loaded_dict = obj_class._from_registry(
+            {'id': obj_id,
+             'context_dict': context_dict,
+             'version': None,
+             'dependency_versions': None},
+            loaded_dict=loaded_dict
+        )
+
+        loaded_dict[obj_id] = obj
+        return obj, loaded_dict
 
     @classmethod
     def from_json(cls, in_json):
@@ -360,7 +374,7 @@ class BaseSimObj:
                 the loaded attribute will be incorrect.
 
         """
-        loaded_dict, = _none_to_empty_dict(loaded_dict)
+        loaded_dict, = cls._none_to_empty_dict(loaded_dict)
         obj_id, context_dict, acnportal_version, dependency_versions = (
             in_registry['id'],
             in_registry['context_dict'],
@@ -370,14 +384,14 @@ class BaseSimObj:
 
         # Check current versions of acnportal and certain dependencies
         # against serialized versions.
-        current_version = pkg_resources.require('acnportal')[0].version
-        if (acnportal_version is not None
-                and current_version != acnportal_version):
-            warnings.warn(
-                f"Version {acnportal_version} of input acnportal "
-                f"object does not match current version "
-                f"{current_version}."
-            )
+        if acnportal_version is not None:
+            current_version = pkg_resources.require('acnportal')[0].version
+            if current_version != acnportal_version:
+                warnings.warn(
+                    f"Version {acnportal_version} of input acnportal "
+                    f"object does not match current version "
+                    f"{current_version}."
+                )
 
         if dependency_versions is not None:
             current_dependency_versions = {
@@ -402,7 +416,7 @@ class BaseSimObj:
 
         # Check if this object has already been converted, and return
         # the appropriate dict if this is the case.
-        if obj_id is not None and obj_id in loaded_dict:
+        if obj_id in loaded_dict:
             return loaded_dict[obj_id], loaded_dict
 
         if obj_dict['class'] != f'{cls.__module__}.{cls.__name__}':
@@ -428,18 +442,29 @@ class BaseSimObj:
         if out_obj.__dict__.keys() != attribute_dict.keys():
             unloaded_attrs = (set(attribute_dict.keys())
                               - set(out_obj.__dict__.keys()))
-            warnings.warn(
-                f"Attributes {unloaded_attrs} present in object of "
-                f"type {obj_dict['class']} but not handled by object's "
-                f"_from_dict method. Loaded object may have inaccurate "
-                f"attributes.",
-                UserWarning
-            )
+            unrecorded_attrs = (set(out_obj.__dict__.keys())
+                                - set(attribute_dict.keys()))
+            if len(unloaded_attrs) > 0:
+                warnings.warn(
+                    f"Attributes {unloaded_attrs} present in object of "
+                    f"type {obj_dict['class']} but not handled by object's "
+                    f"_from_dict method. Loaded object may have inaccurate "
+                    f"attributes.",
+                    UserWarning
+                )
+            else:
+                warnings.warn(
+                    f"Attributes {unrecorded_attrs} present in object of "
+                    f"type {obj_dict['class']} but not recorded in "
+                    f"serialization. Loaded object may need to have "
+                    f"attributes set. ",
+                    UserWarning
+                )
             for attr in unloaded_attrs:
                 # Try reading this attribute from an ID in
                 # attribute_dict.
                 try:
-                    out_attr, loaded_dict = _build_from_id(
+                    out_attr, loaded_dict = cls._build_from_id(
                         attribute_dict[attr],
                         context_dict,
                         loaded_dict=loaded_dict
@@ -456,8 +481,7 @@ class BaseSimObj:
                     setattr(out_obj, attr, attribute_dict[attr])
 
         # Add this object to the dictionary of loaded objects.
-        if obj_id is not None:
-            loaded_dict[obj_id] = out_obj
+        loaded_dict[obj_id] = out_obj
         return out_obj, loaded_dict
 
     @classmethod

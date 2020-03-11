@@ -1,8 +1,8 @@
-from .. import base
+from ..base import BaseSimObj
 import warnings
 
 
-class Event(base.BaseSimObj):
+class Event(BaseSimObj):
     """ Base class for all events.
 
     Args:
@@ -91,7 +91,7 @@ class PluginEvent(Event):
     def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
         """ Implements BaseSimObj._from_dict. """
         # noinspection PyProtectedMember
-        ev, loaded_dict = base._build_from_id(
+        ev, loaded_dict = BaseSimObj._build_from_id(
             attribute_dict['ev'], context_dict, loaded_dict=loaded_dict)
         out_obj = cls(attribute_dict['timestamp'], ev)
         cls._from_dict_helper(out_obj, attribute_dict)
