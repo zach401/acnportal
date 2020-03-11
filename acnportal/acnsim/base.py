@@ -1,13 +1,66 @@
 """
-This module contains definitions shared by all ACN-Sim objects.
+This module contains a base class shared by all ACN-Sim objects.
 """
 import json
+import operator
 # noinspection PyProtectedMember
 from pydoc import locate
 import warnings
 import pkg_resources
 import pandas
 import numpy
+
+__NOT_SERIALIZED_FLAG__ = '__NOT_SERIALIZED__'
+
+
+# Uses methodology discussed in https://stackoverflow.com/a/16372436
+# by Martijn Pieters.
+def _operator_error_hooks(cls):
+    operator_hooks = [name for name in dir(operator)
+                      if name.startswith('__') and name.endswith('__')]
+
+    def add_hook(name):
+        # noinspection PyUnusedLocal
+        def op_hook(*args, **kwargs):
+            raise TypeError(
+                f"This object is a stub object whose methods are not "
+                f"callable. Call {name} after correctly instantiating this "
+                f"object."
+            )
+        try:
+            setattr(cls, name, op_hook)
+        except (AttributeError, TypeError):
+            pass
+
+    for hook_name in operator_hooks:
+        add_hook(hook_name)
+    return cls
+
+
+@_operator_error_hooks
+class ErrorAllWrapper:
+    """
+    This wrapper class wraps a string representing an object that acnsim
+     does not know how to
+    serialize. If any operator or method is called on the wrapped
+    string, an error is raised. The only attribute accessible is the
+    data attribute, which returns the wrapped string.
+    """
+    def __init__(self, data):
+        self._data = data
+
+    def __getattr__(self, item):
+        if item == 'data':
+            return
+        raise TypeError(
+            f"This object is a stub object whose methods are not "
+            f"callable. Call {item} after correctly instantiating this "
+            f"object."
+        )
+
+    @property
+    def data(self):
+        return self._data
 
 
 class BaseSimObj:
@@ -183,7 +236,8 @@ class BaseSimObj:
                         f"fully loaded.",
                         UserWarning
                     )
-                    attribute_dict[key] = repr(unserialized_attr)
+                    attribute_dict[key] = [__NOT_SERIALIZED_FLAG__,
+                                           repr(unserialized_attr)]
                 else:
                     attribute_dict[key] = unserialized_attr
 
@@ -452,7 +506,7 @@ class BaseSimObj:
                     f"attributes.",
                     UserWarning
                 )
-            else:
+            if len(unrecorded_attrs) > 0:
                 warnings.warn(
                     f"Attributes {unrecorded_attrs} present in object of "
                     f"type {obj_dict['class']} but not recorded in "
@@ -471,14 +525,21 @@ class BaseSimObj:
                     )
                     setattr(out_obj, attr, out_attr)
                 except (KeyError, TypeError):
-                    warnings.warn(
-                        f"Loader for attribute {attr} not found. "
-                        f"Setting attribute {attr} directly.",
-                        UserWarning
-                    )
+                    if (isinstance(attribute_dict[attr], list)
+                            and attribute_dict[attr][0]
+                            == __NOT_SERIALIZED_FLAG__):
+                        warnings.warn(
+                            f"Loader for attribute {attr} not found. "
+                            f"Setting attribute {attr} directly.",
+                            UserWarning
+                        )
+                        loaded_attr_value = ErrorAllWrapper(
+                            attribute_dict[attr][1])
+                    else:
+                        loaded_attr_value = attribute_dict[attr]
                     # If the attribute was originally JSON serializable,
                     # this is correct loading.
-                    setattr(out_obj, attr, attribute_dict[attr])
+                    setattr(out_obj, attr, loaded_attr_value)
 
         # Add this object to the dictionary of loaded objects.
         loaded_dict[obj_id] = out_obj

@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from acnportal import acnsim
 from acnportal.algorithms import BaseAlgorithm, UncontrolledCharging
+from acnportal.acnsim.base import ErrorAllWrapper
 from .serialization_extensions import NamedEvent, DefaultNamedEvent
 from .serialization_extensions import SetAttrEvent, BatteryListEvent
 
@@ -462,7 +463,8 @@ class TestExtObjJSONIO(TestJSONIO):
         set_np_event.set_extra_attr(np.zeros((2, 2)))
         set_np_event_loaded = self._obj_compare_helper_warning(
             set_np_event, self.simple_attributes['Event'])
-        self.assertEqual(set_np_event_loaded.extra_attr,
+        self.assertIsInstance(set_np_event_loaded.extra_attr, ErrorAllWrapper)
+        self.assertEqual(set_np_event_loaded.extra_attr.data,
                          "array([[0., 0.],\n       [0., 0.]])")
 
     def test_battery_list_event_json(self):
