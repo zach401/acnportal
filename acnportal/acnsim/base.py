@@ -3,11 +3,13 @@ This module contains a base class shared by all ACN-Sim objects.
 """
 import json
 import operator
+import os
 # noinspection PyProtectedMember
 from pydoc import locate
 import warnings
 import pkg_resources
 import pandas
+from pandas.io.common import stringify_path, get_handle, get_filepath_or_buffer
 import numpy
 
 __NOT_SERIALIZED_FLAG__ = '__NOT_SERIALIZED__'
@@ -15,6 +17,8 @@ __NOT_SERIALIZED_FLAG__ = '__NOT_SERIALIZED__'
 
 # Uses methodology discussed in https://stackoverflow.com/a/16372436
 # by Martijn Pieters.
+
+
 def _operator_error_hooks(cls):
     operator_hooks = [name for name in dir(operator)
                       if name.startswith('__') and name.endswith('__')]
@@ -106,8 +110,40 @@ class BaseSimObj:
         return out_arg_lst
 
     def to_json(self, path_or_buf=None):
-        """ Returns a JSON string representing self. """
-        return json.dumps(self._to_registry()[0])
+        """ Returns a JSON string representing self.
+        Currently, only non-compressed file types are supported as the
+        output file type.
+
+        Args:
+            path_or_buf (FilePathOrBuffer): File path or object. If not
+            specified, the result is returned as a string.
+        """
+        # The code here is from pandas 1.0.1, io.json.to_json(), with
+        # modifications.
+        json_serializable_data = self._to_registry()[0]
+        if json_serializable_data["version"] is None:
+            warnings.warn(
+                f"Missing a recorded version of acnportal in the dict representation. "
+                f"Loading will not run an acnportal version check.",
+                UserWarning
+            )
+        if json_serializable_data["dependency_versions"] is None:
+            warnings.warn(
+                f"Missing recorded versions of dependencies in the dict representation. "
+                f"Loading will not run a dependency version check.",
+                UserWarning
+            )
+        path_or_buf = stringify_path(path_or_buf)
+        if isinstance(path_or_buf, str):
+            fh, _ = get_handle(path_or_buf, "w")
+            try:
+                json.dump(json_serializable_data, fh)
+            finally:
+                fh.close()
+        elif path_or_buf is None:
+            return json.dumps(json_serializable_data)
+        else:
+            json.dump(json_serializable_data, path_or_buf)
 
     def _to_registry(self, context_dict=None):
         """
@@ -186,6 +222,7 @@ class BaseSimObj:
                 JSON serializable.
 
         """
+        first_call = context_dict is None
         context_dict, = self._none_to_empty_dict(context_dict)
         obj_id = f'{id(self)}'
 
@@ -248,7 +285,7 @@ class BaseSimObj:
         # We only need to check the versions if the context dict is
         # empty, indicating the first level of the recursive call.
         acnportal_version, dependency_versions = None, None
-        if context_dict == {}:
+        if first_call:
             acnportal_version = pkg_resources.require('acnportal')[0].version
             dependency_versions = {'numpy': numpy.__version__,
                                    'pandas': pandas.__version__}
@@ -336,9 +373,54 @@ class BaseSimObj:
         return obj, loaded_dict
 
     @classmethod
-    def from_json(cls, in_json):
-        """ Returns an ACN-Sim object loaded from in_registry. """
-        return cls._from_registry(json.loads(in_json))[0]
+    def from_json(cls, path_or_buf=None):
+        """ Returns an ACN-Sim object loaded from in_registry.
+        Note URLs have not been tested as path_or_buf input.
+
+        Args:
+            path_or_buf (Union[str, FilePathOrBuffer]): a valid JSON
+                str, path object or file-like object. Any valid string
+                path is acceptable.
+        """
+        # The code here is from pandas 1.0.1, io.json.from_json(), with
+        # modifications.
+        filepath_or_buffer, _, _, should_close = get_filepath_or_buffer(
+            path_or_buf)
+
+        exists = False
+        if isinstance(filepath_or_buffer, str):
+            try:
+                exists = os.path.exists(filepath_or_buffer)
+            except (TypeError, ValueError):
+                pass
+
+        if exists:
+            filepath_or_buffer, _ = get_handle(filepath_or_buffer, "r")
+            should_close = True
+
+        if isinstance(filepath_or_buffer, str):
+            should_close = False
+            out_registry = json.loads(filepath_or_buffer)
+        else:
+            out_registry = json.load(filepath_or_buffer)
+        if should_close:
+            filepath_or_buffer.close()
+
+        if out_registry["version"] is None:
+            warnings.warn(
+                f"Missing a recorded version of acnportal in the loaded registry. "
+                f"Object may have been dumped with a different version of acnportal.",
+                UserWarning
+            )
+        if out_registry["dependency_versions"] is None:
+            warnings.warn(
+                f"Missing recorded dependency versions of acnportal in the loaded registry. "
+                f"Object may have been dumped with different dependency versions of acnportal.",
+                UserWarning
+            )
+
+        out_obj = cls._from_registry(out_registry)[0]
+        return out_obj
 
     @classmethod
     def _from_registry(cls, in_registry, loaded_dict=None):

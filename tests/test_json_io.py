@@ -6,7 +6,6 @@ from acnportal.acnsim.base import ErrorAllWrapper
 from .serialization_extensions import NamedEvent, DefaultNamedEvent
 from .serialization_extensions import SetAttrEvent, BatteryListEvent
 
-import json
 import os
 import numpy as np
 from copy import deepcopy
@@ -378,16 +377,14 @@ class TestJSONIO(TestCase):
         self._sim_compare_helper(self.simulator_no_sch_hist)
 
     def test_acnportal_version_inequality(self):
-        with open(os.path.join(os.path.dirname(__file__),
-                               'old_version.json')) as infile:
-            with self.assertWarns(UserWarning):
-                acnsim.Event.from_json(json.load(infile))
+        with self.assertWarns(UserWarning):
+            acnsim.Event.from_json(os.path.join(
+                os.path.dirname(__file__), 'old_version.json'))
 
     def test_numpy_version_inequality(self):
-        with open(os.path.join(os.path.dirname(__file__),
-                               'old_dependencies.json')) as infile:
-            with self.assertWarns(UserWarning):
-                acnsim.Event.from_json(json.load(infile))
+        with self.assertWarns(UserWarning):
+            acnsim.Event.from_json(os.path.join(
+                os.path.dirname(__file__), 'old_dependencies.json'))
 
 
 class TestExtObjJSONIO(TestJSONIO):
@@ -507,3 +504,35 @@ class TestExtObjJSONIO(TestJSONIO):
     def test_init_simulator_json(self):
         with self.assertWarns(UserWarning):
             self._sim_compare_helper(self.simulator)
+
+
+class TestJSONIOTypes(TestJSONIO):
+    @classmethod
+    def setUpClass(cls):
+        cls.battery = acnsim.Battery(100, 50, 20)
+
+    def test_to_json_string(self):
+        battery_json_string = self.battery.to_json()
+        self.assertIsInstance(battery_json_string, str)
+        battery_loaded = acnsim.Battery.from_json(battery_json_string)
+        self.assertEqual(self.battery.__dict__, battery_loaded.__dict__)
+
+    def test_to_json_filepath(self):
+        filepath = os.path.join(os.path.dirname(__file__),
+                                'battery_test_filepath.json')
+        battery_json_filepath = self.battery.to_json(filepath)
+        self.assertIsNone(battery_json_filepath)
+        battery_loaded = acnsim.Battery.from_json(filepath)
+        self.assertEqual(self.battery.__dict__, battery_loaded.__dict__)
+
+    def test_to_json_file_handle(self):
+        file_handle = open(os.path.join(os.path.dirname(__file__),
+                                        'battery_test_file_handle.json'), 'w')
+        battery_json_filepath = self.battery.to_json(file_handle)
+        file_handle.close()
+        self.assertIsNone(battery_json_filepath)
+        file_handle = open(os.path.join(os.path.dirname(__file__),
+                                        'battery_test_file_handle.json'))
+        battery_loaded = acnsim.Battery.from_json(file_handle)
+        file_handle.close()
+        self.assertEqual(self.battery.__dict__, battery_loaded.__dict__)

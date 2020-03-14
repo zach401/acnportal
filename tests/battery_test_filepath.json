@@ -1,0 +1,1 @@
+{"id": "4850424016", "context_dict": {"4850424016": {"class": "acnportal.acnsim.models.battery.Battery", "attributes": {"_max_power": 20, "_current_charging_power": 0, "_current_charge": 50, "_capacity": 100, "_init_charge": 50}}}, "version": "0.1.3", "dependency_versions": {"numpy": "1.18.1", "pandas": "1.0.1"}}

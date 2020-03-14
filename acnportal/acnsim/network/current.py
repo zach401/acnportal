@@ -26,7 +26,9 @@ class Current(pd.Series):
         elif isinstance(loads, pd.Series):
             super().__init__(loads)
         elif loads is None:
-            super().__init__()
+            # The object type is specified explicitly here to address a
+            # warning in pandas 1.x.
+            super().__init__(dtype='float64')
         else:
             raise TypeError("Variable loads should be of type dict, str, pd.Series, or Lst[str].")
 
