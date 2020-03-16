@@ -113,6 +113,9 @@ class TestIntegration(TestCase):
             self.edf_algo_true_analysis_dict['proportion_of_demands_met'])
 
     def test_current_unbalance_nema(self):
+        # A RuntimeWarning is expected to be raised in this test case as
+        # of acnportal v.1.0.3. See Github issue #57 for a discussion of
+        # why this occurs.
         with self.assertWarns(RuntimeWarning):
             np.testing.assert_allclose(
                 acnsim.current_unbalance(self.sim, ['Primary A', 'Primary B', 'Primary C']),

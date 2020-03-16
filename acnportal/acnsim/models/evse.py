@@ -98,6 +98,10 @@ class BaseEVSE:
 
         NOT IMPLEMENTED IN BaseEVSE. This method MUST be implemented in
         all subclasses.
+
+        Returns:
+            List[float]: List of acceptable pilot signal values or an
+                interval of acceptable pilot signal values.
         """
         raise NotImplementedError
 
@@ -136,13 +140,12 @@ class BaseEVSE:
 
         Args:
             pilot (float): Proposed pilot signal.
-
-        Returns:
-
-            bool: True if the proposed pilot signal is valid. False
-                otherwise.
             atol: Absolute tolerance used when determining if a pilot
                 belongs to the allowable rates set.
+
+        Returns:
+            bool: True if the proposed pilot signal is valid. False
+                otherwise.
         """
         raise NotImplementedError
 
