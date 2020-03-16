@@ -138,12 +138,16 @@ class BaseSimObj:
             fh, _ = get_handle(path_or_buf, "w")
             try:
                 json.dump(json_serializable_data, fh)
+                # Add a newline to the EOF.
+                fh.write("\n")
             finally:
                 fh.close()
         elif path_or_buf is None:
             return json.dumps(json_serializable_data)
         else:
             json.dump(json_serializable_data, path_or_buf)
+            # Add a newline to the EOF.
+            path_or_buf.write("\n")
 
     def _to_registry(self, context_dict=None):
         """
