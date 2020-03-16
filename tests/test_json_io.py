@@ -1,3 +1,4 @@
+import io
 from unittest import TestCase
 
 from acnportal import acnsim
@@ -535,4 +536,15 @@ class TestJSONIOTypes(TestJSONIO):
                                         'battery_test_file_handle.json'))
         battery_loaded = acnsim.Battery.from_json(file_handle)
         file_handle.close()
+        self.assertEqual(self.battery.__dict__, battery_loaded.__dict__)
+
+    def test_to_json_str_io(self):
+        output = io.StringIO()
+        battery_json_string = self.battery.to_json(output)
+        self.assertIsNone(battery_json_string)
+        self.assertIsInstance(output.getvalue(), str)
+        output_str = output.getvalue()
+        output.close()
+        input_str_io = io.StringIO(output_str)
+        battery_loaded = acnsim.Battery.from_json(input_str_io)
         self.assertEqual(self.battery.__dict__, battery_loaded.__dict__)
