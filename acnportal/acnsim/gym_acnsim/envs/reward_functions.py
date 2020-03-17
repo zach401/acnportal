@@ -26,13 +26,14 @@ def evse_violation(env: BaseSimEnv) -> float:
         KeyError: If a station_id in the last schedule is not found in
             the ChargingNetwork.
     """
-    violation = 0
+    # Check that each EVSE in the schedule is actually in the
+    # network.
     for station_id in env.schedule:
-        # Check that each EVSE in the schedule is actually in the
-        # network.
         if station_id not in env.interface.station_ids:
             raise KeyError(f'Station {station_id} in schedule but not '
                            f'found in network.')
+    violation = 0
+    for station_id in env.schedule:
         # Check that none of the EVSE pilot signal limits are violated.
         evse_is_continuous, evse_allowable_pilots = \
             env.interface.allowable_pilot_signals(station_id)
@@ -67,6 +68,8 @@ def unplugged_ev_violation(env: BaseSimEnv) -> float:
     schedules for the current iteration.
     """
     violation = 0
+    # Check for the case in which all that was submitted was empty
+    # schedules.
     if len(env.schedule) > 0 and len(list(env.schedule.values())[0]) == 0:
         return violation
     active_evse_ids = env.interface.active_station_ids

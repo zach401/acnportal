@@ -190,6 +190,7 @@ class RebuildingEnv(CustomSimEnv):
     This is especially useful if the network or event queue have 
     stochastic elements.
     """
+    # TODO: Handle warning with interface here.
     def __init__(
             self,
             interface: Optional[GymTrainedInterface],
