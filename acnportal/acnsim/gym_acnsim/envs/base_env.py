@@ -79,6 +79,10 @@ class BaseSimEnv(gym.Env):
     def prev_interface(self) -> GymTrainedInterface:
         return self._prev_interface
 
+    @prev_interface.setter
+    def prev_interface(self, new_prev_interface: GymTrainedInterface) -> None:
+        self._prev_interface = new_prev_interface
+
     @property
     def action(self) -> np.ndarray:
         return deepcopy(self._action)

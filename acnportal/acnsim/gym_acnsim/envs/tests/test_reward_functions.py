@@ -7,6 +7,7 @@ from importlib.util import find_spec
 
 import numpy as np
 
+from ....network.sites import simple_acn
 from .... import Simulator, ChargingNetwork, EVSE
 
 if find_spec("gym") is not None:
@@ -151,17 +152,52 @@ class TestConstraintViolation(TestRewardFunction):
     # noinspection PyMissingOrEmptyDocstring
     def setUp(self) -> None:
         super().setUp()
-        self.simulator.network.constraint_matrix = np.array([[0, 1, 1],
-                                                             [1, 0, 1],
-                                                             [1, 1, 0]])
-        self.simulator.network.magnitudes = np.array([32, 32, 32])
-        self.simulator.network.constraint_index = ['C1', 'C2', 'C3']
+        self.simulator.network = simple_acn(['TS-001', 'TS-002', 'TS-003'],
+                                            aggregate_cap=10)
 
-    def test_constraint_violation_with_violation(self) -> None:
-        pass
+    def test_constraint_violation_no_action(self) -> None:
+        self.env.action = None
+        self.assertEqual(rf.current_constraint_violation(self.env), 0)
 
-    def test_constraint_violation_no_violation(self) -> None:
-        pass
+    def test_constraint_violation_with_violating_action_matrix(self) -> None:
+        self.env.action = np.array([[32, 16],
+                                    [16, 0],
+                                    [20, 0]])
+        self.assertAlmostEqual(rf.current_constraint_violation(self.env),
+                               -59.7692308)
+
+    def test_constraint_violation_no_violation_action_matrix(self) -> None:
+        self.env.action = np.array([[16, 32],
+                                    [0, 16],
+                                    [0, 20]])
+        self.assertAlmostEqual(rf.current_constraint_violation(self.env), 0)
+
+    def test_constraint_violation_with_violating_action_vector(self) -> None:
+        self.env.action = np.array([32, 16, 20])
+        self.assertAlmostEqual(rf.current_constraint_violation(self.env),
+                               -59.7692308)
+
+    def test_constraint_violation_no_violation_action_vector(self) -> None:
+        self.env.action = np.array([16, 0, 0])
+        self.assertAlmostEqual(rf.current_constraint_violation(self.env), 0)
+
+
+class TestSoftChargingReward(TestRewardFunction):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
+        super().setUp()
+
+    def test_soft_charging_reward(self) -> None:
+        self.simulator.charging_rates = np.array([[1, 1, 2],
+                                                  [1, 0, 1],
+                                                  [0, 0, 0]])
+        self.prev_simulator = create_autospec(Simulator)
+        self.prev_simulator.charging_rates = np.array([[1, 1, 0],
+                                                       [1, 0, 0],
+                                                       [0, 0, 0]])
+        self.env.interface = GymTrainingInterface(self.simulator)
+        self.env.prev_interface = GymTrainingInterface(self.prev_simulator)
+        self.assertEqual(rf.soft_charging_reward(self.env), 3)
 
 
 if __name__ == '__main__':

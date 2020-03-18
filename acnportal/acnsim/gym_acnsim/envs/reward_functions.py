@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 Module containing definitions of various reward functions for use with
 gym_acnsim environments.
@@ -11,6 +12,8 @@ and return a number (reward) based on the characteristics of that
 environment; namely, the previous state, previous action, and current
 state.
 """
+from typing import List
+
 import numpy as np
 
 from .base_env import BaseSimEnv
@@ -32,14 +35,16 @@ def evse_violation(env: BaseSimEnv) -> float:
         if station_id not in env.interface.station_ids:
             raise KeyError(f'Station {station_id} in schedule but not '
                            f'found in network.')
-    violation = 0
+    violation: float = 0
     for station_id in env.schedule:
         # Check that none of the EVSE pilot signal limits are violated.
+        evse_is_continuous: bool
+        evse_allowable_pilots: List[float]
         evse_is_continuous, evse_allowable_pilots = \
             env.interface.allowable_pilot_signals(station_id)
         if evse_is_continuous:
-            min_rate = evse_allowable_pilots[0]
-            max_rate = evse_allowable_pilots[1]
+            min_rate: float = evse_allowable_pilots[0]
+            max_rate: float = evse_allowable_pilots[1]
             # Add penalty for any pilot signal not in
             # [min_rate, max_rate], except for 0 pilots, which aren't
             # penalized.
@@ -67,37 +72,42 @@ def unplugged_ev_violation(env: BaseSimEnv) -> float:
     subtracted from the reward. This penalty is only applied to the
     schedules for the current iteration.
     """
-    violation = 0
+    violation: float = 0
     # Check for the case in which all that was submitted was empty
     # schedules.
     if len(env.schedule) > 0 and len(list(env.schedule.values())[0]) == 0:
         return violation
-    active_evse_ids = env.interface.active_station_ids
+    active_evse_ids: List[str] = env.interface.active_station_ids
     for station_id in env.schedule:
         if station_id not in active_evse_ids:
             violation += abs(env.schedule[station_id][0])
     return -violation
 
 
-def constraint_violation(env: BaseSimEnv) -> float:
+def current_constraint_violation(env: BaseSimEnv) -> float:
     """
     If a network constraint is violated, a negative reward equal to the
     norm of the total constraint violation, times the number of EVSEs,
-    is added.
+    is added. Only penalizes for actions in the current timestep.
     """
     if env.action is None:
         return 0
-    magnitudes = env.interface.get_constraints().magnitudes
+    magnitudes: np.ndarray = env.interface.get_constraints().magnitudes
     # Calculate aggregate currents for this charging schedule.
-    out_vector = abs(env.interface.constraint_currents(
-        np.array([[env.action[i]] for i in range(len(env.action))])))
+    if len(env.action.shape) > 1:
+        out_vector: np.ndarray = abs(env.interface.current_constraint_currents(
+            np.array([[env.action[i][0]] for i in range(len(env.action))])))
+    else:
+        out_vector: np.ndarray = abs(env.interface.current_constraint_currents(
+            np.array([[env.action[i]] for i in range(len(env.action))])))
     # Calculate violation of each individual constraint.
-    difference_vector = np.array([0 if out_vector[i] <= magnitudes[i]
-                                  else out_vector[i] - magnitudes[i]
-                                  for i in range(len(out_vector))])
+    difference_vector: np.ndarray = np.array(
+        [0 if out_vector[i] <= magnitudes[i] else out_vector[i] - magnitudes[i]
+         for i in range(len(out_vector))]
+    )
     # Calculate total constraint violation, scaled by number of EVSEs.
-    violation = (np.linalg.norm(difference_vector)
-                 * len(env.interface.station_ids))
+    violation: float = (np.linalg.norm(difference_vector)
+                        * len(env.interface.station_ids))
     return -violation
 
 
@@ -115,5 +125,6 @@ def hard_charging_reward(env: BaseSimEnv) -> float:
     if constraint and evse violations are 0.
     """
     return (soft_charging_reward(env)
-            if evse_violation(env) == 0 and constraint_violation(env) == 0
+            if evse_violation(env) == 0
+            and current_constraint_violation(env) == 0
             else 0)

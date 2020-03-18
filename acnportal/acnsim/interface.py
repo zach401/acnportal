@@ -373,7 +373,7 @@ class GymTrainedInterface(Interface):
         """
         return sum([ev.current_charging_rate for ev in self.active_evs])
 
-    def constraint_currents(self, input_schedule):
+    def current_constraint_currents(self, input_schedule):
         return abs(self._simulator.network.constraint_current(
             input_schedule, time_indices=[0]))
 
