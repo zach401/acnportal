@@ -249,12 +249,11 @@ class BaseSimEnv(gym.Env):
         """
         raise NotImplementedError
 
-    @staticmethod
-    def info_from_state():
+    def info_from_state(self) -> Dict[Any, Any]:
         """ Give information about the environment using the state of
         the simulator
 
         Returns:
             info (dict): dict of environment information
         """
-        return {}
+        raise NotImplementedError

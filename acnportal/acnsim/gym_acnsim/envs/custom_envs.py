@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Optional, Dict, List, Callable
+from typing import Optional, Dict, List, Callable, Any
 
 import numpy as np
 from gym import spaces
@@ -120,6 +120,15 @@ class CustomSimEnv(BaseSimEnv):
             done (bool): True if the simulation is done, False if not
         """
         return self.interface.is_done
+
+    def info_from_state(self) -> Dict[Any, Any]:
+        """ Give information about the environment using the state of
+        the simulator
+
+        Returns:
+            info (dict): dict of environment information
+        """
+        raise NotImplementedError
 
 
 # Default observation objects, action object, and reward functions list
