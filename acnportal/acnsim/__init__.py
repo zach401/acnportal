@@ -1,5 +1,6 @@
 from .simulator import Simulator
-from .interface import Interface, InvalidScheduleError
+from .interface import Interface, GymTrainedInterface, GymTrainingInterface, \
+    InvalidScheduleError
 
 from .analysis import *
 from .events import *

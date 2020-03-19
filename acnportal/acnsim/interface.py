@@ -258,7 +258,7 @@ class GymTrainedInterface(Interface):
 
     @classmethod
     def from_interface(cls, interface):
-        gym_interface = GymTrainedInterface(interface._simulator)
+        gym_interface = cls(interface._simulator)
         return gym_interface
 
     @property
@@ -330,15 +330,17 @@ class GymTrainedInterface(Interface):
             if evse_is_continuous:
                 min_rate = evse_allowable_pilots[0]
                 max_rate = evse_allowable_pilots[1]
-                evse_satisfied = not np.all(np.array([
+                evse_satisfied = np.all(np.array([
                     (min_rate <= pilot <= max_rate) or pilot == 0
                     for pilot in load_currents[station_id]
                 ]))
             else:
-                evse_satisfied = not np.all(np.isin(
+                evse_satisfied = np.all(np.isin(
                     np.array(load_currents[station_id]),
                     np.array(evse_allowable_pilots)
                 ))
+            if not evse_satisfied:
+                break
         return evse_satisfied
 
     def is_feasible(self, load_currents, linear=False,
@@ -386,11 +388,6 @@ class GymTrainingInterface(GymTrainedInterface):
     to step the Simulator by a single iteration.
     """
 
-    @classmethod
-    def from_interface(cls, interface):
-        gym_interface = cls(interface._simulator)
-        return gym_interface
-
     def step(self, new_schedule, force_feasibility=True):
         """ Step the simulation using the input new_schedule until the
         simulator requires a new charging schedule. If the provided
@@ -421,8 +418,7 @@ class GymTrainingInterface(GymTrainedInterface):
                 or len(list(new_schedule.values())[0])
                 < self._simulator.max_recompute):
             warnings.warn(
-                f"Length of schedules {len(list(new_schedule.values())[0])} "
-                f"is less than this simulation's max_recompute "
+                f"Length of schedules is less than this simulation's max_recompute "
                 f"parameter {self._simulator.max_recompute}. Pilots "
                 f"may be updated with zeros."
             )
