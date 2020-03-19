@@ -5,7 +5,7 @@ gym_acnsim environments.
 
 All reward functions have signature
 
-    acnportal.acnsim.gym_acnsim.envs.base_env.BaseSimEnv -> Number
+    acnportal.acnsim.gym_acnsim.envs.env.BaseSimEnv -> Number
 
 That is, reward functions take in an environment instance
 and return a number (reward) based on the characteristics of that

@@ -31,7 +31,7 @@ class CustomSimEnv(BaseSimEnv):
     sim_prototype_env module.
     """
     observation_objects: List[SimObservation]
-    observation_space: spaces.Space
+    observation_space: spaces.Dict
     action_object: SimAction
     action_space: spaces.Space
     reward_functions: List[Callable[[BaseSimEnv], float]]
@@ -199,7 +199,6 @@ class RebuildingEnv(CustomSimEnv):
     This is especially useful if the network or event queue have 
     stochastic elements.
     """
-    # TODO: Handle warning with interface here.
     def __init__(
             self,
             interface: Optional[GymTrainedInterface],
@@ -211,12 +210,15 @@ class RebuildingEnv(CustomSimEnv):
     ) -> None:
         """ Initialize this environment. Every CustomSimEnv needs a list
         of SimObservation objects, action space functions, and reward
-        functions.
+        functions. At least one of either interface or
+        interface_generating_function must not be None.
 
         Args:
-            interface (acnsim.GymInterface): This argument is unused;
-                it is included to comply with CustomSimEnv.__init__()'s
-                type signature.
+            interface (acnsim.GymTrainedInterface): An interface with
+                which the environment is initialized if no interface
+                generating function is provided. If an interface
+                generating function is provided, this argument is
+                unused.
             observation_objects (List[SimObservation]): List of objects
                 that specify how to calculate observation spaces and
                 observations from an interface to a simulation.
@@ -231,21 +233,27 @@ class RebuildingEnv(CustomSimEnv):
                 Function which returns a GymInterface to a generated
                 simulator.
         """
+        if interface_generating_function is None and interface is None:
+            raise TypeError("At least one of either interface or "
+                            "interface_generating_function must not be "
+                            "None")
+
         if interface_generating_function is None:
-            def interface_generating_function():
+            self._init_snapshot = deepcopy(interface)
+
+            # noinspection PyMissingOrEmptyDocstring
+            def interface_generating_function() -> GymTrainedInterface:
                 return self._init_snapshot
+        else:
+            interface: GymTrainedInterface = \
+                interface_generating_function()
+
         self.interface_generating_function = interface_generating_function
-        temp_interface: GymTrainedInterface = \
-            self.interface_generating_function()
-        interface: GymTrainedInterface = deepcopy(temp_interface)
 
         super().__init__(interface,
                          observation_objects,
                          action_object,
                          reward_functions)
-
-        self._prev_interface = deepcopy(temp_interface)
-        self._init_snapshot = deepcopy(temp_interface)
 
     @classmethod
     def from_custom_sim_env(
@@ -277,6 +285,15 @@ class RebuildingEnv(CustomSimEnv):
 
     def render(self, mode='human'):
         """ Renders the environment. Implements gym.Env.render(). """
+        raise NotImplementedError
+
+    def info_from_state(self) -> Dict[Any, Any]:
+        """ Give information about the environment using the state of
+        the simulator
+
+        Returns:
+            info (dict): dict of environment information
+        """
         raise NotImplementedError
 
 
