@@ -26,6 +26,14 @@ class TestSimulator(TestCase):
         scheduler.max_recompute = None
         events = EventQueue(events=[Event(1), Event(2)])
         self.simulator = Simulator(network, scheduler, events, start)
+        self.simulator_no_schedule = Simulator(network, None, events, start)
+
+    def test_no_schedule_init(self):
+        self.assertIsNone(self.simulator_no_schedule.scheduler)
+
+    def test_no_schedule_error(self):
+        with self.assertRaises(TypeError):
+            self.simulator_no_schedule.run()
 
     def test_correct_on_init_pilot_signals(self):
         np.testing.assert_allclose(self.simulator.pilot_signals,

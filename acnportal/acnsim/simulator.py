@@ -17,7 +17,8 @@ class Simulator:
 
     Args:
         network (ChargingNetwork): The charging network which the simulation will use.
-        scheduler (BasicAlgorithm): The scheduling algorithm used in the simulation.
+        scheduler (BaseAlgorithm): The scheduling algorithm used in the simulation.
+            If scheduler = None, Simulator.run() cannot be called.
         events (EventQueue): Queue of events which will occur in the simulation.
         start (datetime): Date and time of the first period of the simulation.
         period (int): Length of each time interval in the simulation in minutes. Default: 1
@@ -30,11 +31,13 @@ class Simulator:
                  store_schedule_history=False, verbose=True):
         self.network = network
         self.scheduler = scheduler
-        self.scheduler.register_interface(Interface(self))
+        self.max_recompute = None
+        if scheduler is not None:
+            self.scheduler.register_interface(Interface(self))
+            self.max_recompute = scheduler.max_recompute
         self.event_queue = events
         self.start = start
         self.period = period
-        self.max_recompute = scheduler.max_recompute
         self.signals = signals
         self.verbose = verbose
 
@@ -59,7 +62,8 @@ class Simulator:
         return self._iteration
 
     def run(self):
-        """ Run the simulation until the event queue is empty.
+        """
+        If scheduler is not None, run the simulation until the event queue is empty.
 
         The run function is the heart of the simulator. It triggers all actions and keeps the simulator moving forward.
         Its actions are (in order):
@@ -70,7 +74,15 @@ class Simulator:
 
         Returns:
             None
+
+        Raises:
+            TypeError: If called when the scheduler attribute is None.
+                The run() method requires a BaseAlgorithm-like
+                scheduler to execute.
         """
+        if self.scheduler is None:
+            raise TypeError("Add a scheduler before attempting to call"
+                            " run().")
         while not self.event_queue.empty():
             current_events = self.event_queue.get_current_events(self._iteration)
             for e in current_events:

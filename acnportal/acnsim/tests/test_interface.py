@@ -239,7 +239,8 @@ class TestGymTrainingInterface(TestGymTrainedInterface):
     def test_step_infeasible_schedule_no_force_feasibility(
             self, mocked_is_feasible) -> None:
         schedule: Dict[str, List[float]] = self._step_helper()
-        self.assertEqual(self.interface.step(schedule, force_feasibility=False),
+        self.assertEqual(self.interface.step(schedule,
+                                             force_feasibility=False),
                          (True, False))
         self.simulator.event_queue.empty.assert_not_called()
         mocked_is_feasible.assert_called_once_with(schedule)
