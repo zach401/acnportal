@@ -50,6 +50,17 @@ class GymBaseAlgorithm(BaseAlgorithm):
     this GymAlgorithm to run model.predict() on a trained model. See
     GymTrainedAlgorithm for this case.
 
+    Algorithm class for Simulations using a reinforcement learning
+    agent that operates in an Open AI Gym environment.
+
+    Implements abstract class GymBaseAlgorithm.
+
+    Simulations that run GymAlgorithm-style schedulers have two entry
+    points for simulation control. First, the Simulator may call
+    scheduler.run(), causing this GymAlgorithm to run model.predict().
+    Alternatively, one may call model.learn(vec_env), which instead will
+    step through the simulation. See GymTrainingAlgorithm for this case.
+
     Args:
         max_recompute (int): See BaseAlgorithm.
     """
@@ -65,6 +76,25 @@ class GymBaseAlgorithm(BaseAlgorithm):
     def __deepcopy__(self, memodict: Optional[Dict] = None
                      ) -> "GymBaseAlgorithm":
         return type(self)(max_recompute=self.max_recompute)
+
+    def register_interface(self, interface: Interface) -> None:
+        """ NOTE: Registering an interface sets the environment's
+        interface to GymTrainedInterface.
+        """
+        if not isinstance(interface, GymTrainedInterface):
+            # Note that in this case, the actual interface object is not
+            # used by the algorithm; rather, a copy of interface of type
+            # GymTrainedInterface is used.
+            gym_interface: GymTrainedInterface = \
+                GymTrainedInterface.from_interface(interface)
+        elif isinstance(interface, GymTrainingInterface):
+            raise TypeError("Interface GymTrainingInterface cannot be registered "
+                            "to a scheduler. Register GymTrainedInterface")
+        else:
+            gym_interface: GymTrainedInterface = interface
+        super().register_interface(gym_interface)
+        if self._env is not None:
+            self.env.interface = interface
 
     @property
     def env(self) -> BaseSimEnv:
@@ -102,41 +132,6 @@ class GymBaseAlgorithm(BaseAlgorithm):
         raise NotImplementedError
 
 
-class GymTrainingAlgorithm(GymBaseAlgorithm):
-    """ Algorithm class for Simulations using an untrained reinforcement
-    learning agent that operates in an Open AI Gym environment.
-
-    Implements abstract class GymBaseAlgorithm.
-
-    During training of an reinforcement learning agent,
-    the simulation never calls the scheduler. Instead,
-    the simulation's step function is called. As such,
-    GymTrainingAlgorithm does not implement schedule.
-
-    Alternatively, the Simulator may call scheduler.run(), causing
-    this GymAlgorithm to run model.predict() on a trained model. See
-    GymTrainedAlgorithm for this case.
-
-    """
-
-    def register_interface(self, interface: Interface) -> None:
-        """ NOTE: Registering an interface sets the environment's
-        interface to GymTrainingInterface.
-        """
-        if not isinstance(interface, GymTrainingInterface):
-            gym_interface: GymTrainingInterface = \
-                GymTrainingInterface.from_interface(interface)
-        else:
-            gym_interface: GymTrainingInterface = interface
-        super().register_interface(gym_interface)
-        if self._env is not None:
-            self.env.interface = interface
-
-    def schedule(self, active_evs):
-        """ NOT IMPLEMENTED IN GymBaseAlgorithm. """
-        raise NotImplementedError
-
-
 class GymTrainedAlgorithm(GymBaseAlgorithm):
     """ Algorithm class for Simulations using a reinforcement learning
     agent that operates in an Open AI Gym environment.
@@ -155,19 +150,6 @@ class GymTrainedAlgorithm(GymBaseAlgorithm):
     def __init__(self, max_recompute: int = 1) -> None:
         super().__init__(max_recompute=max_recompute)
         self._model = None
-
-    def register_interface(self, interface: Interface) -> None:
-        """ NOTE: Registering an interface sets the environment's
-        interface to GymTrainedInterface.
-        """
-        if not isinstance(interface, GymTrainedInterface):
-            gym_interface: GymTrainedInterface = \
-                GymTrainedInterface.from_interface(interface)
-        else:
-            gym_interface: GymTrainedInterface = interface
-        super().register_interface(gym_interface)
-        if self._env is not None:
-            self.env.interface = interface
 
     @property
     def model(self) -> SimRLModelWrapper:

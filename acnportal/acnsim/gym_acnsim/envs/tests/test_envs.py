@@ -40,10 +40,11 @@ class TestBaseSimEnv(unittest.TestCase):
         self.assertEqual(self.env.schedule, {})
 
     def test_update_state(self) -> None:
-        self.env.observation_from_state = Mock()
-        self.env.reward_from_state = Mock()
-        self.env.done_from_state = Mock()
-        self.env.info_from_state = Mock()
+        self.env.observation_from_state = create_autospec(
+            self.env.observation_from_state)
+        self.env.reward_from_state = create_autospec(self.env.reward_from_state)
+        self.env.done_from_state = create_autospec(self.env.done_from_state)
+        self.env.info_from_state = create_autospec(self.env.info_from_state)
 
         self.env.update_state()
 
@@ -70,9 +71,9 @@ class TestBaseSimEnv(unittest.TestCase):
         self.env.info = {'info': None}
         self.env.action_to_schedule = lambda: dummy_schedule
 
-        self.env.store_previous_state = Mock()
-        self.env.interface.step = Mock()
-        self.env.update_state = Mock()
+        self.env.store_previous_state = create_autospec(self.env.store_previous_state)
+        self.env.interface.step = create_autospec(self.env.interface.step)
+        self.env.update_state = create_autospec(self.env.update_state)
 
         observation, reward, done, info = self.env.step(np.array([1, 2]))
 

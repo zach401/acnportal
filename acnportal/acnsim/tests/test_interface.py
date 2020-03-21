@@ -99,7 +99,7 @@ class TestGymTrainedInterface(TestInterface):
 
     def test_is_done(self) -> None:
         event_queue: EventQueue = EventQueue()
-        event_queue.empty = Mock()
+        event_queue.empty = create_autospec(event_queue.empty)
         self.simulator.event_queue = event_queue
         _ = self.interface.is_done
         event_queue.empty.assert_called_once()
@@ -211,7 +211,7 @@ class TestGymTrainingInterface(TestGymTrainedInterface):
                                             'PS-002': [4, 5],
                                             'PS-003': [0, 0]}
         event_queue: EventQueue = EventQueue()
-        event_queue.empty = Mock()
+        event_queue.empty = create_autospec(event_queue.empty)
         event_queue.empty.return_value = True
         self.simulator.event_queue = event_queue
         return schedule
