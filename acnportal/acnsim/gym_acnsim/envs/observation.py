@@ -134,6 +134,7 @@ def _ev_observation(
         attribute_function: Callable[[GymTrainedInterface, EV], float],
         name: str
 ) -> SimObservation:
+    # noinspection PyMissingOrEmptyDocstring
     def space_function(interface: GymTrainedInterface) -> spaces.Space:
         return spaces.Box(
             low=0, high=np.inf,
@@ -141,6 +142,7 @@ def _ev_observation(
             dtype='float'
         )
 
+    # noinspection PyMissingOrEmptyDocstring
     def obs_function(interface: GymTrainedInterface) -> np.ndarray:
         attribute_values: dict = {station_id: 0
                                   for station_id in interface.station_ids}
@@ -184,6 +186,7 @@ def remaining_demand_observation() -> SimObservation:
 
 # Network-wide observation factory functions.
 def _constraints_observation(attribute: str, name: str) -> SimObservation:
+    # noinspection PyMissingOrEmptyDocstring
     def space_function(interface: GymTrainedInterface) -> spaces.Space:
         return spaces.Box(
             low=-np.inf,
@@ -192,6 +195,7 @@ def _constraints_observation(attribute: str, name: str) -> SimObservation:
             dtype='float'
         )
 
+    # noinspection PyMissingOrEmptyDocstring
     def obs_function(interface: GymTrainedInterface) -> np.ndarray:
         return getattr(interface.get_constraints(), attribute)
     return SimObservation(space_function, obs_function, name=name)
@@ -221,9 +225,11 @@ def timestep_observation() -> SimObservation:
     from an RL agent's perspective.
     """
     # noinspection PyUnusedLocal
+    # noinspection PyMissingOrEmptyDocstring
     def space_function(interface: GymTrainedInterface) -> spaces.Space:
         return spaces.Box(low=0, high=np.inf, shape=(1,), dtype='float')
 
+    # noinspection PyMissingOrEmptyDocstring
     def obs_function(interface: GymTrainedInterface) -> np.ndarray:
         return np.array(interface.current_time + 1)
     return SimObservation(space_function, obs_function, name='timestep')

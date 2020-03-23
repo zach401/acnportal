@@ -1,3 +1,8 @@
+# coding=utf-8
+"""
+This package contains environments for training RL agents to schedule EV
+charging.
+"""
 from importlib.util import find_spec
 if find_spec("gym") is not None:
     from .base_env import BaseSimEnv

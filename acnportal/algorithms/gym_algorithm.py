@@ -4,7 +4,7 @@ from .base_algorithm import BaseAlgorithm
 from ..acnsim.interface import GymTrainedInterface, \
     GymTrainingInterface, Interface
 from importlib.util import find_spec
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 
 if find_spec("gym") is not None:
     from ..acnsim.gym_acnsim.envs import BaseSimEnv
@@ -18,7 +18,7 @@ class SimRLModelWrapper:
     """
     model: object
 
-    def __init__(self, model: object) -> None:
+    def __init__(self, model: object = None) -> None:
         """
         Wrap an input model.
 
@@ -27,7 +27,27 @@ class SimRLModelWrapper:
         """
         self.model = model
 
-    def predict(self, observation, reward, done, info) -> np.ndarray:
+    def predict(self,
+                observation: object,
+                reward: float,
+                done: bool,
+                info: Dict[Any, Any] = None) -> np.ndarray:
+        """
+        Given an observation, reward, done, and info from an
+        environment, return a prediction for the next optimal action
+        as a numpy array.
+
+        Args:
+            observation: An observation of the environment.
+            reward: The last reward returned by the environment.
+            done: If true, this environment's simulation is done
+                running.
+            info: Info for debugging and testing from this environment.
+                In a deployment model, this information is restricted.
+
+        Returns:
+
+        """
         raise NotImplementedError
 
 

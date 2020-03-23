@@ -1,3 +1,9 @@
+# coding=utf-8
+"""
+Open AI Gym plugin for ACN-Sim. Provides several customizable
+environments for training reinforcement learning (RL) agents. See
+tutorial X for examples of usage.
+"""
 from importlib.util import find_spec
 from typing import List, Dict
 

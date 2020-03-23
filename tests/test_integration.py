@@ -51,7 +51,11 @@ def to_array_dict(list_dict):
 
 class TestIntegration(TestCase):
     @classmethod
-    def setUpClass(self):
+    def _build_scheduler(cls):
+        cls.sch = EarliestDeadlineFirstAlgoStateful()
+
+    @classmethod
+    def setUpClass(cls):
         timezone = pytz.timezone('America/Los_Angeles')
         start = timezone.localize(datetime(2018, 9, 5))
         end = timezone.localize(datetime(2018, 9, 6))
@@ -65,21 +69,21 @@ class TestIntegration(TestCase):
         API_KEY = 'DEMO_TOKEN'
         events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
 
-        self.sch = EarliestDeadlineFirstAlgoStateful(increment=1)
+        cls._build_scheduler()
 
-        self.sim = Simulator(deepcopy(cn), self.sch, deepcopy(events), start, period=period, verbose=False)
-        self.sim.run()
+        cls.sim = Simulator(deepcopy(cn), cls.sch, deepcopy(events), start, period=period, verbose=False)
+        cls.sim.run()
 
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_analysis_fields.json'), 'r') as infile:
-            self.edf_algo_true_analysis_dict = json.load(infile)
+            cls.edf_algo_true_analysis_dict = json.load(infile)
 
         with open(os.path.join(
                 os.path.dirname(__file__),
                 'edf_algo_true_datetimes_array.json'), 'r') as infile:
-            self.edf_algo_true_datetimes_array = json.load(infile)
+            cls.edf_algo_true_datetimes_array = json.load(infile)
 
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_info_fields.json'), 'r') as infile:
-            self.edf_algo_true_info_dict = json.load(infile)
+            cls.edf_algo_true_info_dict = json.load(infile)
 
     def test_aggregate_current(self):
         np.testing.assert_allclose(acnsim.aggregate_current(self.sim),

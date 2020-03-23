@@ -1,3 +1,8 @@
+# coding=utf-8
+"""
+This package contains customizable gym environments that wrap
+simulations.
+"""
 from copy import deepcopy
 from typing import Optional, Dict, List, Callable, Any
 
@@ -123,12 +128,15 @@ class CustomSimEnv(BaseSimEnv):
 
     def info_from_state(self) -> Dict[Any, Any]:
         """ Give information about the environment using the state of
-        the simulator
+        the simulator. In this case, all the info about the simulator
+        is given by returning a dict containing the simulator's
+        interface.
 
         Returns:
-            info (dict): dict of environment information
+            info (Dict[str, GymTrainedInterface]): The interface between
+                the environment and Simulator.
         """
-        raise NotImplementedError
+        return {'interface': self.interface}
 
 
 # Default observation objects, action object, and reward functions list
@@ -285,15 +293,6 @@ class RebuildingEnv(CustomSimEnv):
 
     def render(self, mode='human'):
         """ Renders the environment. Implements gym.Env.render(). """
-        raise NotImplementedError
-
-    def info_from_state(self) -> Dict[Any, Any]:
-        """ Give information about the environment using the state of
-        the simulator
-
-        Returns:
-            info (dict): dict of environment information
-        """
         raise NotImplementedError
 
 

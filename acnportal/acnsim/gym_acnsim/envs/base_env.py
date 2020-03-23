@@ -1,3 +1,8 @@
+# coding=utf-8
+"""
+This module contains an abstract gym environment that wraps an ACN-Sim
+Simulation.
+"""
 from copy import deepcopy
 from typing import Optional, Dict, List, Any, Tuple
 
