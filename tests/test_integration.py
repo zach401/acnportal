@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from acnportal import acnsim
-from acnportal.acnsim import Simulator
+from acnportal.acnsim import Simulator, Interface
 from acnportal.acnsim import acndata_events
 from acnportal.acnsim import sites
 from acnportal.algorithms import BaseAlgorithm
@@ -53,6 +53,7 @@ class TestIntegration(TestCase):
     @classmethod
     def _build_scheduler(cls):
         cls.sch = EarliestDeadlineFirstAlgoStateful()
+        return Interface
 
     @classmethod
     def setUpClass(cls):
@@ -69,9 +70,12 @@ class TestIntegration(TestCase):
         API_KEY = 'DEMO_TOKEN'
         events = acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
 
-        cls._build_scheduler()
+        required_interface = cls._build_scheduler()
 
-        cls.sim = Simulator(deepcopy(cn), cls.sch, deepcopy(events), start, period=period, verbose=False)
+        cls.sim = Simulator(
+            deepcopy(cn), cls.sch, deepcopy(events), start, period=period,
+            verbose=False, interface_type=required_interface
+        )
         cls.sim.run()
 
         with open(os.path.join(os.path.dirname(__file__), 'edf_algo_true_analysis_fields.json'), 'r') as infile:

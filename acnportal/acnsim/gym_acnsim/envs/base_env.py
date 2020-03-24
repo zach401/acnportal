@@ -35,7 +35,8 @@ class BaseSimEnv(gym.Env):
 
     Attributes:
         _interface (GymTrainedInterface): An interface to a simulation to be
-            stepped by this environment.
+            stepped by this environment, or None. If None, an interface must
+            be set later.
         _init_snapshot (GymTrainedInterface): A deep copy of the initial
             interface, used for environment resets.
         _prev_interface (GymTrainedInterface): A deep copy of the interface
@@ -51,7 +52,7 @@ class BaseSimEnv(gym.Env):
             execution of the environment is complete.
         _info (object): An object that gives info about the environment.
     """
-    _interface: GymTrainedInterface
+    _interface: Optional[GymTrainedInterface]
     _init_snapshot: GymTrainedInterface
     _prev_interface: GymTrainedInterface
     _action: Optional[np.ndarray]
@@ -61,7 +62,7 @@ class BaseSimEnv(gym.Env):
     _done: Optional[bool]
     _info: Optional[Dict[Any, Any]]
 
-    def __init__(self, interface: GymTrainedInterface) -> None:
+    def __init__(self, interface: Optional[GymTrainedInterface]) -> None:
         self._interface = interface
         self._init_snapshot = deepcopy(interface)
         self._prev_interface = deepcopy(interface)
@@ -78,6 +79,9 @@ class BaseSimEnv(gym.Env):
 
     @interface.setter
     def interface(self, new_interface: GymTrainedInterface) -> None:
+        if self._interface is None:
+            self._init_snapshot = deepcopy(new_interface)
+            self._prev_interface = deepcopy(new_interface)
         self._interface = new_interface
 
     @property
@@ -144,6 +148,13 @@ class BaseSimEnv(gym.Env):
         Returns:
             None.
         """
+        if not isinstance(self._interface, GymTrainedInterface):
+            raise TypeError(
+                "Environment interface must be of type "
+                "GymTrainedInterface to update state. Either "
+                "use sim.run() to progress the environment or set a "
+                "new interface."
+            )
         self.observation = self.observation_from_state()
         self.reward = self.reward_from_state()
         self.done = self.done_from_state()

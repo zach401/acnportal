@@ -25,16 +25,14 @@ class Simulator:
         signals (Dict[str, ...]):
         store_schedule_history (bool): If True, store the scheduler output each time it is run. Note this can use lots
             of memory for long simulations.
+        interface_type (type): The class of interface to register with the scheduler.
     """
 
     def __init__(self, network, scheduler, events, start, period=1, signals=None,
-                 store_schedule_history=False, verbose=True):
+                 store_schedule_history=False, verbose=True, interface_type=Interface):
         self.network = network
         self.scheduler = scheduler
         self.max_recompute = None
-        if scheduler is not None:
-            self.scheduler.register_interface(Interface(self))
-            self.max_recompute = scheduler.max_recompute
         self.event_queue = events
         self.start = start
         self.period = period
@@ -56,6 +54,12 @@ class Simulator:
         self._iteration = 0
         self._resolve = False
         self._last_schedule_update = 0
+
+        # Interface registration is moved here so that copies of this
+        # simulator have all attributes.
+        if scheduler is not None:
+            self.max_recompute = scheduler.max_recompute
+            self.scheduler.register_interface(interface_type(self))
 
     @property
     def iteration(self):
@@ -228,7 +232,7 @@ class Simulator:
         else:
             # We've reached the end of pilot_signals, so double pilot_signal array width
             self.pilot_signals = _increase_width(self.pilot_signals,
-                max(self.event_queue.get_last_timestamp() + 1, self._iteration + schedule_length))
+                                                 max(self.event_queue.get_last_timestamp() + 1, self._iteration + schedule_length))
             self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
 
     def _store_actual_charging_rates(self):

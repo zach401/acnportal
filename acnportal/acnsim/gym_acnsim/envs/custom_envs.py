@@ -43,7 +43,7 @@ class CustomSimEnv(BaseSimEnv):
 
     def __init__(
             self,
-            interface: GymTrainedInterface,
+            interface: Optional[GymTrainedInterface],
             observation_objects: List[SimObservation],
             action_object: SimAction,
             reward_functions: List[Callable[[BaseSimEnv], float]]
@@ -67,16 +67,35 @@ class CustomSimEnv(BaseSimEnv):
         super().__init__(interface)
 
         self.observation_objects = observation_objects
+        self.action_object = action_object
+        self.reward_functions = reward_functions
+        if interface is None:
+            return
         self.observation_space = spaces.Dict({
             observation_object.name: observation_object.get_space(
                 self.interface)
             for observation_object in observation_objects
         })
 
-        self.action_object = action_object
         self.action_space = action_object.get_space(interface)
 
-        self.reward_functions = reward_functions
+    @property
+    def interface(self) -> GymTrainedInterface:
+        return self._interface
+
+    @interface.setter
+    def interface(self, new_interface: GymTrainedInterface) -> None:
+        if self._interface is None:
+            self._init_snapshot = deepcopy(new_interface)
+            self._prev_interface = deepcopy(new_interface)
+        self._interface = new_interface
+        self.observation_space = spaces.Dict({
+            observation_object.name: observation_object.get_space(
+                new_interface)
+            for observation_object in self.observation_objects
+        })
+
+        self.action_space = self.action_object.get_space(new_interface)
 
     def render(self, mode='human'):
         """ Renders the environment. Implements gym.Env.render(). """
@@ -158,7 +177,8 @@ default_reward_functions: List[Callable[[BaseSimEnv], float]] = [
 ]
 
 
-def make_default_sim_env(interface: GymTrainedInterface) -> CustomSimEnv:
+def make_default_sim_env(
+        interface: Optional[GymTrainedInterface] = None) -> CustomSimEnv:
     """ A simulator environment with the following characteristics:
 
     The action and observation spaces are continuous.

@@ -1,3 +1,7 @@
+# coding=utf-8
+"""
+Algorithms used for deploying trained RL models.
+"""
 import numpy as np
 
 from .base_algorithm import BaseAlgorithm
@@ -108,8 +112,9 @@ class GymBaseAlgorithm(BaseAlgorithm):
             gym_interface: GymTrainedInterface = \
                 GymTrainedInterface.from_interface(interface)
         elif isinstance(interface, GymTrainingInterface):
-            raise TypeError("Interface GymTrainingInterface cannot be registered "
-                            "to a scheduler. Register GymTrainedInterface")
+            raise TypeError("Interface GymTrainingInterface cannot be "
+                            "registered to a scheduler. Register "
+                            "GymTrainedInterface")
         else:
             gym_interface: GymTrainedInterface = interface
         super().register_interface(gym_interface)
@@ -131,9 +136,9 @@ class GymBaseAlgorithm(BaseAlgorithm):
             return self._env
         else:
             raise ValueError(
-                'No vec_env has been registered yet. Please call '
+                'No env has been registered yet. Please call '
                 'register_env with an appropriate environment before '
-                'attempting to call vec_env or schedule.'
+                'attempting to call env or schedule.'
             )
 
     def register_env(self, env: BaseSimEnv) -> None:
@@ -146,6 +151,8 @@ class GymBaseAlgorithm(BaseAlgorithm):
             None
         """
         self._env = env
+        if self._interface is not None:
+            self.env.interface = self._interface
 
     def schedule(self, active_evs) -> Dict[str, List[float]]:
         """ NOT IMPLEMENTED IN GymBaseAlgorithm. """

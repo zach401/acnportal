@@ -8,8 +8,8 @@ import numpy as np
 
 
 if find_spec("gym") is not None:
-    from ...acnsim import Interface, GymTrainedInterface, GymTrainingInterface, \
-        Simulator
+    from ...acnsim import Interface, GymTrainedInterface, \
+        GymTrainingInterface, Simulator
     from ...acnsim.gym_acnsim.envs import BaseSimEnv
     from .. import SimRLModelWrapper, GymBaseAlgorithm, GymTrainedAlgorithm
 
@@ -106,9 +106,9 @@ class TestGymTrainedAlgorithm(TestGymBaseAlgorithm):
 
     def test_schedule_error_no_interface(self):
         self.algorithm.register_interface(self.interface)
-        self.env.interface = None
         self.algorithm.register_env(self.env)
         self.algorithm.register_model(self.model)
+        self.env.interface = None
         with self.assertRaises(TypeError):
             self.algorithm.schedule(None)
 

@@ -1,6 +1,8 @@
 """
 This module contains methods for directly interacting with the _simulator.
 """
+from copy import deepcopy
+
 import numpy as np
 from datetime import timedelta
 from collections import namedtuple
@@ -300,7 +302,7 @@ class GymTrainedInterface(Interface):
                 represents the charging rates of a station; each column
                 represents the charging rates at an iteration.
         """
-        return self._simulator.charging_rates
+        return deepcopy(self._simulator.charging_rates)
 
     def is_feasible_evse(self, load_currents):
         """
