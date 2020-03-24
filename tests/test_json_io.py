@@ -170,12 +170,12 @@ class TestJSONIO(TestCase):
                 'is_continuous'
             ],
             'DeadbandEVSE': [
-                '_station_id', '_max_rate', '_min_rate', '_current_pilot',
-                '_deadband_end', 'is_continuous'
+                '_station_id', '_max_rate', '_current_pilot', '_deadband_end',
+                'is_continuous'
             ],
             'FiniteRatesEVSE': [
-                '_station_id', '_max_rate', '_min_rate', '_current_pilot',
-                'is_continuous', 'allowable_rates'
+                '_station_id', '_current_pilot', 'is_continuous',
+                'allowable_rates'
             ],
             'Event': [
                 'timestamp', 'event_type', 'precedence'

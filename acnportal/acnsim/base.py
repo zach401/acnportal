@@ -28,8 +28,8 @@ def _operator_error_hooks(cls):
         def op_hook(*args, **kwargs):
             raise TypeError(
                 f"This object is a stub object whose methods are not "
-                f"callable. Call {name} after correctly instantiating this "
-                f"object."
+                f"callable. Call {name} after correctly instantiating"
+                f" this object."
             )
         try:
             setattr(cls, name, op_hook)
@@ -100,7 +100,9 @@ class BaseSimObj:
 
     @staticmethod
     def _none_to_empty_dict(*args):
-        """ Returns a new args list that replaces each None arg with {}. """
+        """
+        Returns a new args list that replaces each None arg with {}.
+        """
         out_arg_lst = []
         for arg in args:
             if arg is None:
@@ -123,14 +125,16 @@ class BaseSimObj:
         json_serializable_data = self._to_registry()[0]
         if json_serializable_data["version"] is None:
             warnings.warn(
-                f"Missing a recorded version of acnportal in the dict representation. "
-                f"Loading will not run an acnportal version check.",
+                f"Missing a recorded version of acnportal in the dict "
+                f"representation. Loading will not run an acnportal "
+                f"version check.",
                 UserWarning
             )
         if json_serializable_data["dependency_versions"] is None:
             warnings.warn(
-                f"Missing recorded versions of dependencies in the dict representation. "
-                f"Loading will not run a dependency version check.",
+                f"Missing recorded versions of dependencies in the "
+                f"dict representation. Loading will not run a "
+                f"dependency version check.",
                 UserWarning
             )
         path_or_buf = stringify_path(path_or_buf)
@@ -412,14 +416,16 @@ class BaseSimObj:
 
         if out_registry["version"] is None:
             warnings.warn(
-                f"Missing a recorded version of acnportal in the loaded registry. "
-                f"Object may have been dumped with a different version of acnportal.",
+                f"Missing a recorded version of acnportal in the "
+                f"loaded registry. Object may have been dumped with a "
+                f"different version of acnportal.",
                 UserWarning
             )
         if out_registry["dependency_versions"] is None:
             warnings.warn(
-                f"Missing recorded dependency versions of acnportal in the loaded registry. "
-                f"Object may have been dumped with different dependency versions of acnportal.",
+                f"Missing recorded dependency versions of acnportal in "
+                f"the loaded registry. Object may have been dumped "
+                f"with different dependency versions of acnportal.",
                 UserWarning
             )
 

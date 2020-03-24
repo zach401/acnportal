@@ -184,8 +184,7 @@ class BaseEVSE(BaseSimObj):
     def _to_dict(self, context_dict=None):
         """ Implements BaseSimObj._to_dict. """
         attribute_dict = {}
-        nn_attr_lst = ['_station_id', '_max_rate', '_min_rate',
-                       '_current_pilot', 'is_continuous']
+        nn_attr_lst = ['_station_id', '_current_pilot', 'is_continuous']
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
 
@@ -217,11 +216,7 @@ class BaseEVSE(BaseSimObj):
     @classmethod
     def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
         """ Implements BaseSimObj._from_dict. """
-        out_obj = cls(
-            attribute_dict['_station_id'],
-            max_rate=attribute_dict['_max_rate'],
-            min_rate=attribute_dict['_min_rate']
-        )
+        out_obj = cls(attribute_dict['_station_id'])
         return cls._from_dict_helper(
             out_obj, attribute_dict, context_dict, loaded_dict)
 
@@ -288,6 +283,25 @@ class EVSE(BaseEVSE):
         """
         return (self.min_rate <= pilot + atol
                 and pilot - atol <= self.max_rate)
+
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
+        attribute_dict, context_dict = super()._to_dict(context_dict)
+        attribute_dict['_max_rate'] = self._max_rate
+        attribute_dict['_min_rate'] = self._min_rate
+
+        return attribute_dict, context_dict
+
+    @classmethod
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls(
+            attribute_dict['_station_id'],
+            max_rate=attribute_dict['_max_rate'],
+            min_rate=attribute_dict['_min_rate']
+        )
+        return cls._from_dict_helper(
+            out_obj, attribute_dict, context_dict, loaded_dict)
 
 
 class DeadbandEVSE(BaseEVSE):
@@ -372,6 +386,7 @@ class DeadbandEVSE(BaseEVSE):
     def _to_dict(self, context_dict=None):
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
+        attribute_dict['_max_rate'] = self._max_rate
         attribute_dict['_deadband_end'] = self._deadband_end
         return attribute_dict, context_dict
 
@@ -381,8 +396,7 @@ class DeadbandEVSE(BaseEVSE):
         out_obj = cls(
             attribute_dict['_station_id'],
             deadband_end=attribute_dict['_deadband_end'],
-            max_rate=attribute_dict['_max_rate'],
-            min_rate=attribute_dict['_min_rate']
+            max_rate=attribute_dict['_max_rate']
         )
         return cls._from_dict_helper(
             out_obj, attribute_dict, context_dict, loaded_dict)
@@ -471,7 +485,5 @@ class FiniteRatesEVSE(BaseEVSE):
             attribute_dict['_station_id'],
             attribute_dict['allowable_rates']
         )
-        out_obj._max_rate = attribute_dict['_max_rate']
-        out_obj._min_rate = attribute_dict['_min_rate']
         return cls._from_dict_helper(
             out_obj, attribute_dict, context_dict, loaded_dict)
