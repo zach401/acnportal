@@ -1,7 +1,7 @@
 class BaseAlgorithm:
     """ Abstract base class meant to be inherited from to implement new algorithms.
 
-    Subclassed must implement the schedule method.
+    Subclasses must implement the schedule method.
 
     Attributes:
         interface (Interface): An interface to the environment.
