@@ -81,7 +81,7 @@ def proportion_of_demands_met(sim, threshold=0.1):
     return finished / len(sim.ev_history)
 
 
-def current_unbalance(sim, phase_ids, type='NEMA'):
+def current_unbalance(sim, phase_ids, unbalance_type='NEMA', type=None):
     """ Calculate the current unbalance for each time in simulation.
 
     Supports two definitions of unbalance.
@@ -94,15 +94,20 @@ def current_unbalance(sim, phase_ids, type='NEMA'):
     Args:
         sim (Simulator): A Simulator object which has been run.
         phase_ids (List[str]): List of length 3 where each element is the identifier of phase A, B, and C respectively.
-        type (str): Method to use for calculating phase unbalance. Acceptable values are 'NEMA'.
+        unbalance_type (str): Method to use for calculating phase unbalance. Acceptable values are 'NEMA'.
 
     Returns:
         List[float]: Time series of current unbalance as a list with one value per timestep.
     """
-    if type == 'NEMA':
+    if type is not None:
+        warnings.warn("current_unbalance kwarg 'type' is deprecated. "
+                      "Use 'unbalance_type' instead.",
+                      DeprecationWarning)
+        unbalance_type = type
+    if unbalance_type == 'NEMA':
         return _nema_current_unbalance(sim, phase_ids)
     else:
-        raise ValueError('type must be NEMA not {0}'.format(type))
+        raise ValueError('type must be NEMA not {0}'.format(unbalance_type))
 
 
 def _nema_current_unbalance(sim, phase_ids):
