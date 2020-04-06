@@ -179,9 +179,9 @@ class BaseSimObj:
 
         - An extension that doesn't define `_to_dict` will dump without
         error, but with partial preservation of attributes. Objects that
-        are not JSON serializable and which do not have a `_to_registry`
-        method will not be completely serialized unless said objects are
-        extensions of built-in ACN-Sim objects with no extra attributes.
+        do not inherit from BaseSimObj and either are not themselves
+        JSON serializable or contain attributes that are not JSON
+        serializable will not be serialized.
 
         - A warning is thrown for each attribute not explicitly handled
         in the serialization.
@@ -260,15 +260,13 @@ class BaseSimObj:
             )
             for key in unserialized_keys:
                 unserialized_attr = self.__dict__[key]
-                # Try calling the attr's _to_registry method.
-                try:
+                if isinstance(unserialized_attr, BaseSimObj):
+                    # Try calling the attr's _to_registry method.
                     # noinspection PyProtectedMember
                     registry, context_dict = unserialized_attr._to_registry(
                         context_dict=context_dict)
                     attribute_dict[key] = registry['id']
                     continue
-                except AttributeError:
-                    pass
                 # Try dumping the object using the native JSON
                 # serializer.
                 try:
