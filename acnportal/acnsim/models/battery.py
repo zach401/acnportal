@@ -1,4 +1,5 @@
 import numpy as np
+from ..base import BaseSimObj
 import warnings
 
 IDEAL = 'Ideal'
@@ -6,7 +7,7 @@ NOISY = 'Noisy'
 TWO_STAGE = 'TwoStage'
 
 
-class Battery:
+class Battery(BaseSimObj):
     """This class models the behavior of a battery and battery
     management system (BMS).
 
@@ -92,6 +93,32 @@ class Battery:
                     'Initial Charge cannot be greater than capacity.')
             self._current_charge = init_charge
         self._current_charging_power = 0
+
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
+        attribute_dict = {}
+        nn_attr_lst = ['_max_power', '_current_charging_power',
+                       '_current_charge', '_capacity', '_init_charge']
+        for attr in nn_attr_lst:
+            attribute_dict[attr] = getattr(self, attr)
+        return attribute_dict, context_dict
+
+    @classmethod
+    def _from_dict_helper(cls, out_obj, attribute_dict):
+        out_obj._current_charging_power = \
+            attribute_dict['_current_charging_power']
+        out_obj._current_charge = attribute_dict['_current_charge']
+
+    @classmethod
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls(
+            attribute_dict['_capacity'],
+            attribute_dict['_init_charge'],
+            attribute_dict['_max_power']
+        )
+        cls._from_dict_helper(out_obj, attribute_dict)
+        return out_obj, loaded_dict
 
 
 class Linear2StageBattery(Battery):
@@ -408,3 +435,23 @@ def batt_cap_fn_old(requested_energy, stay_dur, voltage, period):
         if init >= 0:
             return cap, init
     raise ValueError('No feasible battery size found.')
+
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
+        attribute_dict, context_dict = super()._to_dict(context_dict)
+        attribute_dict['_noise_level'] = self._noise_level
+        attribute_dict['_transition_soc'] = self._transition_soc
+        return attribute_dict, context_dict
+
+    @classmethod
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls(
+            attribute_dict['_capacity'],
+            attribute_dict['_init_charge'],
+            attribute_dict['_max_power'],
+            noise_level=attribute_dict['_noise_level'],
+            transition_soc=attribute_dict['_transition_soc']
+        )
+        cls._from_dict_helper(out_obj, attribute_dict)
+        return out_obj, loaded_dict

@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+from ..base import BaseSimObj
 
 BASIC = 'BASIC'
 AV = 'AeroVironment'
@@ -38,7 +39,7 @@ class StationOccupiedError(Exception):
     pass
 
 
-class BaseEVSE:
+class BaseEVSE(BaseSimObj):
     """ Abstract base class to model Electric Vehicle Supply Equipment
     (charging station). This class is meant to be inherited from to
     implement new EVSEs.
@@ -161,6 +162,7 @@ class BaseEVSE:
         Raises:
             StationOccupiedError: Exception raised when plugin is called by an EV is already attached to the EVSE.
         """
+        # assert ev.station_id == self.station_id
         if self.ev is None:
             self._ev = ev
         else:
@@ -178,6 +180,45 @@ class BaseEVSE:
         """
         self._ev = None
         self._current_pilot = 0
+
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
+        attribute_dict = {}
+        nn_attr_lst = ['_station_id', '_current_pilot', 'is_continuous']
+        for attr in nn_attr_lst:
+            attribute_dict[attr] = getattr(self, attr)
+
+        if self._ev is not None:
+            # noinspection PyProtectedMember
+            registry, context_dict = self.ev._to_registry(
+                context_dict=context_dict)
+            attribute_dict['_ev'] = registry['id']
+        else:
+            attribute_dict['_ev'] = None
+
+        return attribute_dict, context_dict
+
+    @classmethod
+    def _from_dict_helper(cls, out_obj, attribute_dict,
+                          context_dict, loaded_dict):
+        out_obj._current_pilot = attribute_dict['_current_pilot']
+        out_obj.is_continuous = attribute_dict['is_continuous']
+
+        if attribute_dict['_ev'] is not None:
+            # noinspection PyProtectedMember
+            ev, loaded_dict = BaseSimObj._build_from_id(
+                attribute_dict['_ev'], context_dict, loaded_dict=loaded_dict)
+        else:
+            ev = None
+        out_obj._ev = ev
+        return out_obj, loaded_dict
+
+    @classmethod
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls(attribute_dict['_station_id'])
+        return cls._from_dict_helper(
+            out_obj, attribute_dict, context_dict, loaded_dict)
 
 
 class EVSE(BaseEVSE):
@@ -242,6 +283,25 @@ class EVSE(BaseEVSE):
         """
         return (self.min_rate <= pilot + atol
                 and pilot - atol <= self.max_rate)
+
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
+        attribute_dict, context_dict = super()._to_dict(context_dict)
+        attribute_dict['_max_rate'] = self._max_rate
+        attribute_dict['_min_rate'] = self._min_rate
+
+        return attribute_dict, context_dict
+
+    @classmethod
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls(
+            attribute_dict['_station_id'],
+            max_rate=attribute_dict['_max_rate'],
+            min_rate=attribute_dict['_min_rate']
+        )
+        return cls._from_dict_helper(
+            out_obj, attribute_dict, context_dict, loaded_dict)
 
 
 class DeadbandEVSE(BaseEVSE):
@@ -327,6 +387,24 @@ class DeadbandEVSE(BaseEVSE):
                 or (self._deadband_end <= pilot + atol
                     and pilot - atol <= self.max_rate))
 
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
+        attribute_dict, context_dict = super()._to_dict(context_dict)
+        attribute_dict['_max_rate'] = self._max_rate
+        attribute_dict['_deadband_end'] = self._deadband_end
+        return attribute_dict, context_dict
+
+    @classmethod
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls(
+            attribute_dict['_station_id'],
+            deadband_end=attribute_dict['_deadband_end'],
+            max_rate=attribute_dict['_max_rate']
+        )
+        return cls._from_dict_helper(
+            out_obj, attribute_dict, context_dict, loaded_dict)
+
 
 class FiniteRatesEVSE(BaseEVSE):
     """ Subclass of EVSE which allows for finite allowed rate sets.
@@ -397,3 +475,19 @@ class FiniteRatesEVSE(BaseEVSE):
         """
         return np.any(np.isclose(pilot, self.allowable_rates,
                                  atol=1e-3, rtol=0))
+
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
+        attribute_dict, context_dict = super()._to_dict(context_dict)
+        attribute_dict['allowable_rates'] = self.allowable_rates
+        return attribute_dict, context_dict
+
+    @classmethod
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls(
+            attribute_dict['_station_id'],
+            attribute_dict['allowable_rates']
+        )
+        return cls._from_dict_helper(
+            out_obj, attribute_dict, context_dict, loaded_dict)
