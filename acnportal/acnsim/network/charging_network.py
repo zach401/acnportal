@@ -3,8 +3,10 @@ import pandas as pd
 import numpy as np
 from collections import OrderedDict
 import warnings
+from ..base import BaseSimObj
 
-class ChargingNetwork:
+
+class ChargingNetwork(BaseSimObj):
     """
     The ChargingNetwork class describes the infrastructure of the charging network with
     information about the types of the charging station_schedule.
@@ -325,6 +327,62 @@ class ChargingNetwork:
         # Ensure each aggregate current is less than its limit, returning False if not
         schedule_length = schedule_matrix.shape[1]
         return np.all(np.tile(self.magnitudes + np.maximum(violation_tolerance, rel_magnitude_tol), (schedule_length, 1)).T >= np.abs(aggregate_currents))
+
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
+
+        attribute_dict = {}
+        # Serialize non-nested attributes.
+        nn_attr_lst = ['violation_tolerance', 'relative_tolerance']
+        for attr in nn_attr_lst:
+            attribute_dict[attr] = getattr(self, attr)
+
+        evses = {}
+        for station_id, evse in self._EVSEs.items():
+            # noinspection PyProtectedMember
+            registry, context_dict = evse._to_registry(
+                context_dict=context_dict)
+            evses[station_id] = registry['id']
+        attribute_dict['_EVSEs'] = evses
+
+        if self.constraint_matrix is not None:
+            attribute_dict['constraint_matrix'] = \
+                self.constraint_matrix.tolist()
+        else:
+            attribute_dict['constraint_matrix'] = self.constraint_matrix
+        attribute_dict['magnitudes'] = self.magnitudes.tolist()
+        attribute_dict['_voltages'] = self._voltages.tolist()
+        attribute_dict['_phase_angles'] = self._phase_angles.tolist()
+        attribute_dict['constraint_index'] = self.constraint_index
+        return attribute_dict, context_dict
+
+    @classmethod
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls(
+            violation_tolerance=attribute_dict['violation_tolerance'],
+            relative_tolerance=attribute_dict['relative_tolerance']
+        )
+
+        evses = {}
+        for station_id, evse in attribute_dict['_EVSEs'].items():
+            # noinspection PyProtectedMember
+            evse_elt, loaded_dict = BaseSimObj._build_from_id(
+                evse, context_dict, loaded_dict=loaded_dict)
+            evses[station_id] = evse_elt
+        out_obj._EVSEs = evses
+
+        if attribute_dict['constraint_matrix'] is not None:
+            out_obj.constraint_matrix = np.array(
+                attribute_dict['constraint_matrix'])
+        else:
+            out_obj.constraint_matrix = attribute_dict['constraint_matrix']
+        out_obj.magnitudes = np.array(attribute_dict['magnitudes'])
+        out_obj._voltages = np.array(attribute_dict['_voltages'])
+        out_obj._phase_angles = np.array(attribute_dict['_phase_angles'])
+        out_obj.constraint_index = attribute_dict['constraint_index']
+
+        return out_obj, loaded_dict
 
 
 class StationOccupiedError(Exception):

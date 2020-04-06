@@ -12,6 +12,10 @@ class BaseAlgorithm:
         self._interface = None
         self.max_recompute = None
 
+    def __repr__(self):
+        arg_str = ", ".join([f"{key}={value}" for key, value in self.__dict__.items()])
+        return f"{self.__class__.__name__}({arg_str})"
+
     @property
     def interface(self):
         """ Return the algorithm's interface with the environment.
@@ -31,9 +35,9 @@ class BaseAlgorithm:
     def register_interface(self, interface):
         """ Register interface to the _simulator/physical system.
 
-        This interface is the only connection between the algorithm and what it is controlling. Its purpose is to 
-        abstract the underlying network so that the same algorithms can run on a simulated environment or a physical 
-        one. 
+        This interface is the only connection between the algorithm and what it is controlling. Its purpose is to
+        abstract the underlying network so that the same algorithms can run on a simulated environment or a physical
+        one.
 
         Args:
             interface (Interface): An interface to the underlying network whether simulated or real.

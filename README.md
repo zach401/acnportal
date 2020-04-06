@@ -2,7 +2,7 @@
 
 # ACN Portal
 
-The ACN Portal is a suite research tools developed at Caltech to accelerate the pace of large-scale EV charging research.
+The ACN Portal is a suite of research tools developed at Caltech to accelerate the pace of large-scale EV charging research.
 Checkout the documentation at https://acnportal.readthedocs.io/en/latest/.
 
 ### ACN-Data
