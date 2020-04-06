@@ -28,7 +28,9 @@ class TestCurrent(TestCase):
 
     def test_init_none_input(self):
         self.current = Current()
-        pd.testing.assert_series_equal(self.current, pd.Series())
+        # The object type is specified explicitly here to address a
+        # warning in pandas 1.x.
+        pd.testing.assert_series_equal(self.current, pd.Series(dtype='float64'))
 
     def test_init_str_lst_input(self):
         curr_strs = ['PS-001', 'PS-002', 'PS-003']
