@@ -379,6 +379,10 @@ class DeadbandEVSE(BaseEVSE):
             bool: True if the proposed pilot signal is valid. False
                 otherwise.
         """
+        # TODO (zach): originally, this was:
+        #  return np.isclose(pilot, 0, atol) or pilot >= self._deadband_end
+        #  Was this for compatibility with cvxpy? If so, does the current
+        #  form from evse_refactor PR still work?
         return (np.isclose(pilot, 0, atol=atol, rtol=0)
                 or (self._deadband_end <= pilot + atol
                     and pilot - atol <= self.max_rate))
