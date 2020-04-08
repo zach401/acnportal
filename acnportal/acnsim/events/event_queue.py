@@ -1,8 +1,9 @@
 import heapq
 from .event import Event
+from ..base import BaseSimObj
 
 
-class EventQueue:
+class EventQueue(BaseSimObj):
     """ Queue which stores simulation events.
 
     Args:
@@ -88,3 +89,33 @@ class EventQueue:
             return max(self._queue, key=lambda x: x[0])[0]
         else:
             return None
+
+    def _to_dict(self, context_dict=None):
+        """ Implements BaseSimObj._to_dict. """
+        attribute_dict = {'_timestep': self._timestep}
+
+        event_queue = []
+        for (ts, event) in self._queue:
+            # noinspection PyProtectedMember
+            registry, context_dict = event._to_registry(
+                context_dict=context_dict)
+            event_queue.append((ts, registry['id']))
+        attribute_dict['_queue'] = event_queue
+
+        return attribute_dict, context_dict
+
+    @classmethod
+    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+        """ Implements BaseSimObj._from_dict. """
+        out_obj = cls()
+        out_obj._timestep = attribute_dict['_timestep']
+
+        event_queue = []
+        for (ts, event) in attribute_dict['_queue']:
+            # noinspection PyProtectedMember
+            loaded_event, loaded_dict = BaseSimObj._build_from_id(
+                event, context_dict, loaded_dict=loaded_dict)
+            event_queue.append((ts, loaded_event))
+        out_obj._queue = event_queue
+
+        return out_obj, loaded_dict
