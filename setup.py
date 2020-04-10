@@ -25,8 +25,5 @@ setuptools.setup(
         'matplotlib',
         'requests',
         'pytz'
-    ],
-    extras_require={
-        "gym": ['gym>=0.15.4']
-    }
+    ]
 )

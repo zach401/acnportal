@@ -4,10 +4,7 @@ language: python
 python:
   - "3.6"
   - "3.7"
-env:
-  - USE_GYM=true
-  - USE_GYM=false
 install:
-  ./.travis_script.sh
+  pip install .
 script:
   - python -m unittest discover
