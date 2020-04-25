@@ -183,10 +183,7 @@ class Linear2StageBattery(Battery):
             + (pilot_dsoc - max_dsoc) / max_dsoc * (self._transition_soc - 1)
         )
 
-        assert pilot_transition_soc >= self._transition_soc
-        if pilot >= 0:
-            assert pilot_transition_soc <= 1
-        else:
+        if pilot < 0:
             warnings.warn(f"Negative pilot signal input. Battery models"
                           f"may not be accurate for pilot {pilot} A.")
 
@@ -382,11 +379,6 @@ def batt_cap_fn(requested_energy, stay_dur, voltage, period):
             transition_soc - max_dsoc * stay_dur,
             1, delta_soc
         )
-
-        # If this statement is false, we could have used the closed-form
-        # solution in which charging occurs entirely in the non-ideal
-        # region.
-        assert init_soc < transition_soc
         return init_soc * cap
 
     # Potential capacities taken from TODO: find source.
