@@ -173,9 +173,7 @@ class TestBatteryFit(TestCase):
     def battery_feasible(self, request, duration, voltage, period):
         cap, init = batt_cap_fn(request, duration, voltage, period)
         batt = Linear2StageBattery(cap, init, 32*voltage / 1000)
-        rates = []
-        for d in range(duration):
-            rates.append(batt.charge(32, voltage, period))
+        rates = [batt.charge(32, voltage, period) for _ in range(duration)]
         self.assertAlmostEqual((batt._current_charge - init), request)
         self.assertAlmostEqual(request, sum(rates)*voltage/1000*(period/60))
 
