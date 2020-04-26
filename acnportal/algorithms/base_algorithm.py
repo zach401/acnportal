@@ -73,5 +73,5 @@ class BaseAlgorithm:
         Returns:
             See schedule.
         """
-        schedules = self.schedule(self.interface.active_evs)
+        schedules = self.schedule(self.interface.active_sessions())
         return schedules

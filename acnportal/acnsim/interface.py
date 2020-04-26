@@ -4,7 +4,7 @@ This module contains methods for directly interacting with the _simulator.
 import numpy as np
 from datetime import timedelta
 from collections import namedtuple
-
+from warnings import warn
 
 class SessionInfo:
     """ Simple class to store information relevant to a charging session.
@@ -20,21 +20,22 @@ class SessionInfo:
             min_rates:
             max_rates:
     """
-    def __init__(self, station_id, session_id, energy_requested, energy_delivered, arrival, departure,
-                 current_time=0, min_rates=0, max_rates=float('inf')):
+    def __init__(self, station_id, session_id, requested_energy, energy_delivered, arrival, departure,
+                 estimated_departure=None, current_time=0, min_rates=0, max_rates=float('inf')):
         self.station_id = station_id
         self.session_id = session_id
-        self.energy_requested = energy_requested
+        self.requested_energy = requested_energy
         self.energy_delivered = energy_delivered
         self.arrival = arrival
         self.departure = departure
+        self.estimated_departure = estimated_departure
         self.current_time = current_time
         self.min_rates = np.array([min_rates] * self.remaining_time) if np.isscalar(min_rates) else min_rates
         self.max_rates = np.array([max_rates] * self.remaining_time) if np.isscalar(max_rates) else max_rates
 
     @property
-    def remaining_energy(self):
-        return self.energy_requested - self.energy_delivered
+    def remaining_demand(self):
+        return self.requested_energy - self.energy_delivered
 
     @property
     def arrival_offset(self):
@@ -47,25 +48,26 @@ class SessionInfo:
 
 
 class InfrastructureInfo:
-    def __init__(self, constraint_matrix, constraint_limits, phases, voltages, constraint_index, eves_index,
-                 max_pilot, min_pilot, allowable_pilots=None):
+    def __init__(self, constraint_matrix, constraint_limits, phases, voltages, constraint_index, station_ids,
+                 max_pilot, min_pilot, allowable_pilots=None, is_continuous=None):
         self.constraint_matrix = constraint_matrix
         self.constraint_limits = constraint_limits
         self.phases = phases
         self.voltages = voltages
         self.constraint_index = constraint_index
-        self.evse_index = eves_index
-        self._evse_index_dict = {station_id: i for i, station_id in enumerate(self.evse_index)}
+        self.station_ids = station_ids
+        self._station_ids_dict = {station_id: i for i, station_id in enumerate(self.station_ids)}
         self.max_pilot = max_pilot
         self.min_pilot = min_pilot
         self.allowable_pilots = allowable_pilots if allowable_pilots is not None else [None] * self.num_stations
+        self.is_continuous = is_continuous if is_continuous is not None else np.zeros(self.num_stations, dtype=bool)
 
     @property
     def num_stations(self):
-        return len(self.evse_index)
+        return len(self.station_ids)
 
     def get_station_index(self, station_id):
-        return self._evse_index_dict[station_id]
+        return self._station_ids_dict[station_id]
 
 
 class Interface:
@@ -76,6 +78,18 @@ class Interface:
 
     @property
     def active_evs(self):
+        """ Returns a list of active EVs for use by the algorithm.
+
+        Returns:
+            List[EV]: List of EVs currently plugged in and not finished charging
+        """
+        warn('Property active_evs is depreciated and will be removed in a future version. '
+             'Please use active_sessions instead, as it provides a read-only copy '
+             'of charging session related information.')
+        return self._active_evs
+
+    @property
+    def _active_evs(self):
         """ Returns a list of active EVs for use by the algorithm.
 
         Returns:
@@ -94,8 +108,8 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i] for ev in self.active_evs if
-                ev.arrival <= i}
+            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i]
+                    for ev in self._active_evs if ev.arrival <= i}
         else:
             return {}
 
@@ -106,7 +120,7 @@ class Interface:
         Returns:
             Dict[str, number]:  A dictionary with the session ID as key and actual charging rate as value.
         """
-        return {ev.session_id: ev.current_charging_rate for ev in self.active_evs}
+        return {ev.session_id: ev.current_charging_rate for ev in self._active_evs}
 
     @property
     def current_time(self):
@@ -126,15 +140,6 @@ class Interface:
         """
         return self._simulator.period
 
-    @property
-    def max_recompute_time(self):
-        """ Return the maximum recompute time of the simulator.
-
-        Returns:
-            int: Maximum recompute time of the simulator in number of periods. [periods]
-        """
-        return self._simulator.max_recompute
-
     def active_sessions(self):
         """ Return a list of SessionInfo objects describing the currently charging EVs.
 
@@ -142,7 +147,7 @@ class Interface:
             List[SessionInfo]: List of currently active charging sessions.
         """
         return [SessionInfo(ev.station_id, ev.session_id, ev.requested_energy, ev.energy_delivered, ev.arrival,
-                            ev.departure, self.current_time) for ev in self.active_evs]
+                            ev.departure, ev.estimated_departure, self.current_time) for ev in self._active_evs]
 
     def infrastructure_info(self):
         """ Returns an InfrastructureInfo object generated from interface.
@@ -152,9 +157,15 @@ class Interface:
         """
         network = self._simulator.network
         station_ids = network.station_ids
-        max_pilot_signals = [self.max_pilot_signal(station_id) for station_id in station_ids]
-        min_pilot_signals = [self.min_pilot_signal(station_id) for station_id in station_ids]
-        allowable_rates = [self.allowable_pilot_signals(station_id) for station_id in station_ids]
+        max_pilot_signals = np.array([self.max_pilot_signal(station_id) for station_id in station_ids])
+        min_pilot_signals = np.array([self.min_pilot_signal(station_id) for station_id in station_ids])
+        allowable_rates = []
+        is_continuous = []
+        for station_id in station_ids:
+            continuous, allowable = self.allowable_pilot_signals(station_id)
+            allowable_rates.append(np.array(allowable))
+            is_continuous.append(continuous)
+        is_continuous = np.array(is_continuous)
         return InfrastructureInfo(network.constraint_matrix,
                                   network.magnitudes,
                                   network._phase_angles,
@@ -163,7 +174,8 @@ class Interface:
                                   station_ids,
                                   max_pilot_signals,
                                   min_pilot_signals,
-                                  allowable_rates)
+                                  allowable_rates,
+                                  is_continuous)
 
     def allowable_pilot_signals(self, station_id):
         """ Returns the allowable pilot signal levels for the specified EVSE.
