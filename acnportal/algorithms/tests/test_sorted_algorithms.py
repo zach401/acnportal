@@ -21,7 +21,7 @@ algorithms = {'FCFS': SortedSchedulingAlgo(first_come_first_served),
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Define Networks and Charging Sessions for Test Scenarios
+# Functions to Define Networks and Charging Sessions for Test Scenarios
 # ----------------------------------------------------------------------------------------------------------------------
 def tiny_single_phase_network(algorithm, limit):
     network = single_phase_single_constraint(2, limit)
@@ -80,7 +80,9 @@ def large_three_phase_network(algorithm, limit):
     return {'schedule': schedule,
             'interface': interface}
 
-
+# ----------------------------------------------------------------------------------------------------------------------
+# Define Test Scenarios
+# ----------------------------------------------------------------------------------------------------------------------
 scenarios = {'uncongested.tiny_single_phase_network': (tiny_single_phase_network, 64),
              'uncongested.large_single_phase_network': (large_single_phase_network, 3200),
              'uncongested.large_three_phase_network': (large_three_phase_network, 64 * 18),
@@ -89,6 +91,9 @@ scenarios = {'uncongested.tiny_single_phase_network': (tiny_single_phase_network
              'congested.large_three_phase_network': (large_three_phase_network, 30*18)
              }
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Run Scenarios for each Algorithm and Store Results
+# ----------------------------------------------------------------------------------------------------------------------
 results = {}
 for alg_name, alg in algorithms.items():
         for scenario_name, scenario in scenarios.items():
@@ -97,6 +102,9 @@ for alg_name, alg in algorithms.items():
             results[name]['uncongested'] = 'uncongested' in scenario_name
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Test Suite
+# ----------------------------------------------------------------------------------------------------------------------
 @pytest.mark.parametrize('scenario', results.values(), ids=results.keys())
 class TestBasicAlgorithms:
     def test_all_rates_less_than_evse_limit(self, scenario):
@@ -123,7 +131,7 @@ class TestBasicAlgorithms:
     def test_all_rates_at_max(self, scenario):
         if not scenario['uncongested']:
             pytest.skip("Test scenario was congested, don't expect all EVs to charge at max.")
-        # In these scenarios it is possible to charge all EVs at their maximum rate
+        # In uncongested scenarios it is possible to charge all EVs at their maximum rate
         for station_id, rates in scenario['schedule'].items():
             assert np.isclose(scenario['schedule'][station_id],
                               scenario['interface'].max_pilot_signal(station_id),
