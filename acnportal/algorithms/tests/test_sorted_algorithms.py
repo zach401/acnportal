@@ -9,7 +9,20 @@ from acnportal.algorithms import *
 CURRENT_TIME = 0
 PERIOD = 5
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Algorithms to Test
+# ----------------------------------------------------------------------------------------------------------------------
+algorithms = {'FCFS': SortedSchedulingAlgo(first_come_first_served),
+              'LLF': SortedSchedulingAlgo(least_laxity_first),
+              'EDF': SortedSchedulingAlgo(earliest_deadline_first),
+              'LCFS': SortedSchedulingAlgo(last_come_first_served),
+              'LRPT': SortedSchedulingAlgo(largest_remaining_processing_time),
+              'RR': RoundRobin(first_come_first_served)}
 
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Define Networks and Charging Sessions for Test Scenarios
+# ----------------------------------------------------------------------------------------------------------------------
 def tiny_single_phase_network(algorithm, limit):
     network = single_phase_single_constraint(2, limit)
     sessions = session_generator(num_sessions=2, arrivals=[0]*2, departures=[12]*2,
@@ -68,37 +81,23 @@ def large_three_phase_network(algorithm, limit):
             'interface': interface}
 
 
-scenarios = {'tiny_single_phase_network': tiny_single_phase_network,
-             'large_single_phase_network': large_single_phase_network,
-             'large_three_phase_network': large_three_phase_network}
+scenarios = {'uncongested.tiny_single_phase_network': (tiny_single_phase_network, 64),
+             'uncongested.large_single_phase_network': (large_single_phase_network, 3200),
+             'uncongested.large_three_phase_network': (large_three_phase_network, 64 * 18),
+             'congested.tiny_single_phase_network': (tiny_single_phase_network, 48),
+             'congested.large_single_phase_network': (large_single_phase_network, 2500),
+             'congested.large_three_phase_network': (large_three_phase_network, 30*18)
+             }
 
-congested_limits = {'tiny_single_phase_network': 48,
-                    'large_single_phase_network': 2500,
-                    'large_three_phase_network': 30*18}
-
-uncongested_limits = {'tiny_single_phase_network': 64,
-                      'large_single_phase_network': 3200,
-                      'large_three_phase_network': 64*18}
-
-algorithms = {'FCFS': SortedSchedulingAlgo(first_come_first_served),
-              'LLF': SortedSchedulingAlgo(least_laxity_first),
-              'EDF': SortedSchedulingAlgo(earliest_deadline_first),
-              'LCFS': SortedSchedulingAlgo(last_come_first_served),
-              'LRPT': SortedSchedulingAlgo(largest_remaining_processing_time),
-              'RR': RoundRobin(first_come_first_served)}
-
-congested_results = {}
+results = {}
 for alg_name, alg in algorithms.items():
-    for scenario_name, scenario in scenarios.items():
-        congested_results[f'congested.{scenario_name}.{alg_name}'] = scenario(alg, congested_limits[scenario_name])
+        for scenario_name, scenario in scenarios.items():
+            name = f'{scenario_name}.{alg_name}'
+            results[name] = scenario[0](alg, scenario[1])
+            results[name]['uncongested'] = 'uncongested' in scenario_name
 
-uncongested_results = {}
-for alg_name, alg in algorithms.items():
-    for scenario_name, scenario in scenarios.items():
-        uncongested_results[f'uncongested.{scenario_name}.{alg_name}'] = scenario(alg, uncongested_limits[scenario_name])
 
-all_results = dict(**congested_results, **uncongested_results)
-@pytest.mark.parametrize('scenario', all_results.values(), ids=all_results.keys())
+@pytest.mark.parametrize('scenario', results.values(), ids=results.keys())
 class TestBasicAlgorithms:
     def test_all_rates_less_than_evse_limit(self, scenario):
         for station_id, rates in scenario['schedule'].items():
@@ -121,11 +120,11 @@ class TestBasicAlgorithms:
     def test_infrastructure_limits_satisfied(self, scenario):
         scenario['interface'].is_feasible(scenario['schedule'])
 
-
-@pytest.mark.parametrize('scenario', uncongested_results.values(), ids=uncongested_results.keys())
-def test_all_rates_at_max(scenario):
-    # In these scenarios it is possible to charge all EVs at their maximum rate
-    for station_id, rates in scenario['schedule'].items():
-        assert np.isclose(scenario['schedule'][station_id],
-                          scenario['interface'].max_pilot_signal(station_id),
-                          atol=1e-4)
+    def test_all_rates_at_max(self, scenario):
+        if not scenario['uncongested']:
+            pytest.skip("Test scenario was congested, don't expect all EVs to charge at max.")
+        # In these scenarios it is possible to charge all EVs at their maximum rate
+        for station_id, rates in scenario['schedule'].items():
+            assert np.isclose(scenario['schedule'][station_id],
+                              scenario['interface'].max_pilot_signal(station_id),
+                              atol=1e-4)
