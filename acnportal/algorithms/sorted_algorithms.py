@@ -44,13 +44,15 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         for ev in ev_queue:
             continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
             if continuous:
-                charging_rate = self.max_feasible_rate(ev.station_id, allowable_rates[-1], schedule, eps=0.01)
+                charging_rate = self.max_feasible_rate(ev.station_id,
+                                                       self.interface.max_pilot_signal(ev.station_id),
+                                                       schedule, eps=0.0001)
             else:
                 charging_rate = self.discrete_max_feasible_rate(ev.station_id, allowable_rates, schedule)
             schedule[ev.station_id][0] = charging_rate
         return schedule
 
-    def max_feasible_rate(self, station_id, ub, schedule, time=0, eps=0.01):
+    def max_feasible_rate(self, station_id, ub, schedule, time=0, eps=0.0001):
         """ Return the maximum feasible rate less than ub subject to the environment's constraints.
 
         If schedule contains non-zero elements at the given time, these are treated as fixed allocations and this
@@ -154,7 +156,7 @@ class RoundRobin(SortedSchedulingAlgo):
         for ev in ev_queue:
             evse_continuous, evse_rates = self.interface.allowable_pilot_signals(ev.station_id)
             if evse_continuous:
-                evse_rates = np.arange(evse_rates[0], evse_rates[1], continuous_inc)
+                evse_rates = np.arange(evse_rates[0], evse_rates[1]+1e-7, continuous_inc)
             allowable_rates[ev.station_id] = evse_rates
 
         while len(ev_queue) > 0:
