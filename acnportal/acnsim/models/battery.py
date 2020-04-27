@@ -134,10 +134,14 @@ class Linear2StageBattery(Battery):
         self._noise_level = noise_level
         if transition_soc < 0:
             raise ValueError(
-                f"transition_soc must be nonnegative. Got {transition_soc}.")
+                f"transition_soc must be non-negative. "
+                f"Got {transition_soc}."
+            )
         elif transition_soc >= 1:
             raise ValueError(
-                f"transition_soc must be less than 1. Got {transition_soc}.")
+                f"transition_soc must not be more than 1. "
+                f"Got {transition_soc}."
+            )
         self._transition_soc = transition_soc
 
     def charge(self, pilot, voltage, period):
@@ -160,10 +164,10 @@ class Linear2StageBattery(Battery):
         """
         if voltage <= 0:
             raise ValueError(
-                'Voltage must be greater than 0. Got {0}'.format(voltage))
+                f'Voltage must be greater than 0. Got {voltage}.')
         if period <= 0:
             raise ValueError(
-                'period must be greater than 0. Got {0}'.format(period))
+                f'Period must be greater than 0. Got {period}.')
         if pilot == 0:
             self._current_charging_power = 0
             return 0
@@ -176,11 +180,12 @@ class Linear2StageBattery(Battery):
         if pilot_dsoc > max_dsoc:
             pilot_dsoc = max_dsoc
 
-        # The pilot SoC rate of change has a new transition SoC at˚
+        # The pilot SoC rate of change has a new transition SoC at
         # which decreasing of max charging rate occurs.
         pilot_transition_soc = (
             self._transition_soc
-            + (pilot_dsoc - max_dsoc) / max_dsoc * (self._transition_soc - 1)
+            + (pilot_dsoc - max_dsoc) / max_dsoc
+            * (self._transition_soc - 1)
         )
 
         if pilot < 0:
@@ -310,8 +315,7 @@ def batt_cap_fn(requested_energy, stay_dur, voltage, period):
         period (float): Number of minutes in a period (minutes).
 
     """
-    def _get_init_cap(requested_energy, stay_dur, cap, voltage, period,
-                      max_rate=32, transition_soc=0.8):
+    def _get_init_cap(battery_cap, max_rate=32, transition_soc=0.8):
         """ Given a requested energy, stay duration, battery capacity
         (kWh), charging voltage, period, max charging rate, and the
         state of charge (SoC) at which non-ideal behavior begins, finds
@@ -320,9 +324,9 @@ def batt_cap_fn(requested_energy, stay_dur, voltage, period):
         linear 2 stage battery behavior.
 
         """
-        delta_soc = requested_energy / cap
+        delta_soc = requested_energy / battery_cap
         # Maximum rate of change of SoC in per period.
-        max_dsoc = max_rate * voltage / 1000 / cap / (60 / period)
+        max_dsoc = max_rate * voltage / 1000 / battery_cap / (60 / period)
 
         # First, assume init_soc is after the transition_soc. In this
         # case, the max init_soc has a closed form solution.
@@ -337,17 +341,17 @@ def batt_cap_fn(requested_energy, stay_dur, voltage, period):
         # If that didn't work, search over all possible init_soc for the
         # largest init_soc that still allows for delta_soc to be
         # delivered in stay_dur periods.
-        def delta_soc_from_init_soc(init_soc):
-            if stay_dur <= (transition_soc - init_soc) / max_dsoc:
+        def delta_soc_from_init_soc(init_soc_guess):
+            if stay_dur <= (transition_soc - init_soc_guess) / max_dsoc:
                 return max_dsoc * stay_dur
             return (
                 1
                 + np.exp(
-                    (max_dsoc * stay_dur + init_soc - transition_soc)
+                    (max_dsoc * stay_dur + init_soc_guess - transition_soc)
                     / (transition_soc - 1)
                 )
                 * (transition_soc - 1)
-                - init_soc
+                - init_soc_guess
             )
 
         # Before that, we make sure that starting at init_soc of 0, it's
@@ -359,15 +363,15 @@ def batt_cap_fn(requested_energy, stay_dur, voltage, period):
         # use a binary search for a decreasing function. The default
         # tolerance is set to 1e-9 to satisfy the tests'
         # assertAlmostEqual default tolerance.
-        def binsearch(f, lb, ub, targ, tol=1e-9):
+        def binsearch(f, lb, ub, target, tol=1e-9):
             mid = (lb + ub) / 2
             val = f(mid)
-            if abs(val - targ) < tol:
+            if abs(val - target) < tol:
                 return mid
-            elif val - targ > 0:
-                return binsearch(f, mid, ub, targ, tol=tol)
+            elif val - target > 0:
+                return binsearch(f, mid, ub, target, tol=tol)
             else:
-                return binsearch(f, lb, mid, targ, tol=tol)
+                return binsearch(f, lb, mid, target, tol=tol)
 
         # Below an initial capacity of
         # (transition_soc - max_dsoc * stay_dur),
@@ -379,14 +383,14 @@ def batt_cap_fn(requested_energy, stay_dur, voltage, period):
             transition_soc - max_dsoc * stay_dur,
             1, delta_soc
         )
-        return init_soc * cap
+        return init_soc * battery_cap
 
     # Potential capacities taken from TODO: find source.
     potential_caps = np.array([8, 24, 40, 60, 85, 100])
     for cap in potential_caps:
         if requested_energy > cap:
             continue
-        init = _get_init_cap(requested_energy, stay_dur, cap, voltage, period)
+        init = _get_init_cap(cap)
         if init >= 0:
             return cap, init
     raise ValueError('No feasible battery size found.')
