@@ -24,6 +24,11 @@ class EventQueue(BaseSimObj):
         """
         return len(self._queue)
 
+    @property
+    def queue(self):
+        """ Return the queue of events """
+        return self._queue
+
     def empty(self):
         """ Return if the queue is empty.
 

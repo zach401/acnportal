@@ -64,7 +64,7 @@ class Simulator(BaseSimObj):
         # Local Variables
         self._iteration = 0
         self._resolve = False
-        self._last_schedule_update = 0
+        self._last_schedule_update = None
 
         # Interface registration is moved here so that copies of this
         # simulator have all attributes.
@@ -105,7 +105,8 @@ class Simulator(BaseSimObj):
                 self._process_event(e)
             if self._resolve or \
                     self.max_recompute is not None and \
-                    self._iteration - self._last_schedule_update >= self.max_recompute:
+                    (self._last_schedule_update is None or
+                     self._iteration - self._last_schedule_update >= self.max_recompute):
                 new_schedule = self.scheduler.run()
                 self._update_schedules(new_schedule)
                 if self.schedule_history is not None:
