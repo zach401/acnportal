@@ -127,9 +127,21 @@ class Linear2StageBattery(Battery):
     Args:
         noise_level (float): Standard deviation of the noise to add to the charging process. (kW)
         transition_soc (float): State of charging when transitioning from constant current to constraint voltage.
-    """
+        charge_calculation (str): If 'stepwise', use the charging
+            method from a previous version of acnportal, which
+            assumes a constant maximal charging rate for the entire
+            timestep during which the pilot signal is input. This
+            charging method is less accurate than the _charge method,
+            and should only be used for reproducing results from
+            older versions of acnportal.
 
-    def __init__(self, capacity, init_charge, max_power, noise_level=0, transition_soc=0.8):
+            If 'continuous' or not provided, use the _charge method,
+            which assumes a continuously varying maximal charging rate.
+    """
+    charging_methods = ['continuous', 'stepwise']
+
+    def __init__(self, capacity, init_charge, max_power, noise_level=0,
+                 transition_soc=0.8, charge_calculation='continuous'):
         super().__init__(capacity, init_charge, max_power)
         self._noise_level = noise_level
         if transition_soc < 0:
@@ -139,12 +151,41 @@ class Linear2StageBattery(Battery):
             )
         elif transition_soc >= 1:
             raise ValueError(
-                f"transition_soc must not be more than 1. "
+                f"transition_soc must be less than 1. "
                 f"Got {transition_soc}."
             )
         self._transition_soc = transition_soc
+        if charge_calculation not in self.charging_methods:
+            raise ValueError(
+                f"Charging method {charge_calculation} specified in "
+                f"charge_calculation attribute not recognized by "
+                f"Linear2StageBattery class. use one of "
+                f"{self.charging_methods}."
+            )
+        self.charge_calculation = charge_calculation
 
     def charge(self, pilot, voltage, period):
+        """ Method to "charge" the battery based on a two-stage linear
+        battery model.
+
+        Uses one of
+        {_charge, _charge_stepwise}
+        to charge the battery depending on the value of the
+        charge_calculation attribute of this object.
+        """
+        if self.charge_calculation == 'stepwise':
+            return self._charge_stepwise(pilot, voltage, period)
+        elif self.charge_calculation == 'continuous':
+            return self._charge(pilot, voltage, period)
+        else:
+            raise ValueError(
+                f"Charging method {self.charge_calculation} specified "
+                f"in charge_calculation attribute not recognized by "
+                f"Linear2StageBattery class. use one of "
+                f"{self.charging_methods}."
+            )
+
+    def _charge(self, pilot, voltage, period):
         """ Method to "charge" the battery based on a two-stage linear
         battery model.
 
@@ -233,9 +274,16 @@ class Linear2StageBattery(Battery):
         self._current_charging_power = dsoc * self._capacity / (period / 60)
         return self._current_charging_power * 1000 / voltage
 
-    def charge_old(self, pilot, voltage, period):
+    def _charge_stepwise(self, pilot, voltage, period):
         """ Method to "charge" the battery based on a two-stage linear
         battery model.
+
+        This is a legacy charging method from an older version of
+        acnportal. This method assumes a constant maximal charging rate
+        for the entire timestep during which the pilot signal is input.
+        This charging method is less accurate than the _charge method,
+        and should only be used for reproducing results from  older
+        versions of acnportal.
 
         Args:
             pilot (float): Pilot signal passed to the battery. [A]
@@ -275,6 +323,8 @@ class Linear2StageBattery(Battery):
         attribute_dict, context_dict = super()._to_dict(context_dict)
         attribute_dict['_noise_level'] = self._noise_level
         attribute_dict['_transition_soc'] = self._transition_soc
+        attribute_dict['charge_calculation'] = \
+            self.charge_calculation
         return attribute_dict, context_dict
 
     @classmethod
@@ -287,6 +337,9 @@ class Linear2StageBattery(Battery):
             noise_level=attribute_dict['_noise_level'],
             transition_soc=attribute_dict['_transition_soc']
         )
+        if 'charge_calculation' in attribute_dict:
+            out_obj.charge_calculation = \
+                attribute_dict['charge_calculation']
         cls._from_dict_helper(out_obj, attribute_dict)
         return out_obj, loaded_dict
 
@@ -303,8 +356,6 @@ def batt_cap_fn(requested_energy, stay_dur, voltage, period):
     charging at max rate) to deliver requested_energy in stay_dur
     periods. Thus, the returned total and initial capacities maximize
     the amount of time the battery behaves non-ideally during charging.
-
-    For more info on the capacity equations: TODO: point to paper.
 
     Args:
         requested_energy (float): Energy requested by this EV. If this
@@ -385,7 +436,6 @@ def batt_cap_fn(requested_energy, stay_dur, voltage, period):
         )
         return init_soc * battery_cap
 
-    # Potential capacities taken from TODO: find source.
     potential_caps = np.array([8, 24, 40, 60, 85, 100])
     for cap in potential_caps:
         if requested_energy > cap:

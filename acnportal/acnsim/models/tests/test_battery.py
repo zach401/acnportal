@@ -60,29 +60,38 @@ class TestBattery(TestBatteryBase):
         self.assertAlmostEqual(self.batt._current_charge, 50)
 
 
-class TestLinear2StageBattery(TestBatteryBase):
+class TestLinear2StageBatteryStepwiseCharge(TestBatteryBase):
     def setUp(self):
         self.init_charge = 0
         self.batt = Linear2StageBattery(
-            100, self.init_charge, 7.68)
+            100, self.init_charge, 7.68, charge_calculation='stepwise')
+
+    def test_invalid_charge_calculation_method(self):
+        with self.assertRaises(ValueError):
+            self.batt = Linear2StageBattery(
+                100, 0, 7.6, charge_calculation='invalid_method')
 
     def test_negative_transition_soc(self):
         with self.assertRaises(ValueError):
             self.batt = Linear2StageBattery(
-                100, 0, 7.68, 0, transition_soc=-0.1)
+                100, 0, 7.68, transition_soc=-0.1,
+                charge_calculation='stepwise')
 
     def test_one_transition_soc(self):
         with self.assertRaises(ValueError):
             self.batt = Linear2StageBattery(
-                100, 0, 7.68, 0, transition_soc=1)
+                100, 0, 7.68, transition_soc=1,
+                charge_calculation='stepwise')
 
     def test_over_one_transitions_soc(self):
         with self.assertRaises(ValueError):
             self.batt = Linear2StageBattery(
-                100, 0, 7.68, 0, transition_soc=1.1)
+                100, 0, 7.68, transition_soc=1.1,
+                charge_calculation='stepwise')
 
     def test_zero_pilot_charge(self):
-        self.batt = Linear2StageBattery(100, 0, 7.68)
+        self.batt = Linear2StageBattery(100, 0, 7.68,
+                                        charge_calculation='stepwise')
         with patch('numpy.random.normal', return_value=1.2):
             rate = self.batt.charge(0, 240, 5)
         self.assertAlmostEqual(rate, 0)
@@ -90,7 +99,8 @@ class TestLinear2StageBattery(TestBatteryBase):
         self.assertAlmostEqual(self.batt._current_charge, 0)
 
     def test_valid_charge_no_noise_not_tail(self):
-        self.batt = Linear2StageBattery(100, 0, 7.68)
+        self.batt = Linear2StageBattery(100, 0, 7.68,
+                                        charge_calculation='stepwise')
         with patch('numpy.random.normal', return_value=1.2):
             rate = self.batt.charge(16, 240, 5)
         self.assertAlmostEqual(rate, 16)
@@ -98,7 +108,8 @@ class TestLinear2StageBattery(TestBatteryBase):
         self.assertAlmostEqual(self.batt._current_charge, 0.32)
 
     def test_valid_charge_positive_noise_not_tail(self):
-        self.batt = Linear2StageBattery(100, 0, 7.68, 1)
+        self.batt = Linear2StageBattery(100, 0, 7.68, 1,
+                                        charge_calculation='stepwise')
         with patch('numpy.random.normal', return_value=0.288):
             rate = self.batt.charge(16, 240, 5)
         self.assertAlmostEqual(rate, 14.8)
@@ -106,12 +117,62 @@ class TestLinear2StageBattery(TestBatteryBase):
         self.assertAlmostEqual(self.batt._current_charge, 0.296)
 
     def test_valid_charge_negative_noise_not_tail(self):
-        self.batt = Linear2StageBattery(100, 0, 7.68, 1)
+        self.batt = Linear2StageBattery(100, 0, 7.68, 1,
+                                        charge_calculation='stepwise')
         with patch('numpy.random.normal', return_value=-0.288):
             rate = self.batt.charge(16, 240, 5)
         self.assertAlmostEqual(rate, 14.8)
         self.assertAlmostEqual(self.batt.current_charging_power, 3.552)
         self.assertAlmostEqual(self.batt._current_charge, 0.296)
+
+    def test_valid_charge_no_noise_tail(self):
+        self.batt = Linear2StageBattery(100, 85, 7.68,
+                                        charge_calculation='stepwise')
+        rate = self.batt.charge(32, 240, 5)
+        self.assertAlmostEqual(rate, 24)
+        self.assertAlmostEqual(self.batt.current_charging_power, 5.76)
+        self.assertAlmostEqual(self.batt._current_charge, 85.48)
+
+    def test_valid_charge_positive_noise_tail(self):
+        self.batt = Linear2StageBattery(100, 85, 7.68, 1,
+                                        charge_calculation='stepwise')
+        with patch('numpy.random.normal', return_value=0.288):
+            rate = self.batt.charge(32, 240, 5)
+        self.assertAlmostEqual(rate, 25.2)
+        self.assertAlmostEqual(self.batt.current_charging_power, 6.048)
+        self.assertAlmostEqual(self.batt._current_charge, 85.504)
+
+    def test_valid_charge_negative_noise_tail(self):
+        self.batt = Linear2StageBattery(100, 85, 7.68, 1,
+                                        charge_calculation='stepwise')
+        with patch('numpy.random.normal', return_value=-0.288):
+            rate = self.batt.charge(32, 240, 5)
+        self.assertAlmostEqual(rate, 22.8)
+        self.assertAlmostEqual(self.batt.current_charging_power, 5.472)
+        self.assertAlmostEqual(self.batt._current_charge, 85.456)
+
+    def test_charge_over_max_rate_not_tail(self):
+        self.batt = Linear2StageBattery(100, 0, 7.68,
+                                        charge_calculation='stepwise')
+        rate = self.batt.charge(40, 240, 5)
+        self.assertAlmostEqual(rate, 32)
+        self.assertAlmostEqual(self.batt.current_charging_power, 7.68)
+        self.assertAlmostEqual(self.batt._current_charge, 0.64)
+
+    def test_charge_over_capacity(self):
+        self.batt = Linear2StageBattery(100, 99, 7.68,
+                                        charge_calculation='stepwise')
+        rate = self.batt.charge(32, 240, 5)
+        self.assertAlmostEqual(rate, 1.6)
+        self.assertAlmostEqual(self.batt.current_charging_power, 0.384)
+        self.assertAlmostEqual(self.batt._current_charge, 99.032)
+
+
+class TestLinear2StageBattery(TestLinear2StageBatteryStepwiseCharge):
+    def setUp(self):
+        self.init_charge = 0
+        self.batt = Linear2StageBattery(
+            100, self.init_charge, 7.68)
 
     def test_valid_charge_no_noise_tail(self):
         self.batt = Linear2StageBattery(100, 85, 7.68)
