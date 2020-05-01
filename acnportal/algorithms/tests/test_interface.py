@@ -2,9 +2,7 @@
 This module contains methods for directly interacting with the _simulator.
 """
 import numpy as np
-from datetime import timedelta
 from collections import namedtuple
-import json
 from warnings import warn
 
 from acnportal.acnsim.interface import Interface, SessionInfo, InfrastructureInfo

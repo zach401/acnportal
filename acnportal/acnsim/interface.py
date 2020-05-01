@@ -8,18 +8,22 @@ from warnings import warn
 
 
 class SessionInfo:
-    """ Simple class to store information relevant to a charging session.
+    """ Class to store information relevant to a charging session.
 
         Args:
-            station_id:
-            session_id:
-            energy_requested:
-            energy_delivered:
-            arrival:
-            departure:
-            current_time:
-            min_rates:
-            max_rates:
+            station_id (str): Unique identifier of the station (EVSE) where the session takes place.
+            session_id (str): Unique identifier of the charging session.
+            energy_requested (float): Energy requested by the user during the session. [kWh]
+            energy_delivered (float): Energy delivered already during the session. [kWh]
+            arrival (int): Time index when the session begins.
+            departure (int): Time index when the session ends.
+            current_time (int): Time index of the current time.
+            min_rates (Union[float, List[float]): Lower bound for the charging rate of the session. If List
+                (or np.array) length should be departure - arrival and each entry is a lower bound for the corresponding
+                time period.
+            max_rates (Union[float, List[float]): Upper bound for the charging rate of the session. If List
+                (or np.array) length should be departure - arrival and each entry is a upper bound for the corresponding
+                time period.
     """
     def __init__(self, station_id, session_id, requested_energy, energy_delivered, arrival, departure,
                  estimated_departure=None, current_time=0, min_rates=0, max_rates=float('inf')):
@@ -31,8 +35,8 @@ class SessionInfo:
         self.departure = departure
         self.estimated_departure = estimated_departure
         self.current_time = current_time
-        self.min_rates = np.array([min_rates] * self.remaining_time) if np.isscalar(min_rates) else min_rates
-        self.max_rates = np.array([max_rates] * self.remaining_time) if np.isscalar(max_rates) else max_rates
+        self.min_rates = np.array([min_rates] * self.remaining_time) if np.isscalar(min_rates) else np.array(min_rates)
+        self.max_rates = np.array([max_rates] * self.remaining_time) if np.isscalar(max_rates) else np.array(max_rates)
 
     @property
     def remaining_demand(self):
@@ -49,13 +53,31 @@ class SessionInfo:
 
 
 class InfrastructureInfo:
-    def __init__(self, constraint_matrix, constraint_limits, phases, voltages, constraint_index, station_ids,
+    """ Class to store information about the electrical infrastructure at a site.
+
+    Args:
+        constraint_matrix (np.array[float]): M x N array relating the individual station currents to aggregate currents each of
+            which is subject to a constraint. M is the number of constraints and N is the number of stations.
+        constraint_limits (np.array[float]): Limits on each constrained link. Length M.
+        phases (np.array[float]): Phase angle of the current at each station (EVSE). Length N. [deg]
+        voltages (np.array[float]): Voltage of each station. Length N. [V]
+        constraint_ids (List[str]): Unique identifier of each constraint.
+        station_ids (List[str]): Unique identifier of each station.
+        max_pilot (np.array[float]: Maximum pilot signal supported by each station.
+        min_pilot (np.array[float]: Minimum pilot signal supported by each station. A non-zero min_pilot indicates that
+            the station does not support any charging rates between 0 and min_pilot. It is implied that all EVSEs
+            support a pilot signal of 0, even if min_pilot > 0.
+        allowable_pilots (List[np.array[float]): Pilot signals which each station supports. The allowable pilot signals
+            for station i are stored in allowable_pilots[i]. If a station supports continuous
+        is_continuous (np.array[bool]): True if a station supports continuous pilot signals, False otherwise.
+    """
+    def __init__(self, constraint_matrix, constraint_limits, phases, voltages, constraint_ids, station_ids,
                  max_pilot, min_pilot, allowable_pilots=None, is_continuous=None):
         self.constraint_matrix = constraint_matrix
         self.constraint_limits = constraint_limits
         self.phases = phases
         self.voltages = voltages
-        self.constraint_index = constraint_index
+        self.constraint_ids = constraint_ids
         self.station_ids = station_ids
         self._station_ids_dict = {station_id: i for i, station_id in enumerate(self.station_ids)}
         self.max_pilot = max_pilot
