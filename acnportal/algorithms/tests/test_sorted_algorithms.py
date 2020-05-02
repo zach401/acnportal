@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 from acnportal.algorithms.tests.generate_test_cases import session_generator, single_phase_single_constraint, three_phase_balanced_network
 from acnportal.algorithms.tests.test_interface import TestInterface
 import random
