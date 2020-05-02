@@ -22,3 +22,19 @@ Download or clone this repository. Navigate to its root directory. Install using
 ```bash
 pip install .
 ```
+
+## Tutorials
+See the `tutorials` directory for jupyter notebooks that you can
+run to learn some of the functionality of `acnportal`. These
+tutorials are also included on the readthedocs page. Additional
+demos and case studies can be found at
+https://github.com/zach401/ACN-Sim-Demo
+We also have a video series of `acnportal` demos, which can
+be found at TODO.
+
+## Running Tests
+Tests may be run after installation by executing
+```bash
+python -m unittest discover -v
+```
+Remove `-v` after `discover` to suppress verbose output.
