@@ -3,6 +3,9 @@ from copy import copy
 
 import numpy as np
 from .base_algorithm import BaseAlgorithm
+from acnportal.acnsim.interface import InfrastructureInfo, SessionInfo
+from .utils import infrastructure_constraints_feasible
+from .postprocessing import format_array_schedule
 
 
 class SortedSchedulingAlgo(BaseAlgorithm):
@@ -26,7 +29,130 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         self._sort_fn = sort_fn
         self.max_recompute = 1  # Call algorithm each period since it only returns a rate for the next period.
 
-    def schedule(self, active_evs):
+    def sorting_algorithm(self, active_sessions, infrastructure):
+        """ Schedule EVs by first sorting them by sort_fn, then allocating
+            them their maximum feasible rate.
+
+        Implements abstract method schedule from BaseAlgorithm.
+
+        See class documentation for description of the algorithm.
+
+        Args:
+            active_sessions (List[SessionInfo]): see BaseAlgorithm
+            infrastructure (InfrastructureInfo): Description of the electical
+                infrastructure.
+
+        Returns:
+            np.array[Union[float, int]]: Array of charging rates, where each
+                row is the charging rates for a specific session.
+        """
+        queue = self._sort_fn(active_sessions, self.interface)
+        schedule = np.zeros(infrastructure.num_stations)
+        for session in queue:
+            station_index = infrastructure.get_station_index(
+                session.station_id)
+            if infrastructure.is_continuous[station_index]:
+                charging_rate = self.max_feasible_rate(station_index,
+                                                       session.max_rates[0],
+                                                       schedule,
+                                                       infrastructure,
+                                                       eps=0.0001)
+            else:
+                allowable = infrastructure.allowable_pilots[station_index]
+                charging_rate = self.discrete_max_feasible_rate(station_index,
+                                                                allowable,
+                                                                schedule,
+                                                                infrastructure)
+            schedule[station_index] = charging_rate
+        return schedule
+
+    def max_feasible_rate(self, station_index, ub, schedule, infrastructure,
+                          eps=0.0001):
+        """ Return the maximum feasible rate less than ub subject to the
+            environment's constraints.
+
+        If schedule contains non-zero elements at the given time, these are
+        treated as fixed allocations and this function will include them
+        when determining the maximum feasible rate for the given EVSE.
+
+        Args:
+            station_index (int): Index for the station in the schedule
+                vector.
+            ub (float): Upper bound on the charging rate. [A]
+            schedule (Dict[str, List[float]]): Dictionary mapping a station_id
+                to a list of already fixed charging rates.
+            infrastructure (InfrastructureInfo): Description of the electrical
+                infrastructure.
+            eps (float): Accuracy to which the max rate should be calculated.
+                (When the binary search is terminated.)
+
+        Returns:
+            float: maximum feasible rate less than ub subject to the
+                environment's constraints. [A]
+        """
+        def bisection(_index, _lb, _ub, _schedule):
+            """ Use the bisection method to find the maximum feasible charging
+                rate for the EV. """
+            mid = (_ub + _lb) / 2
+            new_schedule = copy(schedule)
+            new_schedule[_index] = mid
+            if (_ub - _lb) <= eps:
+                return _lb
+            elif infrastructure_constraints_feasible(new_schedule,
+                                                     infrastructure):
+                return bisection(_index, mid, _ub, new_schedule)
+            else:
+                return bisection(_index, _lb, mid, new_schedule)
+
+        if not infrastructure_constraints_feasible(schedule, infrastructure):
+            raise ValueError('The initial schedule is not feasible.')
+
+        # Test maximum rate to short-circuit bisection
+        new_schedule = copy(schedule)
+        new_schedule[station_index] = ub
+        if infrastructure_constraints_feasible(new_schedule, infrastructure):
+            return ub
+        return bisection(station_index, 0, ub, schedule)
+
+    def discrete_max_feasible_rate(self, station_index, allowable_pilots,
+                                   schedule, infrastructure):
+        """ Return the maximum feasible allowable rate subject to the
+            infrastructure's constraints.
+
+        If schedule contains non-zero elements at the given time, these are
+        treated as fixed allocations and this function will include them
+        when determining the maximum feasible rate for the given EVSE.
+
+        Args:
+            station_index (int): Index for the station in the schedule
+                vector.
+            allowable_pilots List[float]: List of allowable charging rates
+                sorted in ascending order.
+            schedule (Dict[str, List[float]]): Dictionary mapping a station_id
+                to a list of already fixed charging rates.
+            infrastructure (InfrastructureInfo): Description of the electrical
+                infrastructure.
+
+        Returns:
+            float: maximum feasible rate less than ub subject to the
+                infrastructure's constraints. [A]
+        """
+        if not infrastructure_constraints_feasible(schedule, infrastructure):
+            raise ValueError('The initial schedule is not feasible.')
+        new_schedule = copy(schedule)
+        feasible_idx = len(allowable_pilots) - 1
+        new_schedule[station_index] = allowable_pilots[feasible_idx]
+        while not infrastructure_constraints_feasible(new_schedule,
+                                                      infrastructure):
+            feasible_idx -= 1
+            if feasible_idx < 0:
+                new_schedule[station_index] = 0
+                break
+            else:
+                new_schedule[station_index] = allowable_pilots[feasible_idx]
+        return new_schedule[station_index]
+
+    def schedule(self, active_sessions):
         """ Schedule EVs by first sorting them by sort_fn, then allocating them their maximum feasible rate.
 
         Implements abstract method schedule from BaseAlgorithm.
@@ -34,107 +160,46 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         See class documentation for description of the algorithm.
 
         Args:
-            active_evs (List[EV]): see BaseAlgorithm
+            active_sessions (List[EV]): see BaseAlgorithm
 
         Returns:
             Dict[str, List[float]]: see BaseAlgorithm
         """
-        ev_queue = self._sort_fn(active_evs, self.interface)
-        schedule = {ev.station_id: [0] for ev in active_evs}
-        for ev in ev_queue:
-            continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
-            if continuous:
-                charging_rate = self.max_feasible_rate(ev.station_id,
-                                                       self.interface.max_pilot_signal(ev.station_id),
-                                                       schedule, eps=0.0001)
-            else:
-                charging_rate = self.discrete_max_feasible_rate(ev.station_id, allowable_rates, schedule)
-            schedule[ev.station_id][0] = charging_rate
-        return schedule
-
-    def max_feasible_rate(self, station_id, ub, schedule, time=0, eps=0.0001):
-        """ Return the maximum feasible rate less than ub subject to the environment's constraints.
-
-        If schedule contains non-zero elements at the given time, these are treated as fixed allocations and this
-        function will include them when determining the maximum feasible rate for the given EVSE.
-
-        Args:
-            station_id (str): ID for the station we are finding the maximum feasible rate for.
-            ub (float): Upper bound on the charging rate. [A]
-            schedule (Dict[str, List[float]]): Dictionary mapping a station_id to a list of already fixed
-                charging rates.
-            time (int): Time interval for which the max rate should be calculated.
-            eps (float): Accuracy to which the max rate should be calculated. (When the binary search is terminated.)
-
-        Returns:
-            float: maximum feasible rate less than ub subject to the environment's constraints. [A]
-        """
-        def bisection(_station_id, _lb, _ub, _schedule):
-            """ Use the bisection method to find the maximum feasible charging rate for the EV. """
-            mid = (_ub + _lb) / 2
-            new_schedule = copy(_schedule)
-            new_schedule[_station_id][time] = mid
-            if (_ub - _lb) <= eps:
-                return _lb
-            elif self.interface.is_feasible(new_schedule, time):
-                return bisection(_station_id, mid, _ub, new_schedule)
-            else:
-                return bisection(_station_id, _lb, mid, new_schedule)
-
-        if not self.interface.is_feasible(schedule):
-            raise ValueError('The initial schedule is not feasible.')
-        return bisection(station_id, 0, ub, schedule)
-
-    def discrete_max_feasible_rate(self, station_id, allowable_rates, schedule, time=0):
-        """ Return the maximum feasible allowable rate subject to the environment's constraints.
-
-        If schedule contains non-zero elements at the given time, these are treated as fixed allocations and this
-        function will include them when determining the maximum feasible rate for the given EVSE.
-
-        Args:
-            station_id (str): ID for the station we are finding the maximum feasible rate for.
-            allowable_rates List[float]: List of allowable charging rates sorted in ascending order.
-            schedule (Dict[str, List[float]]): Dictionary mapping a station_id to a list of already fixed
-                charging rates.
-            time (int): Time interval for which the max rate should be calculated.
-
-        Returns:
-            float: maximum feasible rate less than ub subject to the environment's constraints. [A]
-        """
-        if not self.interface.is_feasible(schedule):
-            raise ValueError('The initial schedule is not feasible.')
-        new_schedule = copy(schedule)
-        feasible_idx = len(allowable_rates) - 1
-        new_schedule[station_id][time] = allowable_rates[feasible_idx]
-        while not self.interface.is_feasible(new_schedule):
-            feasible_idx -= 1
-            if feasible_idx < 0:
-                new_schedule[station_id][time] = 0
-                break
-            else:
-                new_schedule[station_id][time] = allowable_rates[feasible_idx]
-        return new_schedule[station_id][time]
+        infrastructure = self.interface.infrastructure_info()
+        array_schedule = self.sorting_algorithm(active_sessions,
+                                                infrastructure)
+        return format_array_schedule(array_schedule, infrastructure)
 
 
 class RoundRobin(SortedSchedulingAlgo):
-    """ Family of algorithms which allocate charging rates among active EVs using a round robin approach.
+    """ Family of algorithms which allocate charging rates among active EVs
+        using a round robin approach.
 
     Extends SortingAlgorithm.
 
-    For this family of algorithms EVs are first sorted as in SortingAlgorithm. The difference however, is that instead
-    of allocating each EV its maximum charging rate as we go down the list, we instead give each EV one unit of charge
-    if it is feasible to do so. When it ceases to be feasible to give an EV more charge, it is removed from the list.
+    For this family of algorithms EVs are first sorted as in SortingAlgorithm.
+    The difference however, is that instead of allocating each EV its
+    maximum charging rate as we go down the list, we instead give each EV
+    one  unit of charge if it is feasible to do so. When it ceases to be
+    feasible to give an EV more charge, it is removed from the list.
     This process continues until the list of EVs is empty.
 
-    The argument sort_fn controlled how the EVs are sorted. This controls which EVs will get potential higher charging
-    rates when infrastructure constrains become binding.
+    The argument sort_fn controlled how the EVs are sorted. This controls
+    which  EVs will get potential higher charging rates when infrastructure
+    constrains become binding.
 
     Args:
-        sort_fn (Callable[List[EV]]): Function which takes in a list of EVs and returns a list of the same EVs but
-            sorted according to some metric.
+        sort_fn (Callable[List[EV]]): Function which takes in a list of EVs
+            and returns a list of the same EVs but sorted according to some
+            metric.
+        continuous_inc (float): Increment to use when pilot signal is
+            continuously controllable.
     """
+    def __init__(self, sort_fn, continuous_inc=0.1):
+        super().__init__(sort_fn)
+        self.continuous_inc = continuous_inc
 
-    def schedule(self, active_evs):
+    def round_robin(self, active_sessions, infrastructure):
         """ Schedule EVs using a round robin based equal sharing scheme.
 
         Implements abstract method schedule from BaseAlgorithm.
@@ -142,33 +207,52 @@ class RoundRobin(SortedSchedulingAlgo):
         See class documentation for description of the algorithm.
 
         Args:
-            active_evs (List[EV]): see BaseAlgorithm
+            active_sessions (List[EV]): see BaseAlgorithm
+            infrastructure (InfrastructureInfo): Description of electrical
+                infrastructure.
 
         Returns:
             Dict[str, List[float]]: see BaseAlgorithm
         """
-        continuous_inc = 1
+        queue = deque(self._sort_fn(active_sessions, self.interface))
+        schedule = np.zeros(infrastructure.num_stations)
+        rate_idx = np.zeros(infrastructure.num_stations, dtype=int)
+        for session in queue:
+            i = infrastructure.get_station_index(session.station_id)
+            if infrastructure.is_continuous[i]:
+                infrastructure.allowable_pilots[i] = \
+                    np.arange(session.min_rates[0],
+                              session.max_rates[0]+1e-7,
+                              self.continuous_inc)
 
-        ev_queue = deque(self._sort_fn(active_evs, self.interface))
-        schedule = {ev.station_id: [0] for ev in active_evs}
-        rate_idx_map = {ev.station_id: 0 for ev in active_evs}
-        allowable_rates = {}
-        for ev in ev_queue:
-            evse_continuous, evse_rates = self.interface.allowable_pilot_signals(ev.station_id)
-            if evse_continuous:
-                evse_rates = np.arange(evse_rates[0], evse_rates[1]+1e-7, continuous_inc)
-            allowable_rates[ev.station_id] = evse_rates
-
-        while len(ev_queue) > 0:
-            ev = ev_queue.popleft()
-            if rate_idx_map[ev.station_id] < len(allowable_rates[ev.station_id]) - 1:
-                schedule[ev.station_id][0] = allowable_rates[ev.station_id][rate_idx_map[ev.station_id] + 1]
-                if self.interface.is_feasible(schedule):
-                    rate_idx_map[ev.station_id] += 1
-                    ev_queue.append(ev)
+        while len(queue) > 0:
+            session = queue.popleft()
+            i = infrastructure.get_station_index(session.station_id)
+            if rate_idx[i] < len(infrastructure.allowable_pilots[i]) - 1:
+                schedule[i] = infrastructure.allowable_pilots[i][rate_idx[i]+1]
+                if infrastructure_constraints_feasible(schedule, infrastructure):
+                    rate_idx[i] += 1
+                    queue.append(session)
                 else:
-                    schedule[ev.station_id][0] = allowable_rates[ev.station_id][rate_idx_map[ev.station_id]]
+                    schedule[i] = infrastructure.allowable_pilots[i][rate_idx[i]]
         return schedule
+
+    def schedule(self, active_sessions):
+        """ Schedule EVs using a round robin based equal sharing scheme.
+
+        Implements abstract method schedule from BaseAlgorithm.
+
+        See class documentation for description of the algorithm.
+
+        Args:
+            active_sessions (List[EV]): see BaseAlgorithm
+
+        Returns:
+            Dict[str, List[float]]: see BaseAlgorithm
+        """
+        infrastructure = self.interface.infrastructure_info()
+        array_schedule = self.round_robin(active_sessions, infrastructure)
+        return format_array_schedule(array_schedule, infrastructure)
 
 
 # -------------------- Sorting Functions --------------------------
