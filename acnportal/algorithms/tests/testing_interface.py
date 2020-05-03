@@ -1,14 +1,15 @@
 """
 This module contains methods for directly interacting with the _simulator.
 """
-import numpy as np
 from collections import namedtuple
 from warnings import warn
 
-from acnportal.acnsim.interface import Interface, SessionInfo, InfrastructureInfo
+import numpy as np
+from acnportal.acnsim.interface import Interface, SessionInfo, \
+    InfrastructureInfo
 
 
-class TestInterface(Interface):
+class TestingInterface(Interface):
     """ Static interface based on a JSON file for testing algorithms without a full environment. """
 
     def __init__(self, data):
@@ -66,7 +67,8 @@ class TestInterface(Interface):
             List[SessionInfo]: List of currently active charging sessions.
         """
         active_sessions = self._get_or_error('active_sessions')
-        return [SessionInfo(current_time=self.current_time, **session) for session in active_sessions]
+        return [SessionInfo(current_time=self.current_time, **session) for
+                session in active_sessions]
 
     def infrastructure_info(self):
         """ Returns an InfrastructureInfo object generated from interface.
@@ -75,16 +77,18 @@ class TestInterface(Interface):
             InfrastructureInfo: A description of the charging infrastructure.
         """
         infrastructure = self._get_or_error('infrastructure_info')
-        return InfrastructureInfo(np.array(infrastructure['constraint_matrix']),
-                                  np.array(infrastructure['constraint_limits']),
-                                  np.array(infrastructure['phase_angles']),
-                                  np.array(infrastructure['voltages']),
-                                  infrastructure['constraint_index'],
-                                  infrastructure['station_ids'],
-                                  np.array(infrastructure['max_pilot']),
-                                  np.array(infrastructure['min_pilot']),
-                                  [np.array(allowable) for allowable in infrastructure['allowable_pilots']],
-                                  np.array(infrastructure['is_continuous']))
+        return InfrastructureInfo(
+            np.array(infrastructure['constraint_matrix']),
+            np.array(infrastructure['constraint_limits']),
+            np.array(infrastructure['phase_angles']),
+            np.array(infrastructure['voltages']),
+            infrastructure['constraint_index'],
+            infrastructure['station_ids'],
+            np.array(infrastructure['max_pilot']),
+            np.array(infrastructure['min_pilot']),
+            [np.array(allowable) for allowable in
+             infrastructure['allowable_pilots']],
+            np.array(infrastructure['is_continuous']))
 
     def allowable_pilot_signals(self, station_id):
         """ Returns the allowable pilot signal levels for the specified EVSE.
@@ -101,7 +105,8 @@ class TestInterface(Interface):
         """
         infrastructure = self._get_or_error('infrastructure_info')
         i = infrastructure['station_ids'].index(station_id)
-        return infrastructure['is_continuous'][i], np.array(infrastructure['allowable_pilots'][i])
+        return infrastructure['is_continuous'][i], np.array(
+            infrastructure['allowable_pilots'][i])
 
     def max_pilot_signal(self, station_id):
         """ Returns the maximum allowable pilot signal level for the specified EVSE.
@@ -178,14 +183,17 @@ class TestInterface(Interface):
         Returns:
             np.ndarray: Matrix representing the constraints of the network. Each row is a constraint and each
         """
-        Constraint = namedtuple('Constraint', ['constraint_matrix', 'magnitudes', 'constraint_index', 'evse_index'])
+        Constraint = namedtuple('Constraint',
+                                ['constraint_matrix', 'magnitudes',
+                                 'constraint_index', 'evse_index'])
         infrastructure = self._get_or_error('infrastructure_info')
         return Constraint(np.array(infrastructure['constraint_matrix']),
                           np.array(infrastructure['constraint_limits']),
                           infrastructure['constraint_index'],
                           infrastructure['station_ids'])
 
-    def is_feasible(self, load_currents, linear=False, violation_tolerance=1e-5, relative_tolerance=1e-7):
+    def is_feasible(self, load_currents, linear=False,
+                    violation_tolerance=1e-5, relative_tolerance=1e-7):
         """ Return if a set of current magnitudes for each load are feasible.
 
         For a given constraint, the larger of the violation_tolerance
@@ -212,30 +220,43 @@ class TestInterface(Interface):
         # Check that all schedules are the same length
         schedule_lengths = set(len(x) for x in load_currents.values())
         if len(schedule_lengths) > 1:
-            raise InvalidScheduleError('All schedules should have the same length.')
+            raise InvalidScheduleError(
+                'All schedules should have the same length.')
         schedule_length = schedule_lengths.pop()
 
         # Convert input schedule into its matrix representation
         infrastructure = self._get_or_error('infrastructure_info')
         station_ids = infrastructure['station_ids']
-        schedule_matrix = np.array([load_currents[station_id] if station_id in load_currents else
-                                    [0] * schedule_length for station_id in station_ids])
-        return self.infrastructure_constraints_feasible(schedule_matrix, linear, violation_tolerance, relative_tolerance)
+        schedule_matrix = np.array(
+            [load_currents[station_id] if station_id in load_currents else
+             [0] * schedule_length for station_id in station_ids])
+        return self.infrastructure_constraints_feasible(schedule_matrix,
+                                                        linear,
+                                                        violation_tolerance,
+                                                        relative_tolerance)
 
-    def infrastructure_constraints_feasible(self, rates, linear, violation_tolerance=1e-5, relative_tolerance=1e-7):
+    def infrastructure_constraints_feasible(self, rates, linear,
+                                            violation_tolerance=1e-5,
+                                            relative_tolerance=1e-7):
         infrastructure = self.infrastructure_info()
-        tol = np.maximum(violation_tolerance, relative_tolerance * infrastructure.constraint_limits)
+        tol = np.maximum(violation_tolerance,
+                         relative_tolerance * infrastructure.constraint_limits)
         if not linear:
             phase_in_rad = np.deg2rad(infrastructure.phases)
             for j, v in enumerate(infrastructure.constraint_matrix):
-                a = np.stack([v * np.cos(phase_in_rad), v * np.sin(phase_in_rad)])
+                a = np.stack(
+                    [v * np.cos(phase_in_rad), v * np.sin(phase_in_rad)])
                 line_currents = np.linalg.norm(a @ rates, axis=0)
-                if not np.all(line_currents <= infrastructure.constraint_limits[j] + tol[j]):
+                if not np.all(
+                        line_currents <= infrastructure.constraint_limits[j] +
+                        tol[j]):
                     return False
         else:
             for j, v in enumerate(infrastructure.constraint_matrix):
                 line_currents = np.linalg.norm(np.abs(v) @ rates, axis=0)
-                if not np.all(line_currents <= infrastructure.constraint_limits[j] + tol[j]):
+                if not np.all(
+                        line_currents <= infrastructure.constraint_limits[j] +
+                        tol[j]):
                     return False
         return True
 
@@ -253,7 +274,7 @@ class TestInterface(Interface):
         tariff = self._get_or_error('tariff')
         if start is None:
             start = self.current_time
-        return tariff['tou_prices'][start:start+length]
+        return tariff['tou_prices'][start:start + length]
 
     def get_demand_charge(self, start=None):
         """ Get the demand charge for the given period. ($/kW)
@@ -283,4 +304,3 @@ class TestInterface(Interface):
 class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """
     pass
-
