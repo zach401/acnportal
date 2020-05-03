@@ -1,9 +1,10 @@
 import numpy as np
 
 
-class Rampdown:
+class UpperBoundEstimatorBase:
     """ Abstract base class meant to be inherited from to implement new
-        rampdown algorithms.
+        algorithms to estimate upper bounds on charging rate imposed by the
+        EV's battery or on-board charger.
 
         Subclassed must implement the get_maximum_rates method.
     """
@@ -58,10 +59,10 @@ class Rampdown:
         raise NotImplementedError('Rampdown is an abstract class.')
 
 
-class SimpleRampdown(Rampdown):
+class SimpleRampdown(UpperBoundEstimatorBase):
     """ Simple algorithm reclaiming unused charging capacity.
 
-        Implements abstract class Rampdown.
+        Implements abstract class UpperBoundEstimatorBase.
 
         The maximum pilot is reduced whenever the actual charging rate is
         more than down_threshold lower than the pilot signal. The maximum
@@ -74,7 +75,7 @@ class SimpleRampdown(Rampdown):
         self.up_threshold = up_threshold
         self.down_threshold = down_threshold
         self.up_increment = up_increment
-        self.rampdown_rates = {}
+        self.upper_bounds = {}
 
     def get_maximum_rates(self, sessions):
         """ Return the maximum rate allowed for these EVs by lowering according
@@ -92,9 +93,9 @@ class SimpleRampdown(Rampdown):
         prev_rate = self.interface.last_actual_charging_rate
 
         for session in sessions:
-            if session.session_id not in self.rampdown_rates:
-                rd = self.interface.max_pilot_signal(session.station_id)
-                self.rampdown_rates[session.session_id] = rd
+            if session.session_id not in self.upper_bounds:
+                ub = self.interface.max_pilot_signal(session.station_id)
+                self.upper_bounds[session.session_id] = ub
 
             # The we can only apply the rampdown algorithm if we have
             # data from from the last time period of pilot signal and
@@ -103,12 +104,12 @@ class SimpleRampdown(Rampdown):
                 previous_pilot = prev_pilot[session.session_id]
                 previous_rate = prev_rate[session.session_id]
                 unused_capacity = previous_pilot - previous_rate
-                rd = self.rampdown_rates[session.session_id]
+                ub = self.upper_bounds[session.session_id]
                 if unused_capacity > self.down_threshold:
-                    rd = prev_rate + self.up_increment
+                    ub = prev_rate + self.up_increment
                 elif unused_capacity < self.up_threshold:
-                    rd += self.up_increment
+                    ub += self.up_increment
                 max_pilot = self.interface.max_pilot_signal(session.station_id)
-                rd = np.clip(rd, a_min=0, a_max=max_pilot)
-                self.rampdown_rates[session.session_id] = rd
-        return self.rampdown_rates
+                ub = np.clip(ub, a_min=0, a_max=max_pilot)
+                self.upper_bounds[session.session_id] = ub
+        return self.upper_bounds
