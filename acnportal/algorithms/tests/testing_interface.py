@@ -10,7 +10,9 @@ from acnportal.acnsim.interface import Interface, SessionInfo, \
 
 
 class TestingInterface(Interface):
-    """ Static interface based on a JSON file for testing algorithms without a full environment. """
+    """ Static interface based on a JSON file for testing algorithms without a
+        full environment.
+    """
 
     def __init__(self, data):
         super().__init__(None)
@@ -80,9 +82,9 @@ class TestingInterface(Interface):
         return InfrastructureInfo(
             np.array(infrastructure['constraint_matrix']),
             np.array(infrastructure['constraint_limits']),
-            np.array(infrastructure['phase_angles']),
+            np.array(infrastructure['phases']),
             np.array(infrastructure['voltages']),
-            infrastructure['constraint_index'],
+            infrastructure['constraint_ids'],
             infrastructure['station_ids'],
             np.array(infrastructure['max_pilot']),
             np.array(infrastructure['min_pilot']),
@@ -158,7 +160,7 @@ class TestingInterface(Interface):
         """
         infrastructure = self._get_or_error('infrastructure_info')
         i = infrastructure['station_ids'].index(station_id)
-        return infrastructure['phase_angles'][i]
+        return infrastructure['phases'][i]
 
     def remaining_amp_periods(self, ev):
         """ Return the EV's remaining demand in A*periods.
@@ -185,11 +187,11 @@ class TestingInterface(Interface):
         """
         Constraint = namedtuple('Constraint',
                                 ['constraint_matrix', 'magnitudes',
-                                 'constraint_index', 'evse_index'])
+                                 'constraint_ids', 'evse_index'])
         infrastructure = self._get_or_error('infrastructure_info')
         return Constraint(np.array(infrastructure['constraint_matrix']),
                           np.array(infrastructure['constraint_limits']),
-                          infrastructure['constraint_index'],
+                          infrastructure['constraint_ids'],
                           infrastructure['station_ids'])
 
     def is_feasible(self, load_currents, linear=False,

@@ -1,5 +1,6 @@
 import random
 import unittest
+from numpy import testing as nptest
 from collections import namedtuple
 
 from acnportal.algorithms import *
@@ -83,9 +84,7 @@ class BaseAlgorithmTest(unittest.TestCase):
                                   'all rates to be at max.')
                 for station_id, rates in scenario.schedule.items():
                     max_pilot = scenario.interface.max_pilot_signal(station_id)
-                    self.assertTrue(np.isclose(rates,
-                                               max_pilot,
-                                               atol=1e-4))
+                    nptest.assert_almost_equal(rates, max_pilot, decimal=4)
 
 
 # -----------------------------------------------------------------------------
