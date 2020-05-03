@@ -46,7 +46,7 @@ class BaseAlgorithmTest(unittest.TestCase):
             with self.subTest(msg=f'{scenario.name}'):
                 for station_id, rates in scenario.schedule.items():
                     self.assertLessEqual(
-                        scenario.schedule[station_id],
+                        rates,
                         scenario.interface.max_pilot_signal(station_id))
 
     def test_all_rates_less_than_session_max_rates(self):
