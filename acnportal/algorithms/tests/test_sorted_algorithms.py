@@ -79,11 +79,11 @@ class BaseAlgorithmTest(unittest.TestCase):
         for scenario in self.scenarios:
             with self.subTest(msg=f'{scenario.name}'):
                 if scenario.congested:
-                    self.skipTest('Test case is congested all, rates should '
-                                  'not be at max.')
+                    self.skipTest('Test case is congested, should not expect  '
+                                  'all rates to be at max.')
                 for station_id, rates in scenario.schedule.items():
                     max_pilot = scenario.interface.max_pilot_signal(station_id)
-                    self.assertTrue(np.isclose(scenario.schedule[station_id],
+                    self.assertTrue(np.isclose(rates,
                                                max_pilot,
                                                atol=1e-4))
 
