@@ -51,14 +51,16 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         for session in queue:
             station_index = infrastructure.get_station_index(
                 session.station_id)
+            ub = min(session.max_rates[0],
+                     infrastructure.max_pilot[station_index])
             if infrastructure.is_continuous[station_index]:
                 charging_rate = self.max_feasible_rate(station_index,
-                                                       session.max_rates[0],
+                                                       ub,
                                                        schedule,
                                                        infrastructure,
                                                        eps=0.0001)
             else:
-                allowable = infrastructure.allowable_pilots[station_index]
+                allowable = [a for a in infrastructure.allowable_pilots[station_index] if a <= ub]
                 charging_rate = self.discrete_max_feasible_rate(station_index,
                                                                 allowable,
                                                                 schedule,
@@ -68,8 +70,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
 
     def max_feasible_rate(self, station_index, ub, schedule, infrastructure,
                           eps=0.0001):
-        """ Return the maximum feasible rate less than ub subject to the
-            environment's constraints.
+        """ Return the maximum feasible rate less than ub subject to the environment's constraints.
 
         If schedule contains non-zero elements at the given time, these are
         treated as fixed allocations and this function will include them
@@ -79,6 +80,11 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             station_index (int): Index for the station in the schedule
                 vector.
             ub (float): Upper bound on the charging rate. [A]
+            schedule (Dict[str, List[float]]): Dictionary mapping a station_id to a list of already fixed
+                charging rates.
+            infrastructure (InfrastructureInfo): Description of the electrical
+                infrastructure.
+            eps (float): Accuracy to which the max rate should be calculated. (When the binary search is terminated.)
             schedule (Dict[str, List[float]]): Dictionary mapping a station_id
                 to a list of already fixed charging rates.
             infrastructure (InfrastructureInfo): Description of the electrical
@@ -224,6 +230,8 @@ class RoundRobin(SortedSchedulingAlgo):
                     np.arange(session.min_rates[0],
                               session.max_rates[0]+1e-7,
                               self.continuous_inc)
+            ub = min(session.max_rates[0], infrastructure.max_pilot[i])
+            infrastructure.allowable_pilots[i] = [a for a in infrastructure.allowable_pilots[i] if a <= ub]
 
         while len(queue) > 0:
             session = queue.popleft()
