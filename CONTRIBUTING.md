@@ -80,7 +80,9 @@ We use a development process similar to that of [NumPy](<https://numpy.org/devdo
         git push origin is-feasible-speedups
         ```
     -   Enter your GitHub username and password (repeat contributors or advanced users can remove this step by connecting to GitHub with SSH).
+    
     -   Go to GitHub. The new branch will show up with a green Pull Request button. **Please merge into the `dev` branch of acnportal**! If accepted, your changes will be integrated on the next package release. Make sure the title and message are clear, concise, and self-explanatory. Then click the button to submit it.
+    
     -   If your PR cannot be merged automatically, please resolve merge conflicts on your development branch and resubmit the PR.
 
 4.  Review process:
@@ -106,8 +108,11 @@ We know that in its current form, the code does not completely follow PEP 8. We'
 Some additional miscellaneous style guidelines:
 
 -   Closing parens for hanging indents should occupy a new line.
+
 -   For classes, place docstrings in the class declaration rather than in `__init__`, unless `__init__` does significant processing on its inputs to yield the initialized object.
+
 -   Try to be explicit when using functions with args vs. keyword args. For example, in a function `f` with argument `a` and keyword argument `b`, use `f(a_val, b=b_val)`.
+
 -   End unittest files with
 
     ```python
@@ -115,10 +120,15 @@ Some additional miscellaneous style guidelines:
       unittest.main()
     ```
 -   Use f-strings instead of .format strings. The former is newer and more readable.
+
 -   Follow the LSP! In your tests, you can often ensure LSP compliance by inheriting from a TestCase subclass instead of directly from TestCase.
+
 -   Use relative imports to import modules within this package. We think this is more readable.
+
 -   We generally use the private designation `_` to denote attributes and functions that are not meant for end users to use. You can still access private attributes from one member of acnportal in another part of gym-acnportal; just include a comment overriding style checkers and explaining why the access is needed.
+
 -   More generally, if you're breaking a style convention, add a comment saying why.
+
 -   Include inline comments, but focus your comments on **why** your code needs to do what it does rather than what it does.
 
 Please consider contributing to other ongoing projects in the ACN Research Portal:
