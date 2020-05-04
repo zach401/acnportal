@@ -124,32 +124,32 @@ class BaseAlgorithmTest(unittest.TestCase):
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
-class TestTwoStations(BaseAlgorithmTest):
-    @staticmethod
-    def two_station(limit, continuous, session_max_rate, session_min_rate=0):
-        if continuous:
-            allowable = [[0, 32]] * 2
-        else:
-            allowable = [[0] + list(range(8, 33))] * 2
-        network = single_phase_single_constraint(2,
-                                                 limit,
-                                                 allowable_pilots=allowable,
-                                                 is_continuous=[continuous]*2
-                                                 )
-        sessions = session_generator(num_sessions=2,
-                                     arrivals=[0] * 2,
-                                     departures=[12] * 2,
-                                     requested_energy=[3.3] * 2,
-                                     remaining_energy=[3.3] * 2,
-                                     min_rates=[session_min_rate] * 2,
-                                     max_rates=[session_max_rate] * 2)
-        data = {'active_sessions': sessions,
-                'infrastructure_info': network,
-                'current_time': CURRENT_TIME,
-                'period': PERIOD
-                }
-        return TestingInterface(data)
+def two_station(limit, continuous, session_max_rate, session_min_rate=0):
+    if continuous:
+        allowable = [[0, 32]] * 2
+    else:
+        allowable = [[0] + list(range(8, 33))] * 2
+    network = single_phase_single_constraint(2,
+                                             limit,
+                                             allowable_pilots=allowable,
+                                             is_continuous=[continuous]*2
+                                             )
+    sessions = session_generator(num_sessions=2,
+                                 arrivals=[0] * 2,
+                                 departures=[12] * 2,
+                                 requested_energy=[3.3] * 2,
+                                 remaining_energy=[3.3] * 2,
+                                 min_rates=[session_min_rate] * 2,
+                                 max_rates=[session_max_rate] * 2)
+    data = {'active_sessions': sessions,
+            'infrastructure_info': network,
+            'current_time': CURRENT_TIME,
+            'period': PERIOD
+            }
+    return TestingInterface(data)
 
+
+class TestTwoStations(BaseAlgorithmTest):
     @classmethod
     def setUpClass(cls):
         cls.scenarios = []
@@ -166,8 +166,8 @@ class TestTwoStations(BaseAlgorithmTest):
                 # Consider both continuous and discrete pilot signals
                 for continuous in [True, False]:
                     congested = limit < 64
-                    interface = cls.two_station(limit, continuous,
-                                                session_max_rate)
+                    interface = two_station(limit, continuous,
+                                            session_max_rate)
                     for algo_name, algo in algorithms.items():
                         algo.register_interface(interface)
                         schedule = algo.run()
@@ -179,14 +179,14 @@ class TestTwoStations(BaseAlgorithmTest):
                                                       interface, congested))
 
 
-class TestTwoStationsMinRates(TestTwoStations):
+class TestTwoStationsMinRates(BaseAlgorithmTest):
     @classmethod
     def setUpClass(cls):
         cls.scenarios = []
         limit = 16
         for continuous in [True, False]:
             congested = True
-            interface = cls.two_station(limit, continuous, 32, 8)
+            interface = two_station(limit, continuous, 32, 8)
             for algo_name, algo in algorithms.items():
                 algo.register_interface(interface)
                 schedule = algo.run()
@@ -195,6 +195,26 @@ class TestTwoStationsMinRates(TestTwoStations):
                                  f'continuous pilot: {continuous}')
                 cls.scenarios.append(Scenario(scenario_name, schedule,
                                               interface, congested))
+
+
+class TestTwoStationsMinRatesInfeasible(unittest.TestCase):
+    def test_sorted_min_rates_infeasible(self):
+        limit = 16
+        max_rate = 32
+        min_rate = 16
+        for continuous in [True, False]:
+            interface = two_station(limit, continuous, max_rate, min_rate)
+            for algo_name, algo in algorithms.items():
+                scenario_name = (f'algorithm: {algo_name}, '
+                                 f'capacity: {limit}, '
+                                 f'continuous pilot: {continuous}')
+                with self.subTest(msg=f'{scenario_name}'):
+                    algo.register_interface(interface)
+                    with self.assertRaisesRegex(ValueError,
+                                                'Charging all sessions at '
+                                                'their lower bound is not '
+                                                'feasible.'):
+                        algo.run()
 
 
 class Test30StationsSinglePhase(BaseAlgorithmTest):

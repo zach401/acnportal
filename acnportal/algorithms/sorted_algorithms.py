@@ -48,11 +48,17 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         """
         queue = self._sort_fn(active_sessions, self.interface)
         schedule = np.zeros(infrastructure.num_stations)
+
+        # Start each EV at its lower bound
         for session in queue:
             station_index = infrastructure.get_station_index(
                 session.station_id)
             lb = max(0, session.min_rates[0])
             schedule[station_index] = lb
+
+        if not infrastructure_constraints_feasible(schedule, infrastructure):
+            raise ValueError('Charging all sessions at their lower bound '
+                             'is not feasible.')
 
         for session in queue:
             station_index = infrastructure.get_station_index(
@@ -89,11 +95,12 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             station_index (int): Index for the station in the schedule
                 vector.
             ub (float): Upper bound on the charging rate. [A]
-            schedule (Dict[str, List[float]]): Dictionary mapping a station_id to a list of already fixed
-                charging rates.
+            schedule (Dict[str, List[float]]): Dictionary mapping a station_id
+                to a list of already fixed charging rates.
             infrastructure (InfrastructureInfo): Description of the electrical
                 infrastructure.
-            eps (float): Accuracy to which the max rate should be calculated. (When the binary search is terminated.)
+            eps (float): Accuracy to which the max rate should be calculated.
+                (When the binary search is terminated.)
             schedule (Dict[str, List[float]]): Dictionary mapping a station_id
                 to a list of already fixed charging rates.
             infrastructure (InfrastructureInfo): Description of the electrical
@@ -235,6 +242,8 @@ class RoundRobin(SortedSchedulingAlgo):
         rate_idx = np.zeros(infrastructure.num_stations, dtype=int)
         for session in queue:
             i = infrastructure.get_station_index(session.station_id)
+            # If pilot signal is continuous discretize it with increments of
+            # continuous_inc.
             if infrastructure.is_continuous[i]:
                 infrastructure.allowable_pilots[i] = \
                     np.arange(session.min_rates[0],
@@ -242,9 +251,15 @@ class RoundRobin(SortedSchedulingAlgo):
                               self.continuous_inc)
             ub = min(session.max_rates[0], infrastructure.max_pilot[i])
             lb = max(0, session.min_rates[0])
-            schedule[i] = lb
+            # Remove any charging rates which are not feasible.
             infrastructure.allowable_pilots[i] = [a for a in
                                                   infrastructure.allowable_pilots[i] if lb <= a <= ub]
+            # All charging rates should start at their lower bound
+            schedule[i] = lb
+
+        if not infrastructure_constraints_feasible(schedule, infrastructure):
+            raise ValueError('Charging all sessions at their lower bound '
+                             'is not feasible.')
 
         while len(queue) > 0:
             session = queue.popleft()
