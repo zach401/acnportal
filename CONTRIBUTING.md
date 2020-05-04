@@ -8,6 +8,7 @@ Whenever possible, please
 also include a brief, self-contained code example that demonstrates the problem.
 
 ## Requesting features
+
 Please use the issue tracker on github to request features.
 
 In your request, please include the following:
@@ -35,7 +36,7 @@ We use a development process similar to that of [NumPy](https://numpy.org/devdoc
 1. If you are a first-time contributor:
 
 - Go to https://github.com/zach401/acnportal and click the “fork” button to create your own copy of the project.
-Clone the project to your local computer:
+  Clone the project to your local computer:
 
   ```
   git clone https://github.com/your-username/acnportal.git
@@ -52,19 +53,21 @@ Clone the project to your local computer:
   ```
   git remote add upstream https://github.com/zach401/acnportal.git
   ```
+
 - Now, `git remote -v` will show two remote repositories named:
 
   `upstream`, which refers to the acnportal repository
   `origin`, which refers to your personal fork
- 
+
 2. Develop your contribution:
 
 - Pull the latest changes from upstream:
+
   ```
   git checkout master
   git pull upstream master
   ```
-  
+
 - Create a branch for the feature you want to work on. Since the branch name will appear in the merge message, use a sensible name. Here we'll use `is-feasible-speedups`.
 
   ```
@@ -76,6 +79,7 @@ Clone the project to your local computer:
 3. To submit your contribution:
 
 - Push your changes back to your fork on GitHub:
+
   ```
   git push origin is-feasible-speedups
   ```
@@ -98,15 +102,16 @@ Clone the project to your local computer:
 
 5. User-facing changes: when a PR makes user-facing changes, we have some general guidelines we like to follow:
 
- - Avoid changing user-facing function signatures/names. If absolutely necessary, add arguments using kwargs with defaults; "remove" arguments by deprecating the argument when input. If changing a function or attribute name, add a deprecated access to the old function/attribute name.
- 
- - You may need to add additional files/modules to the docs so that readthedocs finds the new docstrings.
- 
- - New dependencies should be avoided if possible. Depending on the importance of the feature and the activity of the new dependency, the core team may overrule this, but such should be discussed on Github.
- 
- - If you are proposing a change that affects multiple packages of the ACN Research Portal, please contact the developer team at sunash.sharma@gmail.com to discuss.
+- Avoid changing user-facing function signatures/names. If absolutely necessary, add arguments using kwargs with defaults; "remove" arguments by deprecating the argument when input. If changing a function or attribute name, add a deprecated access to the old function/attribute name.
+
+- You may need to add additional files/modules to the docs so that readthedocs finds the new docstrings.
+
+- New dependencies should be avoided if possible. Depending on the importance of the feature and the activity of the new dependency, the core team may overrule this, but such should be discussed on Github.
+
+- If you are proposing a change that affects multiple packages of the ACN Research Portal, please contact the developer team at sunash.sharma@gmail.com to discuss.
 
 ## Stylistic Guidelines
+
 We want to follow PEP 8, so please set your editor as such and use flake8 or pyflakes or similar to lint. Also, we're currently trying to type hint our code more thoroughly so that we may include a Mypy build in CI. Please type hint your additional code.
 
 We know that in its current form, the code does not completely follow PEP 8. We're working on conforming to PEP 8, type hinting code, and including more tests, so if you want an easy introduction to the package, feel free to help out with that!
@@ -120,6 +125,7 @@ Some additinal miscellanious style guidelines:
 - Try to be explicit when using functions with args vs. keyword args. For example, in a function `f` with argument `a` and keyword argument `b`, use `f(a_val, b=b_val)`.
 
 - End unittest files with
+
   ```
   if __name__ == '__main__':
     unittest.main()
@@ -135,7 +141,7 @@ Some additinal miscellanious style guidelines:
 
 - More generally, if you're breaking a style convention, add a comment saying why.
 
-- Include inline comments, but focus your comments on __why__ your code needs to do what it does rather than what it does.
+- Include inline comments, but focus your comments on **why** your code needs to do what it does rather than what it does.
 
 Please consider contributing to other ongoing projects in the ACN Research Portal:
 https://github.com/sunash/gym-acnportal
