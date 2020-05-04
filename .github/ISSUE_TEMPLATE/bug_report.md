@@ -12,8 +12,8 @@ A clear and concise description of what the bug is.
 **To Reproduce**
 Steps to reproduce the behavior:
 
-1. Run '...'
-2. See error
+1.  Run '...'
+2.  See error
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
@@ -23,9 +23,9 @@ If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
 
-- OS: \[e.g. macOS 10.15.3]
-- acnportal version \[e.g. 1.0.3]
-- dependency versions
+-   OS: \[e.g. macOS 10.15.3]
+-   acnportal version \[e.g. 1.0.3]
+-   dependency versions
 
 **Additional context**
 Add any other context about the problem here.
