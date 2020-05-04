@@ -51,16 +51,25 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         for session in queue:
             station_index = infrastructure.get_station_index(
                 session.station_id)
+            lb = max(0, session.min_rates[0])
+            schedule[station_index] = lb
+
+        for session in queue:
+            station_index = infrastructure.get_station_index(
+                session.station_id)
             ub = min(session.max_rates[0],
                      infrastructure.max_pilot[station_index])
+            lb = max(0, session.min_rates[0])
             if infrastructure.is_continuous[station_index]:
                 charging_rate = self.max_feasible_rate(station_index,
                                                        ub,
                                                        schedule,
                                                        infrastructure,
-                                                       eps=0.0001)
+                                                       eps=0.0001,
+                                                       lb=lb)
             else:
-                allowable = [a for a in infrastructure.allowable_pilots[station_index] if a <= ub]
+                allowable = [a for a in infrastructure.allowable_pilots[
+                    station_index] if lb <= a <= ub]
                 charging_rate = self.discrete_max_feasible_rate(station_index,
                                                                 allowable,
                                                                 schedule,
@@ -69,7 +78,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         return schedule
 
     def max_feasible_rate(self, station_index, ub, schedule, infrastructure,
-                          eps=0.0001):
+                          eps=0.0001, lb=0.):
         """ Return the maximum feasible rate less than ub subject to the environment's constraints.
 
         If schedule contains non-zero elements at the given time, these are
@@ -91,6 +100,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 infrastructure.
             eps (float): Accuracy to which the max rate should be calculated.
                 (When the binary search is terminated.)
+            lb (float): Lower bound on the charging rate [A]
 
         Returns:
             float: maximum feasible rate less than ub subject to the
@@ -118,7 +128,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         new_schedule[station_index] = ub
         if infrastructure_constraints_feasible(new_schedule, infrastructure):
             return ub
-        return bisection(station_index, 0, ub, schedule)
+        return bisection(station_index, lb, ub, schedule)
 
     def discrete_max_feasible_rate(self, station_index, allowable_pilots,
                                    schedule, infrastructure):
@@ -231,7 +241,10 @@ class RoundRobin(SortedSchedulingAlgo):
                               session.max_rates[0]+1e-7,
                               self.continuous_inc)
             ub = min(session.max_rates[0], infrastructure.max_pilot[i])
-            infrastructure.allowable_pilots[i] = [a for a in infrastructure.allowable_pilots[i] if a <= ub]
+            lb = max(0, session.min_rates[0])
+            schedule[i] = lb
+            infrastructure.allowable_pilots[i] = [a for a in
+                                                  infrastructure.allowable_pilots[i] if lb <= a <= ub]
 
         while len(queue) > 0:
             session = queue.popleft()

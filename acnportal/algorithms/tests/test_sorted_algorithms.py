@@ -60,6 +60,16 @@ class BaseAlgorithmTest(unittest.TestCase):
                         scenario.schedule[station_id],
                         session.max_rates[0])
 
+    def test_all_rates_greater_than_session_min_rates(self):
+        for scenario in self.scenarios:
+            with self.subTest(msg=f'{scenario.name}'):
+                sessions = scenario.interface.active_sessions()
+                for session in sessions:
+                    station_id = session.station_id
+                    self.assertGreaterEqual(
+                        scenario.schedule[station_id],
+                        session.min_rates[0])
+
     def test_in_allowable_rates(self):
         for scenario in self.scenarios:
             with self.subTest(msg=f'{scenario.name}'):
@@ -78,7 +88,6 @@ class BaseAlgorithmTest(unittest.TestCase):
                     else:
                         self.assertIn(scenario.schedule[station_id],
                                       allowable)
-
 
     def test_energy_requested_not_exceeded(self):
         for scenario in self.scenarios:
@@ -117,7 +126,7 @@ class BaseAlgorithmTest(unittest.TestCase):
 # -----------------------------------------------------------------------------
 class TestTwoStations(BaseAlgorithmTest):
     @staticmethod
-    def two_station(limit, continuous, session_max_rate):
+    def two_station(limit, continuous, session_max_rate, session_min_rate=0):
         if continuous:
             allowable = [[0, 32]] * 2
         else:
@@ -132,6 +141,7 @@ class TestTwoStations(BaseAlgorithmTest):
                                      departures=[12] * 2,
                                      requested_energy=[3.3] * 2,
                                      remaining_energy=[3.3] * 2,
+                                     min_rates=[session_min_rate] * 2,
                                      max_rates=[session_max_rate] * 2)
         data = {'active_sessions': sessions,
                 'infrastructure_info': network,
@@ -167,6 +177,24 @@ class TestTwoStations(BaseAlgorithmTest):
                                          f'continuous pilot: {continuous}')
                         cls.scenarios.append(Scenario(scenario_name, schedule,
                                                       interface, congested))
+
+
+class TestTwoStationsMinRates(TestTwoStations):
+    @classmethod
+    def setUpClass(cls):
+        cls.scenarios = []
+        limit = 16
+        for continuous in [True, False]:
+            congested = True
+            interface = cls.two_station(limit, continuous, 32, 8)
+            for algo_name, algo in algorithms.items():
+                algo.register_interface(interface)
+                schedule = algo.run()
+                scenario_name = (f'algorithm: {algo_name}, '
+                                 f'capacity: {limit}, '
+                                 f'continuous pilot: {continuous}')
+                cls.scenarios.append(Scenario(scenario_name, schedule,
+                                              interface, congested))
 
 
 class Test30StationsSinglePhase(BaseAlgorithmTest):
