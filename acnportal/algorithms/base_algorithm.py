@@ -47,14 +47,16 @@ class BaseAlgorithm:
         """
         self._interface = interface
 
-    def schedule(self, active_evs):
+    def schedule(self, active_sessions):
         """ Creates a schedule of charging rates for each ev in the active_evs list.
 
         NOT IMPLEMENTED IN BaseAlgorithm. This method MUST be implemented in all subclasses.
 
         This method returns a schedule of charging rates for each
         Args:
-            active_evs (List[EV]): List of EV objects which are currently ready to be charged and not finished charging.
+            active_sessions (List[SessionInfo]): List of SessionInfo objects
+                which are currently ready to be charged and not finished
+                charging.
 
         Returns:
             Dict[str, List[float]]: Dictionary mapping a station_id to a list of charging rates. Each charging rate is
