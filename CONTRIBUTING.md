@@ -119,6 +119,7 @@ Some additional miscellaneous style guidelines:
     if __name__ == '__main__':
       unittest.main()
     ```
+
 -   Use f-strings instead of .format strings. The former is newer and more readable.
 
 -   Follow the LSP! In your tests, you can often ensure LSP compliance by inheriting from a TestCase subclass instead of directly from TestCase.
