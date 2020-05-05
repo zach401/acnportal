@@ -2,8 +2,8 @@ import unittest
 
 import numpy as np
 
-from .. import ChargingNetwork
-from ..base import ErrorAllWrapper
+from acnportal.acnsim import ChargingNetwork
+from acnportal.acnsim.base import ErrorAllWrapper
 
 
 class TestErrorAllWrapper(unittest.TestCase):
