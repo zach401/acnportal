@@ -2,9 +2,9 @@ from typing import List
 from copy import deepcopy
 import numpy as np
 
-from acnportal.algorithms import UpperBoundEstimatorBase
 from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo
-from acnportal.algorithms.utils import infrastructure_constraints_feasible
+from .upper_bound_estimator import UpperBoundEstimatorBase
+from .utils import infrastructure_constraints_feasible
 
 
 def enforce_pilot_limit(active_sessions: List[SessionInfo],

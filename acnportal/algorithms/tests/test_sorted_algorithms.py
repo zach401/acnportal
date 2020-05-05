@@ -119,11 +119,14 @@ class BaseAlgorithmTest(unittest.TestCase):
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
-def two_station(limit, continuous, session_max_rate, session_min_rate=0):
+def two_station(limit, continuous, session_max_rate, session_min_rate=0,
+                remaining_energy=None):
     if continuous:
         allowable = [[0, 32]] * 2
     else:
         allowable = [[0] + list(range(8, 33))] * 2
+    if remaining_energy is None:
+        remaining_energy = [3.3, 3.3]
     network = single_phase_single_constraint(2,
                                              limit,
                                              allowable_pilots=allowable,
@@ -133,7 +136,7 @@ def two_station(limit, continuous, session_max_rate, session_min_rate=0):
                                  arrivals=[0] * 2,
                                  departures=[12] * 2,
                                  requested_energy=[3.3] * 2,
-                                 remaining_energy=[3.3] * 2,
+                                 remaining_energy=remaining_energy,
                                  min_rates=[session_min_rate] * 2,
                                  max_rates=[session_max_rate] * 2)
     data = {'active_sessions': sessions,
@@ -174,7 +177,7 @@ class TestTwoStations(BaseAlgorithmTest):
                                                       interface, congested))
 
 
-class TestTwoStationsMinRates(BaseAlgorithmTest):
+class TestTwoStationsMinRatesFeasible(BaseAlgorithmTest):
     @classmethod
     def setUpClass(cls):
         cls.scenarios = []
@@ -210,6 +213,24 @@ class TestTwoStationsMinRatesInfeasible(unittest.TestCase):
                                                 'their lower bound is not '
                                                 'feasible.'):
                         algo.run()
+
+
+class TestTwoStationsEnergyBinding(BaseAlgorithmTest):
+    @classmethod
+    def setUpClass(cls):
+        cls.scenarios = []
+        limit = 64
+        for continuous in [True, False]:
+            congested = True
+            interface = two_station(limit, continuous, 32, 0, [3.3, 0.3])
+            for algo_name, algo in algorithms.items():
+                algo.register_interface(interface)
+                schedule = algo.run()
+                scenario_name = (f'algorithm: {algo_name}, '
+                                 f'capacity: {limit}, '
+                                 f'continuous pilot: {continuous}')
+                cls.scenarios.append(Scenario(scenario_name, schedule,
+                                              interface, congested))
 
 
 class Test30StationsSinglePhase(BaseAlgorithmTest):

@@ -106,7 +106,7 @@ class SimpleRampdown(UpperBoundEstimatorBase):
                 unused_capacity = previous_pilot - previous_rate
                 ub = self.upper_bounds[session.session_id]
                 if unused_capacity > self.down_threshold:
-                    ub = prev_rate + self.up_increment
+                    ub = previous_rate + self.up_increment
                 elif unused_capacity < self.up_threshold:
                     ub += self.up_increment
                 max_pilot = self.interface.max_pilot_signal(session.station_id)

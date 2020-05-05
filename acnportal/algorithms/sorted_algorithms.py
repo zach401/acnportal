@@ -6,6 +6,8 @@ from .base_algorithm import BaseAlgorithm
 from acnportal.acnsim.interface import InfrastructureInfo, SessionInfo
 from .utils import infrastructure_constraints_feasible
 from .postprocessing import format_array_schedule
+from .preprocessing import enforce_pilot_limit, apply_upper_bound_estimate, \
+    apply_minimum_charging_rate
 
 
 class SortedSchedulingAlgo(BaseAlgorithm):
@@ -24,10 +26,36 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             sorted according to some metric.
     """
 
-    def __init__(self, sort_fn):
+    def __init__(self, sort_fn, estimate_max_rate=False,
+                 max_rate_estimator=None,
+                 uninterrupted_charging=False):
         super().__init__()
         self._sort_fn = sort_fn
-        self.max_recompute = 1  # Call algorithm each period since it only returns a rate for the next period.
+        # Call algorithm each period since it only returns a rate for the
+        # next period.
+        self.max_recompute = 1
+        self.estimate_max_rate = estimate_max_rate
+        self.max_rate_estimator = max_rate_estimator
+        self.uninterrupted_charging = uninterrupted_charging
+
+    def register_interface(self, interface):
+        """ Register interface to the _simulator/physical system.
+
+        This interface is the only connection between the algorithm and what it
+            is controlling. Its purpose is to abstract the underlying
+            network so that the same algorithms can run on a simulated
+            environment or a physical one.
+
+        Args:
+            interface (Interface): An interface to the underlying network
+                whether simulated or real.
+
+        Returns:
+            None
+        """
+        self._interface = interface
+        if self.max_rate_estimator is not None:
+            self.max_rate_estimator.register_interface(interface)
 
     def sorting_algorithm(self, active_sessions, infrastructure):
         """ Schedule EVs by first sorting them by sort_fn, then allocating
@@ -64,14 +92,15 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             station_index = infrastructure.get_station_index(
                 session.station_id)
             ub = min(session.max_rates[0],
-                     infrastructure.max_pilot[station_index])
+                     infrastructure.max_pilot[station_index],
+                     self.interface.remaining_amp_periods(session))
             lb = max(0, session.min_rates[0])
             if infrastructure.is_continuous[station_index]:
                 charging_rate = self.max_feasible_rate(station_index,
                                                        ub,
                                                        schedule,
                                                        infrastructure,
-                                                       eps=0.0001,
+                                                       eps=0.01,
                                                        lb=lb)
             else:
                 allowable = [a for a in infrastructure.allowable_pilots[
@@ -83,7 +112,8 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             schedule[station_index] = charging_rate
         return schedule
 
-    def max_feasible_rate(self, station_index, ub, schedule, infrastructure,
+    @staticmethod
+    def max_feasible_rate(station_index, ub, schedule, infrastructure,
                           eps=0.0001, lb=0.):
         """ Return the maximum feasible rate less than ub subject to the environment's constraints.
 
@@ -137,7 +167,8 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             return ub
         return bisection(station_index, lb, ub, schedule)
 
-    def discrete_max_feasible_rate(self, station_index, allowable_pilots,
+    @staticmethod
+    def discrete_max_feasible_rate(station_index, allowable_pilots,
                                    schedule, infrastructure):
         """ Return the maximum feasible allowable rate subject to the
             infrastructure's constraints.
@@ -189,6 +220,13 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         infrastructure = self.interface.infrastructure_info()
+        active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
+        if self.estimate_max_rate:
+            active_sessions = apply_upper_bound_estimate(self.max_rate_estimator,
+                                                         active_sessions)
+        if self.uninterrupted_charging:
+            active_sessions = apply_minimum_charging_rate(active_sessions,
+                                                          infrastructure)
         array_schedule = self.sorting_algorithm(active_sessions,
                                                 infrastructure)
         return format_array_schedule(array_schedule, infrastructure)
@@ -218,8 +256,11 @@ class RoundRobin(SortedSchedulingAlgo):
         continuous_inc (float): Increment to use when pilot signal is
             continuously controllable.
     """
-    def __init__(self, sort_fn, continuous_inc=0.1):
-        super().__init__(sort_fn)
+    def __init__(self, sort_fn, estimate_max_rate=False,
+                 max_rate_estimator=None,
+                 uninterrupted_charging=False, continuous_inc=0.1):
+        super().__init__(sort_fn, estimate_max_rate, max_rate_estimator,
+                         uninterrupted_charging)
         self.continuous_inc = continuous_inc
 
     def round_robin(self, active_sessions, infrastructure):
@@ -249,7 +290,8 @@ class RoundRobin(SortedSchedulingAlgo):
                     np.arange(session.min_rates[0],
                               session.max_rates[0]+1e-7,
                               self.continuous_inc)
-            ub = min(session.max_rates[0], infrastructure.max_pilot[i])
+            ub = min(session.max_rates[0], infrastructure.max_pilot[i],
+                     self.interface.remaining_amp_periods(session))
             lb = max(0, session.min_rates[0])
             # Remove any charging rates which are not feasible.
             infrastructure.allowable_pilots[i] = [a for a in
@@ -287,8 +329,17 @@ class RoundRobin(SortedSchedulingAlgo):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         infrastructure = self.interface.infrastructure_info()
+        active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
+        if self.estimate_max_rate:
+            active_sessions = apply_upper_bound_estimate(
+                self.max_rate_estimator,
+                active_sessions)
+        if self.uninterrupted_charging:
+            active_sessions = apply_minimum_charging_rate(active_sessions,
+                                                          infrastructure)
         array_schedule = self.round_robin(active_sessions, infrastructure)
         return format_array_schedule(array_schedule, infrastructure)
+
 
 
 # -------------------- Sorting Functions --------------------------
