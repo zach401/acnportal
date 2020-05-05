@@ -1,3 +1,6 @@
+import time
+
+
 class BaseAlgorithm:
     """ Abstract base class meant to be inherited from to implement new algorithms.
 
@@ -11,6 +14,7 @@ class BaseAlgorithm:
     def __init__(self):
         self._interface = None
         self.max_recompute = None
+        self.solve_stats = []
 
     def __repr__(self):
         arg_str = ", ".join([f"{key}={value}" for key, value in self.__dict__.items()])
@@ -75,5 +79,10 @@ class BaseAlgorithm:
         Returns:
             See schedule.
         """
-        schedules = self.schedule(self.interface.active_sessions())
+        active_sessions = self.interface.active_sessions()
+        start_time = time.perf_counter()
+        schedules = self.schedule(active_sessions)
+        solve_time = time.perf_counter() - start_time
+        self.solve_stats = {'solve_time': solve_time,
+                            'active_sessions': len(active_sessions)}
         return schedules
