@@ -1,11 +1,13 @@
 import random
 import unittest
+from unittest.mock import Mock
 from numpy import testing as nptest
 from collections import namedtuple
 
 from acnportal.algorithms import *
 from acnportal.algorithms.tests.generate_test_cases import *
 from acnportal.algorithms.tests.testing_interface import TestingInterface
+from acnportal.algorithms import UpperBoundEstimatorBase
 
 CURRENT_TIME = 0
 PERIOD = 5
@@ -195,6 +197,35 @@ class TestTwoStationsMinRatesFeasible(BaseAlgorithmTest):
                                               interface, congested))
 
 
+class TestUninterruptedCharging(BaseAlgorithmTest):
+    @classmethod
+    def setUpClass(cls):
+        cls.scenarios = []
+        for limit in [16, 32, 40]:
+            for continuous in [True, False]:
+                congested = True
+                interface = two_station(limit, continuous, 32, 0)
+                for algo_name, algo in algorithms.items():
+                    algo.uninterrupted_charging = True
+                    algo.register_interface(interface)
+                    schedule = algo.run()
+                    scenario_name = (f'algorithm: {algo_name}, '
+                                     f'capacity: {limit}, '
+                                     f'continuous pilot: {continuous}')
+                    cls.scenarios.append(Scenario(scenario_name, schedule,
+                                                  interface, congested))
+
+    def test_charging_not_interrupted(self):
+        for scenario in self.scenarios:
+            with self.subTest(msg=f'{scenario.name}'):
+                sessions = scenario.interface.active_sessions()
+                for session in sessions:
+                    scheduled = scenario.schedule[session.station_id]
+                    minimum_pilot = scenario.interface.min_pilot_signal(
+                        session.station_id)
+                    self.assertGreaterEqual(scheduled, minimum_pilot)
+
+
 class TestTwoStationsMinRatesInfeasible(unittest.TestCase):
     def test_sorted_min_rates_infeasible(self):
         limit = 16
@@ -231,6 +262,35 @@ class TestTwoStationsEnergyBinding(BaseAlgorithmTest):
                                  f'continuous pilot: {continuous}')
                 cls.scenarios.append(Scenario(scenario_name, schedule,
                                               interface, congested))
+
+
+class TestEstimateMaxRate(BaseAlgorithmTest):
+    @classmethod
+    def setUpClass(cls):
+        estimator_mock = UpperBoundEstimatorBase()
+        estimator_mock.get_maximum_rates = Mock(return_value={'0': 16,
+                                                              '1': 12})
+        cls.scenarios = []
+        for limit in [16, 32, 40]:
+            for continuous in [True, False]:
+                congested = True
+                interface = two_station(limit, continuous, 32, 0)
+                for algo_name, algo in algorithms.items():
+                    algo.estimate_max_rate = True
+                    algo.max_rate_estimator = estimator_mock
+                    algo.register_interface(interface)
+                    schedule = algo.run()
+                    scenario_name = (f'algorithm: {algo_name}, '
+                                     f'capacity: {limit}, '
+                                     f'continuous pilot: {continuous}')
+                    cls.scenarios.append(Scenario(scenario_name, schedule,
+                                                  interface, congested))
+
+    def test_max_rate_estimator_not_exceeded(self):
+        for scenario in self.scenarios:
+            with self.subTest(msg=f'{scenario.name}'):
+                self.assertLessEqual(scenario.schedule['0'][0], 16)
+                self.assertLessEqual(scenario.schedule['1'][0], 12)
 
 
 class Test30StationsSinglePhase(BaseAlgorithmTest):
