@@ -440,7 +440,11 @@ class FiniteRatesEVSE(BaseEVSE):
     @property
     def min_rate(self):
         """ Return minimum charging current allowed by the EVSE. (float) """
-        return min(self.allowable_rates)
+        allowable_gt_zero = [r for r in self.allowable_rates if r > 0]
+        if len(allowable_gt_zero) > 0:
+            return min(allowable_gt_zero)
+        else:
+            return 0
 
     @property
     def allowable_pilot_signals(self):
