@@ -197,7 +197,7 @@ class TestApplyUpperBoundEstimate(TestCase):
 
 
 class TestApplyMinimumChargingRate(TestCase):
-    def test_apply_min_evse_less_than_session_min(self):
+    def test_evse_less_than_session_max(self):
         sessions = session_generator(num_sessions=N,
                                      arrivals=[ARRIVAL_TIME] * N,
                                      departures=[ARRIVAL_TIME + SESSION_DUR]*N,
@@ -208,13 +208,48 @@ class TestApplyMinimumChargingRate(TestCase):
         infrastructure = InfrastructureInfo(
             **single_phase_single_constraint(N, 32, 32, 8))
         modified_sessions = apply_minimum_charging_rate(sessions,
-                                                        infrastructure)
+                                                        infrastructure, 5)
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates, 32)
             nptest.assert_almost_equal(session.min_rates[0], 8)
             nptest.assert_almost_equal(session.min_rates[1:], 0)
 
-    def test_apply_min_evse_greater_than_session_max(self):
+    def test_evse_less_than_existing_min(self):
+        sessions = session_generator(num_sessions=N,
+                                     arrivals=[ARRIVAL_TIME] * N,
+                                     departures=[ARRIVAL_TIME + SESSION_DUR]*N,
+                                     requested_energy=[3.3] * N,
+                                     remaining_energy=[3.3] * N,
+                                     max_rates=[np.repeat(32, SESSION_DUR)]*N,
+                                     min_rates=[np.repeat(16, SESSION_DUR)]*N)
+        sessions = [SessionInfo(**s) for s in sessions]
+        infrastructure = InfrastructureInfo(
+            **single_phase_single_constraint(N, 32, 32, 8))
+        modified_sessions = apply_minimum_charging_rate(sessions,
+                                                        infrastructure, 5)
+        for session in modified_sessions:
+            nptest.assert_almost_equal(session.max_rates, 32)
+            nptest.assert_almost_equal(session.min_rates, 16)
+
+    def test_evse_min_greater_than_remaining_energy(self):
+        sessions = session_generator(num_sessions=N,
+                                     arrivals=[ARRIVAL_TIME] * N,
+                                     departures=[ARRIVAL_TIME + SESSION_DUR]*N,
+                                     requested_energy=[3.3] * N,
+                                     remaining_energy=[0.05] * N,
+                                     max_rates=[np.repeat(32, SESSION_DUR)]*N)
+        sessions = [SessionInfo(**s) for s in sessions]
+        infrastructure = InfrastructureInfo(
+            **single_phase_single_constraint(N, 32, 32, 8))
+        modified_sessions = apply_minimum_charging_rate(sessions,
+                                                        infrastructure, 5)
+        for session in modified_sessions:
+            nptest.assert_almost_equal(session.max_rates[0], 0)
+            nptest.assert_almost_equal(session.max_rates[1:], 32)
+            nptest.assert_almost_equal(session.min_rates[0], 0)
+            nptest.assert_almost_equal(session.min_rates[1:], 0)
+
+    def test_evse_min_greater_than_session_max(self):
         sessions = session_generator(num_sessions=N,
                                      arrivals=[ARRIVAL_TIME] * N,
                                      departures=[ARRIVAL_TIME + SESSION_DUR]*N,
@@ -225,7 +260,7 @@ class TestApplyMinimumChargingRate(TestCase):
         infrastructure = InfrastructureInfo(
             **single_phase_single_constraint(N, 32, 32, 8))
         modified_sessions = apply_minimum_charging_rate(sessions,
-                                                        infrastructure)
+                                                        infrastructure, 5)
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates[0], 8)
             nptest.assert_almost_equal(session.max_rates[1:], 6)
@@ -246,7 +281,7 @@ class TestApplyMinimumChargingRate(TestCase):
         infrastructure = InfrastructureInfo(
             **single_phase_single_constraint(N, 16, 32, 8))
         modified_sessions = apply_minimum_charging_rate(sessions,
-                                                        infrastructure)
+                                                        infrastructure, 5)
         for i in range(2):
             nptest.assert_almost_equal(modified_sessions[i].min_rates[0], 8)
             nptest.assert_almost_equal(modified_sessions[i].min_rates[1:], 0)

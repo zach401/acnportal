@@ -8,7 +8,7 @@ from .utils import infrastructure_constraints_feasible
 from .postprocessing import format_array_schedule
 from .preprocessing import enforce_pilot_limit, apply_upper_bound_estimate, \
     apply_minimum_charging_rate, inc_remaining_energy_to_min_allowable
-
+from warnings import warn
 
 class SortedSchedulingAlgo(BaseAlgorithm):
     """ Class for sorting based algorithms like First Come First Served (FCFS) and Earliest Deadline First (EDF).
@@ -106,10 +106,12 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             else:
                 allowable = [a for a in infrastructure.allowable_pilots[
                     station_index] if lb <= a <= ub]
-                charging_rate = self.discrete_max_feasible_rate(station_index,
-                                                                allowable,
-                                                                schedule,
-                                                                infrastructure)
+
+                if len(allowable) == 0:
+                    charging_rate = 0
+                else:
+                    charging_rate = self.discrete_max_feasible_rate(
+                        station_index, allowable, schedule, infrastructure)
             schedule[station_index] = charging_rate
         return schedule
 
@@ -226,11 +228,12 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             active_sessions = apply_upper_bound_estimate(self.max_rate_estimator,
                                                          active_sessions)
         if self.uninterrupted_charging:
-            active_sessions = apply_minimum_charging_rate(active_sessions,
-                                                          infrastructure)
-        if self.allow_overcharging:
-            active_sessions = inc_remaining_energy_to_min_allowable(
+            active_sessions = apply_minimum_charging_rate(
                 active_sessions, infrastructure, self.interface.period)
+        if self.allow_overcharging:
+            warn('allow_overcharging is currently not supported.')
+            # active_sessions = inc_remaining_energy_to_min_allowable(
+            #     active_sessions, infrastructure, self.interface.period)
         array_schedule = self.sorting_algorithm(active_sessions,
                                                 infrastructure)
         return format_array_schedule(array_schedule, infrastructure)
@@ -339,11 +342,12 @@ class RoundRobin(SortedSchedulingAlgo):
                 self.max_rate_estimator,
                 active_sessions)
         if self.uninterrupted_charging:
-            active_sessions = apply_minimum_charging_rate(active_sessions,
-                                                          infrastructure)
-        if self.allow_overcharging:
-            active_sessions = inc_remaining_energy_to_min_allowable(
+            active_sessions = apply_minimum_charging_rate(
                 active_sessions, infrastructure, self.interface.period)
+        if self.allow_overcharging:
+            warn('allow_overcharging is currently not supported.')
+            # active_sessions = inc_remaining_energy_to_min_allowable(
+            #     active_sessions, infrastructure, self.interface.period)
         array_schedule = self.round_robin(active_sessions, infrastructure)
         return format_array_schedule(array_schedule, infrastructure)
 

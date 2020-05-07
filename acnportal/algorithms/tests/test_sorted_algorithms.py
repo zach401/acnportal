@@ -253,8 +253,27 @@ class TestTwoStationsEnergyBinding(BaseAlgorithmTest):
         limit = 64
         for continuous in [True, False]:
             congested = True
-            interface = two_station(limit, continuous, 32, 0, [3.3, 0.3])
+            interface = two_station(limit, continuous, 32, 0, [0.3, 0.05])
             for algo_name, algo in algorithms.items():
+                algo.register_interface(interface)
+                schedule = algo.run()
+                scenario_name = (f'algorithm: {algo_name}, '
+                                 f'capacity: {limit}, '
+                                 f'continuous pilot: {continuous}')
+                cls.scenarios.append(Scenario(scenario_name, schedule,
+                                              interface, congested))
+
+
+class TestTwoStationsEnergyBindingUninterrupted(BaseAlgorithmTest):
+    @classmethod
+    def setUpClass(cls):
+        cls.scenarios = []
+        limit = 64
+        for continuous in [True, False]:
+            congested = True
+            interface = two_station(limit, continuous, 32, 0, [0.3, 0.05])
+            for algo_name, algo in algorithms.items():
+                algo.uninterrupted_charging = True
                 algo.register_interface(interface)
                 schedule = algo.run()
                 scenario_name = (f'algorithm: {algo_name}, '

@@ -30,12 +30,15 @@ def enforce_pilot_limit(active_sessions: List[SessionInfo],
     return new_sessions
 
 
-def reconcile_max_and_min(session: SessionInfo):
+def reconcile_max_and_min(session: SessionInfo, choose_min=True):
     """ Modify session.max_rates[t] to equal session.min_rates[t] for times
         when max_rates[t] < min_rates[t]
 
     Args:
         session (SessionInfo): Session object.
+        choose_min (bool): If True, when in conflict defer to the minimum
+        rate. If False, defer to maximum.
+
 
     Returns:
         SessionInfo: session modified such that max_rates[t] is never less
@@ -43,7 +46,10 @@ def reconcile_max_and_min(session: SessionInfo):
     """
     new_sess = deepcopy(session)
     mask = new_sess.max_rates < new_sess.min_rates
-    new_sess.max_rates[mask] = new_sess.min_rates[mask]
+    if choose_min:
+        new_sess.max_rates[mask] = new_sess.min_rates[mask]
+    else:
+        new_sess.min_rates[mask] = new_sess.max_rates[mask]
     return new_sess
 
 
@@ -98,7 +104,8 @@ def apply_upper_bound_estimate(ub_estimator: UpperBoundEstimatorBase,
 
 def apply_minimum_charging_rate(active_sessions: List[SessionInfo],
                                 infrastructure: InfrastructureInfo,
-                                override=float('inf')):
+                                period: int,
+                                override=float('inf'),):
     """ Modify active_sessions so that min_rates[0] is equal to the greater of
         the session minimum rate and the EVSE minimum pilot.
 
@@ -107,6 +114,7 @@ def apply_minimum_charging_rate(active_sessions: List[SessionInfo],
             all active charging sessions.
         infrastructure (InfrastructureInfo): Description of the charging
             infrastructure.
+        period (int): Length of each time period in minutes.
         override (float): Alternative minimum pilot which overrides the EVSE
             minimum if the EVSE minimum is less than override.
 
@@ -120,7 +128,10 @@ def apply_minimum_charging_rate(active_sessions: List[SessionInfo],
     for j, session in enumerate(session_queue):
         i = infrastructure.station_ids.index(session.station_id)
         rates[i] = min(infrastructure.min_pilot[i], override)
-        if infrastructure_constraints_feasible(rates, infrastructure):
+        energy_ub = (session.remaining_demand * 1000 * 60 /
+                     infrastructure.voltages[i] / 12)
+        if rates[i] < energy_ub and \
+                infrastructure_constraints_feasible(rates, infrastructure):
             session.min_rates[0] = max(rates[i], session.min_rates[0])
             session_queue[j] = reconcile_max_and_min(session)
         else:
