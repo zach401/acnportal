@@ -7,7 +7,7 @@ from acnportal.acnsim.interface import InfrastructureInfo, SessionInfo
 from .utils import infrastructure_constraints_feasible
 from .postprocessing import format_array_schedule
 from .preprocessing import enforce_pilot_limit, apply_upper_bound_estimate, \
-    apply_minimum_charging_rate
+    apply_minimum_charging_rate, inc_remaining_energy_to_min_allowable
 
 
 class SortedSchedulingAlgo(BaseAlgorithm):
@@ -27,8 +27,8 @@ class SortedSchedulingAlgo(BaseAlgorithm):
     """
 
     def __init__(self, sort_fn, estimate_max_rate=False,
-                 max_rate_estimator=None,
-                 uninterrupted_charging=False):
+                 max_rate_estimator=None, uninterrupted_charging=False,
+                 allow_overcharging=False):
         super().__init__()
         self._sort_fn = sort_fn
         # Call algorithm each period since it only returns a rate for the
@@ -37,6 +37,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         self.estimate_max_rate = estimate_max_rate
         self.max_rate_estimator = max_rate_estimator
         self.uninterrupted_charging = uninterrupted_charging
+        self.allow_overcharging = allow_overcharging
 
     def register_interface(self, interface):
         """ Register interface to the _simulator/physical system.
@@ -227,6 +228,9 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         if self.uninterrupted_charging:
             active_sessions = apply_minimum_charging_rate(active_sessions,
                                                           infrastructure)
+        if self.allow_overcharging:
+            active_sessions = inc_remaining_energy_to_min_allowable(
+                active_sessions, infrastructure, self.interface.period)
         array_schedule = self.sorting_algorithm(active_sessions,
                                                 infrastructure)
         return format_array_schedule(array_schedule, infrastructure)
@@ -257,8 +261,8 @@ class RoundRobin(SortedSchedulingAlgo):
             continuously controllable.
     """
     def __init__(self, sort_fn, estimate_max_rate=False,
-                 max_rate_estimator=None,
-                 uninterrupted_charging=False, continuous_inc=0.1):
+                 max_rate_estimator=None, uninterrupted_charging=False,
+                 continuous_inc=0.1, allow_overcharging=False):
         super().__init__(sort_fn, estimate_max_rate, max_rate_estimator,
                          uninterrupted_charging)
         self.continuous_inc = continuous_inc
@@ -337,6 +341,9 @@ class RoundRobin(SortedSchedulingAlgo):
         if self.uninterrupted_charging:
             active_sessions = apply_minimum_charging_rate(active_sessions,
                                                           infrastructure)
+        if self.allow_overcharging:
+            active_sessions = inc_remaining_energy_to_min_allowable(
+                active_sessions, infrastructure, self.interface.period)
         array_schedule = self.round_robin(active_sessions, infrastructure)
         return format_array_schedule(array_schedule, infrastructure)
 
