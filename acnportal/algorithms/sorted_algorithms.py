@@ -10,6 +10,7 @@ from .preprocessing import enforce_pilot_limit, apply_upper_bound_estimate, \
     apply_minimum_charging_rate, inc_remaining_energy_to_min_allowable
 from warnings import warn
 
+
 class SortedSchedulingAlgo(BaseAlgorithm):
     """ Class for sorting based algorithms like First Come First Served (FCFS) and Earliest Deadline First (EDF).
 
@@ -229,7 +230,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                                                          active_sessions)
         if self.uninterrupted_charging:
             active_sessions = apply_minimum_charging_rate(
-                active_sessions, infrastructure, self.interface.period)
+                active_sessions, infrastructure, self.interface)
         if self.allow_overcharging:
             warn('allow_overcharging is currently not supported.')
             # active_sessions = inc_remaining_energy_to_min_allowable(
@@ -343,7 +344,7 @@ class RoundRobin(SortedSchedulingAlgo):
                 active_sessions)
         if self.uninterrupted_charging:
             active_sessions = apply_minimum_charging_rate(
-                active_sessions, infrastructure, self.interface.period)
+                active_sessions, infrastructure, self.interface)
         if self.allow_overcharging:
             warn('allow_overcharging is currently not supported.')
             # active_sessions = inc_remaining_energy_to_min_allowable(

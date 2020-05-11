@@ -7,6 +7,36 @@ from .upper_bound_estimator import UpperBoundEstimatorBase
 from .utils import infrastructure_constraints_feasible
 
 
+def least_laxity_first(evs, iface):
+    """ Sort EVs by laxity in increasing order.
+
+    Laxity is a measure of the charging flexibility of an EV. Here we define laxity as:
+        LAX_i(t) = (departure_i - t) - (remaining_demand_i(t) / max_rate_i)
+
+    Args:
+        evs (List[EV]): List of EVs to be sorted.
+        iface (Interface): Interface object.
+
+    Returns:
+        List[EV]: List of EVs sorted by laxity in increasing order.
+    """
+
+    def laxity(ev):
+        """ Calculate laxity of the EV.
+
+        Args:
+            ev (EV): An EV object.
+
+        Returns:
+            float: The laxity of the EV.
+        """
+        lax = (ev.departure - iface.current_time) - \
+              (iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id))
+        return lax
+
+    return sorted(evs, key=lambda x: laxity(x))
+
+
 def enforce_pilot_limit(active_sessions: List[SessionInfo],
                         infrastructure: InfrastructureInfo):
     """ Update the max_rates vector for each session to be less than the max
@@ -104,7 +134,7 @@ def apply_upper_bound_estimate(ub_estimator: UpperBoundEstimatorBase,
 
 def apply_minimum_charging_rate(active_sessions: List[SessionInfo],
                                 infrastructure: InfrastructureInfo,
-                                period: int,
+                                interface,
                                 override=float('inf'),):
     """ Modify active_sessions so that min_rates[0] is equal to the greater of
         the session minimum rate and the EVSE minimum pilot.
@@ -122,7 +152,8 @@ def apply_minimum_charging_rate(active_sessions: List[SessionInfo],
         List[SessionInfo]: Active sessions with updated minimum charging rate
             for the first control period.
     """
-    session_queue = sorted(active_sessions, key=lambda x: x.arrival)
+    session_queue = least_laxity_first(active_sessions, interface)
+    # session_queue = sorted(active_sessions, key=lambda x: x.remaining_time)
     session_queue = expand_max_min_rates(session_queue)
     rates = np.zeros(len(infrastructure.station_ids))
     for j, session in enumerate(session_queue):
