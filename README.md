@@ -46,3 +46,17 @@ python -m unittest discover -v
 ```
 
 Remove `-v` after `discover` to suppress verbose output.
+
+## Contributing
+
+If you're submitting a bug report, feature request, question, or
+documentation suggestion, please submit the issue through Github and
+follow the templates outlined there.
+
+If you are contributing code to the project, please view the 
+contributing guidelines [here.](https://github.com/zach401/acnportal/master/CONTRIBUTING.md)
+
+## Questions
+
+Contact the ACN Research Portal team at ev-help@caltech.edu with any
+questions, or submit a question through Github issues.

@@ -3,7 +3,7 @@
 ## Reporting issues
 
 When reporting issues please include as much detail as possible about your
-operating system, acnportal version and python version, along with versions of dependencies, namely acnportal.
+operating system, acnportal version and python version, along with versions of dependencies.
 Whenever possible, please
 also include a brief, self-contained code example that demonstrates the problem.
 
@@ -79,6 +79,7 @@ We use a development process similar to that of [NumPy](<https://numpy.org/devdo
         ```bash
         git push origin is-feasible-speedups
         ```
+
     -   Enter your GitHub username and password (repeat contributors or advanced users can remove this step by connecting to GitHub with SSH).
     
     -   Go to GitHub. The new branch will show up with a green Pull Request button. **Please merge into the `dev` branch of acnportal**! If accepted, your changes will be integrated on the next package release. Make sure the title and message are clear, concise, and self-explanatory. Then click the button to submit it.
