@@ -152,6 +152,7 @@ def apply_minimum_charging_rate(active_sessions: List[SessionInfo],
         List[SessionInfo]: Active sessions with updated minimum charging rate
             for the first control period.
     """
+    new_sessions = []
     session_queue = least_laxity_first(active_sessions, interface)
     # session_queue = sorted(active_sessions, key=lambda x: x.remaining_time)
     session_queue = expand_max_min_rates(session_queue)
@@ -159,53 +160,56 @@ def apply_minimum_charging_rate(active_sessions: List[SessionInfo],
     for j, session in enumerate(session_queue):
         i = infrastructure.station_ids.index(session.station_id)
         rates[i] = min(infrastructure.min_pilot[i], override)
-        energy_ub = (session.remaining_demand * 1000 * 60 /
-                     infrastructure.voltages[i] / 12)
-        if rates[i] < energy_ub and \
-                infrastructure_constraints_feasible(rates, infrastructure):
+        # energy_ub = (session.remaining_demand * 1000 * 60 /
+        #              infrastructure.voltages[i] / 12)
+        # if rates[i] < energy_ub and \
+        if infrastructure_constraints_feasible(rates, infrastructure):
             session.min_rates[0] = max(rates[i], session.min_rates[0])
             session_queue[j] = reconcile_max_and_min(session)
+            new_sessions.append(session_queue[j])
         else:
+            # If an EV cannot be charged at the minimum rate, it should be
+            # removed from the problem. So it is not appended to the problem.
             rates[i] = 0
-            session.min_rates[0] = 0
-            session.max_rates[0] = 0
+            # session.min_rates = 0
+            # session.max_rates = 0
     return session_queue
 
 
-def inc_remaining_energy_to_min_allowable(active_sessions: List[SessionInfo],
-                                          infrastructure: InfrastructureInfo,
-                                          period):
-    """ Modify active_sessions so that remaining_energy is greater than or
-        equal to the energy delivered in one period charging at the
-        session's minimum rate.
-
-        Using this preprocessor ensures that EVs will not leave unsatisfied
-        if there is sufficient capacity in the system.
-
-        Note this could mean that the energy delivered to an EV could exceed
-        100% of its requested energy. This should be considered during
-        analysis.
-
-    Args:
-        active_sessions (List[SessionInfo]): List of SessionInfo objects for
-            all active charging sessions.
-        infrastructure (InfrastructureInfo): Description of the charging
-            infrastructure.
-
-    Returns:
-        List[SessionInfo]: Active sessions with updated minimum charging rate
-            for the first control period.
-    """
-    time_interval_length = period / 60
-
-    def minimum_first_period_charge(session):
-        i = infrastructure.get_station_index(session.station_id)
-        return (session.min_rates[0] * infrastructure.voltages[i] / 1000 *
-                time_interval_length)
-
-    for session in active_sessions:
-        min_charge = minimum_first_period_charge(session)
-        diff = min_charge - session.remaining_demand
-        if diff > 0:
-            session.requested_energy += diff
-    return active_sessions
+# def inc_remaining_energy_to_min_allowable(active_sessions: List[SessionInfo],
+#                                           infrastructure: InfrastructureInfo,
+#                                           period):
+#     """ Modify active_sessions so that remaining_energy is greater than or
+#         equal to the energy delivered in one period charging at the
+#         session's minimum rate.
+#
+#         Using this preprocessor ensures that EVs will not leave unsatisfied
+#         if there is sufficient capacity in the system.
+#
+#         Note this could mean that the energy delivered to an EV could exceed
+#         100% of its requested energy. This should be considered during
+#         analysis.
+#
+#     Args:
+#         active_sessions (List[SessionInfo]): List of SessionInfo objects for
+#             all active charging sessions.
+#         infrastructure (InfrastructureInfo): Description of the charging
+#             infrastructure.
+#
+#     Returns:
+#         List[SessionInfo]: Active sessions with updated minimum charging rate
+#             for the first control period.
+#     """
+#     time_interval_length = period / 60
+#
+#     def minimum_first_period_charge(session):
+#         i = infrastructure.get_station_index(session.station_id)
+#         return (session.min_rates[0] * infrastructure.voltages[i] / 1000 *
+#                 time_interval_length)
+#
+#     for session in active_sessions:
+#         min_charge = minimum_first_period_charge(session)
+#         diff = min_charge - session.remaining_demand
+#         if diff > 0:
+#             session.requested_energy += diff
+#     return active_sessions

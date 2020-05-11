@@ -7,7 +7,7 @@ from acnportal.acnsim.interface import InfrastructureInfo, SessionInfo
 from .utils import infrastructure_constraints_feasible
 from .postprocessing import format_array_schedule
 from .preprocessing import enforce_pilot_limit, apply_upper_bound_estimate, \
-    apply_minimum_charging_rate, inc_remaining_energy_to_min_allowable
+    apply_minimum_charging_rate
 from warnings import warn
 
 
