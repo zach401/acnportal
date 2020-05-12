@@ -160,20 +160,21 @@ def apply_minimum_charging_rate(active_sessions: List[SessionInfo],
     for j, session in enumerate(session_queue):
         i = infrastructure.station_ids.index(session.station_id)
         rates[i] = min(infrastructure.min_pilot[i], override)
-        # energy_ub = (session.remaining_demand * 1000 * 60 /
-        #              infrastructure.voltages[i] / 12)
-        # if rates[i] < energy_ub and \
-        if infrastructure_constraints_feasible(rates, infrastructure):
+        if rates[i] <= interface.remaining_amp_periods(session) and \
+                infrastructure_constraints_feasible(rates, infrastructure):
+            # Preserve existing min_rate if it is greater than the new one
             session.min_rates[0] = max(rates[i], session.min_rates[0])
+            # Increase the maximum rate if it is less than the new min.
             session_queue[j] = reconcile_max_and_min(session)
+            # Keep this session as active
             new_sessions.append(session_queue[j])
         else:
             # If an EV cannot be charged at the minimum rate, it should be
-            # removed from the problem. So it is not appended to the problem.
+            # removed from the problem. So it is not appended to new_sessions.
             rates[i] = 0
             # session.min_rates = 0
             # session.max_rates = 0
-    return session_queue
+    return new_sessions
 
 
 # def inc_remaining_energy_to_min_allowable(active_sessions: List[SessionInfo],

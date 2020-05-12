@@ -94,9 +94,9 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             station_index = infrastructure.get_station_index(
                 session.station_id)
             ub = min(session.max_rates[0],
-                     infrastructure.max_pilot[station_index],
                      self.interface.remaining_amp_periods(session))
             lb = max(0, session.min_rates[0])
+            # ub = max(lb, session.max_rates[0])
             if infrastructure.is_continuous[station_index]:
                 charging_rate = self.max_feasible_rate(station_index,
                                                        ub,

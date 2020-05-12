@@ -101,10 +101,10 @@ class SimpleRampdown(UpperBoundEstimatorBase):
             # data from from the last time period of pilot signal and
             # observed charging current.
             if session.session_id in prev_pilot:
-                previous_pilot = prev_pilot[session.session_id]
+                # previous_pilot = prev_pilot[session.session_id]
                 previous_rate = prev_rate[session.session_id]
-                unused_capacity = previous_pilot - previous_rate
                 ub = self.upper_bounds[session.session_id]
+                unused_capacity = ub - previous_rate
                 if unused_capacity > self.down_threshold:
                     ub = previous_rate + self.up_increment
                 elif unused_capacity < self.up_threshold:
