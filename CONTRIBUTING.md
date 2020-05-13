@@ -64,12 +64,14 @@ We use a development process similar to that of [NumPy](<https://numpy.org/devdo
         git checkout master
         git pull upstream master
         ```
+
     -   Create a branch for the feature you want to work on. Since the branch name will appear in the merge message, use a sensible name. Here
         we'll use `is-feasible-speedups`.
     
         ```bash
         git checkout -b is-feasible-speedups
         ```
+
     -   Commit locally as you progress (git add and git commit). Use a properly formatted commit message (54 char title, 72 char/line  description preferred). **Write tests that fail before your change and pass afterward**, run all the tests locally. Be sure to document any changed behavior in docstrings, keeping to the [Google docstring standard](<https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>).
 
 3.  To submit your contribution:

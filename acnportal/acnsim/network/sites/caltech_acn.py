@@ -11,7 +11,7 @@ def caltech_acn(basic_evse=False, voltage=208, transformer_cap=150, network_type
         voltage (float): Default voltage at the EVSEs. Does not affect the current rating of the transformer which is
             based on nominal voltages in the network. 277V LL for delta primary and 120V LN for wye secondary. [V]
         transformer_cap (float): Capacity of the transformer in the CaltechACN. Default: 150. [kW]
-        network_type (ChargingNetwork like): Type to be returned. Should be ChargingNetwork or a subclass. 
+        network_type (ChargingNetwork like): Type to be returned. Should be ChargingNetwork or a subclass.
 
     Returns:
         ChargingNetwork: A ChargingNetwork-like object configured with the EVSEs and constraints of the Caltech ACN.

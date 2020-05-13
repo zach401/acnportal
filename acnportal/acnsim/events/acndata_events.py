@@ -23,7 +23,8 @@ def generate_events(token, site, start, end, period, voltage, max_rate, **kwargs
     return EventQueue(events)
 
 
-def get_evs(token, site, start, end, period, voltage, max_battery_power, max_len=None, battery_params=None,
+def get_evs(token, site, start: datetime, end: datetime, period, voltage,
+            max_battery_power, max_len=None, battery_params=None,
             force_feasible=False):
     """ Return a list of EVs gathered from the acndata API.
 

@@ -1,8 +1,5 @@
-import cmath
-import math
-from copy import deepcopy
-import numpy as np
 import pandas as pd
+
 
 class Current(pd.Series):
     """ A simple representation of currents as an extension of pandas Series.

@@ -36,7 +36,6 @@ class InvalidRateError(Exception):
 
 class StationOccupiedError(Exception):
     """ Raised when a plugin event is called for an EVSE that already has an EV attached. """
-    pass
 
 
 class BaseEVSE(BaseSimObj):

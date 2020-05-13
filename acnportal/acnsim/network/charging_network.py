@@ -1,3 +1,5 @@
+from typing import Optional
+
 from .current import Current
 import pandas as pd
 import numpy as np
@@ -8,8 +10,9 @@ from ..base import BaseSimObj
 
 class ChargingNetwork(BaseSimObj):
     """
-    The ChargingNetwork class describes the infrastructure of the charging network with
-    information about the types of the charging station_schedule.
+    The ChargingNetwork class describes the infrastructure of the
+    charging network with information about the types of the charging
+    station_schedule.
 
     Args:
         violation_tolerance (float): Absolute amount by which an input
@@ -30,7 +33,6 @@ class ChargingNetwork(BaseSimObj):
         self._phase_angles = np.array([])
         self.violation_tolerance = violation_tolerance
         self.relative_tolerance = relative_tolerance
-        pass
 
     @property
     def current_charging_rates(self):
@@ -106,11 +108,13 @@ class ChargingNetwork(BaseSimObj):
     def constraints_as_df(self):
         return pd.DataFrame(self.constraint_matrix, columns=self.station_ids, index=self.constraint_index)
 
-    def add_constraint(self, current, limit, name=None):
+    def add_constraint(self, current: Current, limit: float,
+                       name: Optional[str] = None) -> None:
         """ Add an additional constraint to the constraint DataFrame.
 
         Args:
-            current (Current): Aggregate current which is constrained. See Current for more info.
+            current (Current): Aggregate current which is constrained.
+                See Current for more info.
             limit (float): Upper limit on the aggregate current.
             name (str): Name of this constraint.
 
@@ -153,7 +157,7 @@ class ChargingNetwork(BaseSimObj):
         self.magnitudes = np.delete(self.magnitudes, (del_index), axis=0)
         self.constraint_index.remove(name)
 
-    def update_constraint(self, name, current, limit, new_name=None):
+    def update_constraint(self, name, current: Current, limit, new_name=None):
         """ Update a network constraint with a new aggregate current, limit, and name.
 
         Args:
@@ -387,4 +391,3 @@ class ChargingNetwork(BaseSimObj):
 
 class StationOccupiedError(Exception):
     """ Exception which is raised when trying to add an EV to an EVSE which is already occupied."""
-    pass

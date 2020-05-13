@@ -7,7 +7,7 @@ labels: "Usage Question"
 
 ---
 
-- [ ] I read the latest docs pertaining to my question [here](https://acnportal.readthedocs.io/en/latest/).
+-   \[ ] I read the latest docs pertaining to my question [here](https://acnportal.readthedocs.io/en/latest/).
 
 ---
 

@@ -6,8 +6,8 @@ labels: "Bug, Needs Prioritization and Assignment"
 assignees: ""
 ---
 
-- \[ ] I have checked that this issue has not already been reported.
-- \[ ] I have confirmed this bug exists on the latest version of acnportal.
+-   \[ ] I have checked that this issue has not already been reported.
+-   \[ ] I have confirmed this bug exists on the latest version of acnportal.
 
 **Describe the bug**
 \[A clear and concise description of what the bug is.
