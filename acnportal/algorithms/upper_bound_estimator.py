@@ -70,7 +70,7 @@ class SimpleRampdown(UpperBoundEstimatorBase):
         is within up_threshold of the pilot signal.
     """
 
-    def __init__(self, up_threshold=2, down_threshold=1, up_increment=1):
+    def __init__(self, up_threshold=1, down_threshold=1, up_increment=1):
         super().__init__()
         self.up_threshold = up_threshold
         self.down_threshold = down_threshold
@@ -101,13 +101,12 @@ class SimpleRampdown(UpperBoundEstimatorBase):
             # data from from the last time period of pilot signal and
             # observed charging current.
             if session.session_id in prev_pilot:
-                # previous_pilot = prev_pilot[session.session_id]
+                previous_pilot = prev_pilot[session.session_id]
                 previous_rate = prev_rate[session.session_id]
                 ub = self.upper_bounds[session.session_id]
-                unused_capacity = ub - previous_rate
-                if unused_capacity > self.down_threshold:
+                if previous_pilot - previous_rate > self.down_threshold:
                     ub = previous_rate + self.up_increment
-                elif unused_capacity < self.up_threshold:
+                elif ub - previous_rate < self.up_threshold:
                     ub += self.up_increment
                 max_pilot = self.interface.max_pilot_signal(session.station_id)
                 ub = np.clip(ub, a_min=0, a_max=max_pilot)

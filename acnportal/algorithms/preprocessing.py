@@ -129,6 +129,8 @@ def apply_upper_bound_estimate(ub_estimator: UpperBoundEstimatorBase,
                                        upper_bounds.get(session.station_id,
                                                         float('inf')))
         new_sessions[j] = reconcile_max_and_min(session)
+        if np.any(session.max_rates < 32):
+            pass
     return new_sessions
 
 
