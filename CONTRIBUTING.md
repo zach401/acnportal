@@ -41,16 +41,19 @@ We use a development process similar to that of [NumPy](<https://numpy.org/devdo
         ```bash
         git clone https://github.com/your-username/acnportal.git
         ```
+
     -   Change the directory:
     
         ```bash
         cd acnportal
         ```
+
     -   Add the upstream repository:
     
         ```bash
         git remote add upstream https://github.com/zach401/acnportal.git
         ```
+
     -   Now, `git remote -v` will show two remote repositories named:
     
         `upstream`, which refers to the acnportal repository
