@@ -188,6 +188,17 @@ class Interface:
         return self._simulator.iteration
 
     @property
+    def current_datetime(self):
+        """ Get the simulated wall time of the simulator.
+
+        Returns:
+            datetime: The datetime corresponding to the  current time step of
+                the simulator.
+        """
+        return self._simulator.start + \
+            timedelta(minutes=self.period) * self.current_time
+
+    @property
     def period(self):
         """ Return the length of each timestep in the simulation.
 

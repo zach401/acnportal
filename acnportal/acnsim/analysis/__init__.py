@@ -63,8 +63,34 @@ def proportion_of_energy_delivered(sim):
         float: Proportion of total energy requested which was delivered during the simulation.
     """
     total_requested = sum(ev.requested_energy for ev in sim.ev_history.values())
-    total_delivered = sum(ev.energy_delivered for ev in sim.ev_history.values())
+    total_delivered = total_energy_delivered(sim)
     return total_delivered / total_requested
+
+
+def total_energy_delivered(sim):
+    """ Calculate total energy delivered in kWh.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+
+    Returns:
+        float: Total energy delivered during the simulation [kWh]
+    """
+    total_delivered = sum(ev.energy_delivered for ev in sim.ev_history.values())
+    return total_delivered
+
+
+def total_energy_requested(sim):
+    """ Calculate total energy requested in kWh.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+
+    Returns:
+        float: Total energy requested during the simulation [kWh]
+    """
+    total_requested = sum(ev.requested_energy for ev in sim.ev_history.values())
+    return total_requested
 
 
 def proportion_of_demands_met(sim, threshold=0.1):
