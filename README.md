@@ -61,5 +61,5 @@ contributing guidelines [here.](https://github.com/zach401/acnportal/master/CONT
 
 ## Questions
 
-Contact the ACN Research Portal team at <ev-help@caltech.edu> with any
+Contact the ACN Research Portal team at <mailto:ev-help@caltech.edu> with any
 questions, or submit a question through Github issues.

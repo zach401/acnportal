@@ -93,7 +93,7 @@ We use a development process similar to that of [NumPy](<https://numpy.org/devdo
 
 4.  Review process:
 
-    -   Reviewers (the other developers and interested community members) will write inline and/or general comments on your Pull Request (PR) to help you improve its implementation, documentation and style. We're all very friendly and open to learning from each other while improving the code, so don't let the review process discourage you from contributing! Also, if your PR is not getting any reaction, feel free to email the developer team at <ev-help@caltech.edu>.
+    -   Reviewers (the other developers and interested community members) will write inline and/or general comments on your Pull Request (PR) to help you improve its implementation, documentation and style. We're all very friendly and open to learning from each other while improving the code, so don't let the review process discourage you from contributing! Also, if your PR is not getting any reaction, feel free to email the developer team at <mailto:ev-help@caltech.edu>.
     -   To update your PR, make your changes on your local repository, commit, run tests, and **only if they succeed** push to your fork. As soon as those changes are pushed up (to the same branch as before) the PR will update automatically. If you have no idea how to fix the test failures, you may push your changes anyway and ask for help in a PR comment.
     -   Various continuous integration (CI) services are triggered after each PR update to build the code, run unit tests, and check coding style of your branch. The CI tests should pass before your PR can be merged. If CI fails, you can find out why by clicking on the “failed” icon (red cross) and inspecting the build and test log. To avoid overuse and waste of this resource, test your work locally before committing. If you can't figure out why one or more steps of the CI pipeline is failing, you can ask for help in a PR comment.
     -   A PR must be approved by at least one core team member before merging. Approval means the core team member has carefully reviewed the changes, and the PR is ready for merging. A member of the team will give the LGTM and you may then merge if a member of the team has not already done so.
@@ -103,7 +103,7 @@ We use a development process similar to that of [NumPy](<https://numpy.org/devdo
     -   Avoid changing user-facing function signatures/names. If absolutely necessary, add arguments using kwargs with defaults; "remove" arguments by deprecating the argument when input. If changing a function or attribute name, add a deprecated access to the old function/attribute name.
     -   You may need to add additional files/modules to the docs so that readthedocs finds the new docstrings.
     -   New dependencies should be avoided if possible. Depending on the importance of the feature and the activity of the new dependency, the core team may overrule this, but such should be discussed on Github.
-    -   If you are proposing a change that affects multiple packages of the ACN Research Portal, please contact the developer team at <sunash.sharma@gmail.com> to discuss.
+    -   If you are proposing a change that affects multiple packages of the ACN Research Portal, please contact the developer team at <mailto:ev-help@caltech.edu> to discuss.
 
 ## Stylistic Guidelines
 
