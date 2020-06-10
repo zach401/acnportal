@@ -107,9 +107,15 @@ We use a development process similar to that of [NumPy](<https://numpy.org/devdo
 
 ## Stylistic Guidelines
 
-We want to follow PEP 8, so please set your editor as such and use flake8 or pyflakes or similar to lint. Also, we're currently trying to type hint our code more thoroughly so that we may include a Mypy build in CI. Please type hint your additional code.
+We want to follow PEP 8, so please set your editor as such and use flake8 or pyflakes or similar to lint.
+We use [black](<https://github.com/psf/black>) with default settings to auto format our
+code. Please run black before submitting a pull request.
+
+Also, we're currently trying to type hint our code more thoroughly so that we may include a Mypy build in CI. Please type hint your additional code.
 
 We know that in its current form, the code does not completely follow PEP 8. We're working on conforming to PEP 8, type hinting code, and including more tests, so if you want an easy introduction to the package, feel free to help out with that!
+
+
 
 Some additional miscellaneous style guidelines:
 

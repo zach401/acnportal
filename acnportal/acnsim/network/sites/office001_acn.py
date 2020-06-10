@@ -1,9 +1,11 @@
 from .. import ChargingNetwork
-from .. current import Current
+from ..current import Current
 from ...models.evse import get_evse_by_type
 
 
-def office001_acn(basic_evse=False, voltage=208, transformer_cap=50, network_type=ChargingNetwork):
+def office001_acn(
+    basic_evse=False, voltage=208, transformer_cap=50, network_type=ChargingNetwork
+):
     """ Predefined ChargingNetwork for the Office001 ACN.
 
     Args:
@@ -19,14 +21,14 @@ def office001_acn(basic_evse=False, voltage=208, transformer_cap=50, network_typ
     network = network_type()
 
     if basic_evse:
-        evse_type = 'BASIC'
+        evse_type = "BASIC"
     else:
-        evse_type = 'AeroVironment'
+        evse_type = "AeroVironment"
 
     # Define the sets of EVSEs
-    AB_ids = ['01', '04', '07']
-    BC_ids = ['02', '05', '08']
-    CA_ids = ['03', '06']
+    AB_ids = ["01", "04", "07"]
+    BC_ids = ["02", "05", "08"]
+    CA_ids = ["03", "06"]
 
     # Add EVSEs
     for evse_id in AB_ids:
@@ -52,11 +54,11 @@ def office001_acn(basic_evse=False, voltage=208, transformer_cap=50, network_typ
     # Build constraint set
     primary_side_constr = transformer_cap * 1000 / 3 / 277
     secondary_side_constr = transformer_cap * 1000 / 3 / 120
-    network.add_constraint(I3a, secondary_side_constr, name='Secondary A')
-    network.add_constraint(I3b, secondary_side_constr, name='Secondary B')
-    network.add_constraint(I3c, secondary_side_constr, name='Secondary C')
-    network.add_constraint(I2a, primary_side_constr, name='Primary A')
-    network.add_constraint(I2b, primary_side_constr, name='Primary B')
-    network.add_constraint(I2c, primary_side_constr, name='Primary C')
+    network.add_constraint(I3a, secondary_side_constr, name="Secondary A")
+    network.add_constraint(I3b, secondary_side_constr, name="Secondary B")
+    network.add_constraint(I3c, secondary_side_constr, name="Secondary C")
+    network.add_constraint(I2a, primary_side_constr, name="Primary A")
+    network.add_constraint(I2b, primary_side_constr, name="Primary B")
+    network.add_constraint(I2c, primary_side_constr, name="Primary C")
 
     return network

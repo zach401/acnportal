@@ -3,9 +3,9 @@ import warnings
 import numpy as np
 from ..base import BaseSimObj
 
-BASIC = 'BASIC'
-AV = 'AeroVironment'
-CC = 'ClipperCreek'
+BASIC = "BASIC"
+AV = "AeroVironment"
+CC = "ClipperCreek"
 
 
 def get_evse_by_type(station_id, evse_type):
@@ -31,6 +31,7 @@ def get_evse_by_type(station_id, evse_type):
 
 class InvalidRateError(Exception):
     """ Raised when an invalid pilot signal is passed to an EVSE. """
+
     pass
 
 
@@ -129,8 +130,9 @@ class BaseEVSE(BaseSimObj):
             if self._ev is not None:
                 self._ev.charge(pilot, voltage, period)
         else:
-            raise InvalidRateError(f"Pilot {pilot} A is not valid for "
-                                   f"station {self.station_id}.")
+            raise InvalidRateError(
+                f"Pilot {pilot} A is not valid for " f"station {self.station_id}."
+            )
 
     def _valid_rate(self, pilot, atol=1e-3):
         """ Check if pilot is in the valid set.
@@ -167,7 +169,8 @@ class BaseEVSE(BaseSimObj):
         else:
             raise StationOccupiedError(
                 f"Station {self._station_id} is occupied with ev "
-                f"{self._ev.session_id}.")
+                f"{self._ev.session_id}."
+            )
 
     def unplug(self):
         """ Method to remove an EV currently attached to the EVSE.
@@ -183,30 +186,29 @@ class BaseEVSE(BaseSimObj):
     def _to_dict(self, context_dict=None):
         """ Implements BaseSimObj._to_dict. """
         attribute_dict = {}
-        nn_attr_lst = ['_station_id', '_current_pilot', 'is_continuous']
+        nn_attr_lst = ["_station_id", "_current_pilot", "is_continuous"]
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
 
         if self._ev is not None:
             # noinspection PyProtectedMember
-            registry, context_dict = self.ev._to_registry(
-                context_dict=context_dict)
-            attribute_dict['_ev'] = registry['id']
+            registry, context_dict = self.ev._to_registry(context_dict=context_dict)
+            attribute_dict["_ev"] = registry["id"]
         else:
-            attribute_dict['_ev'] = None
+            attribute_dict["_ev"] = None
 
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict_helper(cls, out_obj, attribute_dict,
-                          context_dict, loaded_dict):
-        out_obj._current_pilot = attribute_dict['_current_pilot']
-        out_obj.is_continuous = attribute_dict['is_continuous']
+    def _from_dict_helper(cls, out_obj, attribute_dict, context_dict, loaded_dict):
+        out_obj._current_pilot = attribute_dict["_current_pilot"]
+        out_obj.is_continuous = attribute_dict["is_continuous"]
 
-        if attribute_dict['_ev'] is not None:
+        if attribute_dict["_ev"] is not None:
             # noinspection PyProtectedMember
             ev, loaded_dict = BaseSimObj._build_from_id(
-                attribute_dict['_ev'], context_dict, loaded_dict=loaded_dict)
+                attribute_dict["_ev"], context_dict, loaded_dict=loaded_dict
+            )
         else:
             ev = None
         out_obj._ev = ev
@@ -215,9 +217,8 @@ class BaseEVSE(BaseSimObj):
     @classmethod
     def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
         """ Implements BaseSimObj._from_dict. """
-        out_obj = cls(attribute_dict['_station_id'])
-        return cls._from_dict_helper(
-            out_obj, attribute_dict, context_dict, loaded_dict)
+        out_obj = cls(attribute_dict["_station_id"])
+        return cls._from_dict_helper(out_obj, attribute_dict, context_dict, loaded_dict)
 
 
 class EVSE(BaseEVSE):
@@ -229,7 +230,8 @@ class EVSE(BaseEVSE):
         _max_rate (float): Maximum charging current allowed by the EVSE.
         _min_rate (float): Minimum charging current allowed by the EVSE.
     """
-    def __init__(self, station_id, max_rate=float('inf'), min_rate=0):
+
+    def __init__(self, station_id, max_rate=float("inf"), min_rate=0):
         """ Initialize an EVSE instance.
 
         Args:
@@ -280,14 +282,13 @@ class EVSE(BaseEVSE):
             bool: True if the proposed pilot signal is valid. False
                 otherwise.
         """
-        return (self.min_rate <= pilot + atol
-                and pilot - atol <= self.max_rate)
+        return self.min_rate <= pilot + atol and pilot - atol <= self.max_rate
 
     def _to_dict(self, context_dict=None):
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
-        attribute_dict['_max_rate'] = self._max_rate
-        attribute_dict['_min_rate'] = self._min_rate
+        attribute_dict["_max_rate"] = self._max_rate
+        attribute_dict["_min_rate"] = self._min_rate
 
         return attribute_dict, context_dict
 
@@ -295,12 +296,11 @@ class EVSE(BaseEVSE):
     def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
-            attribute_dict['_station_id'],
-            max_rate=attribute_dict['_max_rate'],
-            min_rate=attribute_dict['_min_rate']
+            attribute_dict["_station_id"],
+            max_rate=attribute_dict["_max_rate"],
+            min_rate=attribute_dict["_min_rate"],
         )
-        return cls._from_dict_helper(
-            out_obj, attribute_dict, context_dict, loaded_dict)
+        return cls._from_dict_helper(out_obj, attribute_dict, context_dict, loaded_dict)
 
 
 class DeadbandEVSE(BaseEVSE):
@@ -315,8 +315,9 @@ class DeadbandEVSE(BaseEVSE):
 
     """
 
-    def __init__(self, station_id, deadband_end=6,
-                 max_rate=float('inf'), min_rate=None):
+    def __init__(
+        self, station_id, deadband_end=6, max_rate=float("inf"), min_rate=None
+    ):
         """ Initialize a DeadbandEVSE instance.
 
         Args:
@@ -335,7 +336,7 @@ class DeadbandEVSE(BaseEVSE):
                 f"Keyword argument 'min_rate' is deprecated for class "
                 f"DeadbandEVSE. Providing 'min_rate' will raise an "
                 f"error in a future release of acnportal.",
-                DeprecationWarning
+                DeprecationWarning,
             )
 
     @property
@@ -378,27 +379,26 @@ class DeadbandEVSE(BaseEVSE):
             bool: True if the proposed pilot signal is valid. False
                 otherwise.
         """
-        return (np.isclose(pilot, 0, atol=atol, rtol=0)
-                or (self._deadband_end <= pilot + atol
-                    and pilot - atol <= self.max_rate))
+        return np.isclose(pilot, 0, atol=atol, rtol=0) or (
+            self._deadband_end <= pilot + atol and pilot - atol <= self.max_rate
+        )
 
     def _to_dict(self, context_dict=None):
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
-        attribute_dict['_max_rate'] = self._max_rate
-        attribute_dict['_deadband_end'] = self._deadband_end
+        attribute_dict["_max_rate"] = self._max_rate
+        attribute_dict["_deadband_end"] = self._deadband_end
         return attribute_dict, context_dict
 
     @classmethod
     def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
-            attribute_dict['_station_id'],
-            deadband_end=attribute_dict['_deadband_end'],
-            max_rate=attribute_dict['_max_rate']
+            attribute_dict["_station_id"],
+            deadband_end=attribute_dict["_deadband_end"],
+            max_rate=attribute_dict["_max_rate"],
         )
-        return cls._from_dict_helper(
-            out_obj, attribute_dict, context_dict, loaded_dict)
+        return cls._from_dict_helper(out_obj, attribute_dict, context_dict, loaded_dict)
 
 
 class FiniteRatesEVSE(BaseEVSE):
@@ -415,6 +415,7 @@ class FiniteRatesEVSE(BaseEVSE):
             contains no duplicate values.
 
     """
+
     def __init__(self, station_id, allowable_rates):
         """ Initialize a DeadbandEVSE instance.
 
@@ -468,21 +469,16 @@ class FiniteRatesEVSE(BaseEVSE):
             bool: True if the proposed pilot signal is valid. False
                 otherwise.
         """
-        return np.any(np.isclose(pilot, self.allowable_rates,
-                                 atol=1e-3, rtol=0))
+        return np.any(np.isclose(pilot, self.allowable_rates, atol=1e-3, rtol=0))
 
     def _to_dict(self, context_dict=None):
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
-        attribute_dict['allowable_rates'] = self.allowable_rates
+        attribute_dict["allowable_rates"] = self.allowable_rates
         return attribute_dict, context_dict
 
     @classmethod
     def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
         """ Implements BaseSimObj._from_dict. """
-        out_obj = cls(
-            attribute_dict['_station_id'],
-            attribute_dict['allowable_rates']
-        )
-        return cls._from_dict_helper(
-            out_obj, attribute_dict, context_dict, loaded_dict)
+        out_obj = cls(attribute_dict["_station_id"], attribute_dict["allowable_rates"])
+        return cls._from_dict_helper(out_obj, attribute_dict, context_dict, loaded_dict)

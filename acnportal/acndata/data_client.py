@@ -17,7 +17,8 @@ class DataClient(object):
         url (str): See url in Args.
 
     """
-    def __init__(self, api_token, url='https://ev.caltech.edu/api/v1/'):
+
+    def __init__(self, api_token, url="https://ev.caltech.edu/api/v1/"):
         self.token = api_token
         self.url = url
 
@@ -35,31 +36,35 @@ class DataClient(object):
             ValueError: Raised if the site name is not valid.
         """
         # TODO: (zach) Use API to autodetect if a new site is added.
-        if site not in {'caltech', 'jpl', 'office001'}:
-            raise ValueError("Invalid site name. Must be either 'caltech', 'jpl', or 'office001'.")
+        if site not in {"caltech", "jpl", "office001"}:
+            raise ValueError(
+                "Invalid site name. Must be either 'caltech', 'jpl', or 'office001'."
+            )
 
         limit = 100
-        endpoint = 'sessions/' + site
+        endpoint = "sessions/" + site
         if timeseries:
-            endpoint += '/ts/'
+            endpoint += "/ts/"
             limit = 1
         args = []
         if cond is not None:
-            args.append('where={0}'.format(cond))
+            args.append("where={0}".format(cond))
         if project is not None:
-            args.append('project={0}'.format(project))
+            args.append("project={0}".format(project))
         if sort is not None:
-            args.append('sort={0}'.format(sort))
-        args.append('max_results={0}'.format(limit))
-        query_string = '?' + '&'.join(args) if len(args) > 0 else ''
-        r = requests.get(self.url + endpoint + query_string, auth=(self.token, ''))
+            args.append("sort={0}".format(sort))
+        args.append("max_results={0}".format(limit))
+        query_string = "?" + "&".join(args) if len(args) > 0 else ""
+        r = requests.get(self.url + endpoint + query_string, auth=(self.token, ""))
         payload = r.json()
         while True:
-            for s in payload['_items']:
+            for s in payload["_items"]:
                 parse_dates(s)
                 yield s
-            if 'next' in payload['_links']:
-                r = requests.get(self.url + payload['_links']['next']['href'], auth=(self.token, ''))
+            if "next" in payload["_links"]:
+                r = requests.get(
+                    self.url + payload["_links"]["next"]["href"], auth=(self.token, "")
+                )
                 payload = r.json()
             else:
                 break
@@ -77,22 +82,28 @@ class DataClient(object):
         Raises:
             ValueError: Raised if the site name is not valid.
         """
-        if site not in {'caltech', 'jpl', 'office001'}:
+        if site not in {"caltech", "jpl", "office001"}:
             raise ValueError("Invalid site name. Must be either 'caltech' or 'jpl'")
 
-        endpoint = 'sessions/' + site
+        endpoint = "sessions/" + site
         args = []
         if cond is not None:
-            args.append('where={0}'.format(cond))
-        args.append('limit=1')
-        query_string = '?' + '&'.join(args) if len(args) > 0 else ''
+            args.append("where={0}".format(cond))
+        args.append("limit=1")
+        query_string = "?" + "&".join(args) if len(args) > 0 else ""
         auth_header = {"Authorization": "Bearer {0}".format(self.token)}
         r = requests.head(self.url + endpoint + query_string, headers=auth_header)
-        return r.headers['x-total-count']
+        return r.headers["x-total-count"]
 
-    def get_sessions_by_time(self, site, start: Optional[datetime] = None,
-                             end: Optional[datetime] = None, min_energy=None,
-                             timeseries=False, count=False):
+    def get_sessions_by_time(
+        self,
+        site,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        min_energy=None,
+        timeseries=False,
+        count=False,
+    ):
         """ Wrapper for get_sessions with condition based on start and end times and a minimum energy delivered.
 
         Args:
@@ -115,9 +126,11 @@ class DataClient(object):
         if end is not None:
             cond.append('connectionTime <= "{0}"'.format(http_date(end)))
         if min_energy is not None:
-            cond.append('kWhDelivered > {0}'.format(min_energy))
-        condition = ' and '.join(cond)
+            cond.append("kWhDelivered > {0}".format(min_energy))
+        condition = " and ".join(cond)
         if count:
             return self.count_sessions(site, condition)
         else:
-            return self.get_sessions(site, condition, sort='connectionTime', timeseries=timeseries)
+            return self.get_sessions(
+                site, condition, sort="connectionTime", timeseries=timeseries
+            )

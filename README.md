@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/zach401/acnportal.svg?branch=master)](https://travis-ci.org/zach401/acnportal)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/c357a20f61f941688c157ce21de905b7)](https://www.codacy.com/manual/Caltech_ACN/acnportal?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=zach401/acnportal&amp;utm_campaign=Badge_Grade)
+<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+</p>
 
 # ACN Portal
 

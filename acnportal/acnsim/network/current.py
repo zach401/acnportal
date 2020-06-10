@@ -12,12 +12,13 @@ class Current(pd.Series):
         loads (Dict[str, number], str, or List[str]): If dict, a dictionary mapping load_ids to coefficients. If str a
             load_id. If list, a list of load_ids. Default None. If None, loads will begin as an empty dict.
     """
+
     def __init__(self, loads=None):
         # Backwards compatibility with previous Current specification methods
         if isinstance(loads, dict):
             super().__init__(loads)
         elif isinstance(loads, str):
-            super().__init__({loads : 1})
+            super().__init__({loads: 1})
         elif loads is not None and all(isinstance(l, str) for l in loads):
             super().__init__({load_id: 1 for load_id in loads})
         elif isinstance(loads, pd.Series):
@@ -25,10 +26,11 @@ class Current(pd.Series):
         elif loads is None:
             # The object type is specified explicitly here to address a
             # warning in pandas 1.x.
-            super().__init__(dtype='float64')
+            super().__init__(dtype="float64")
         else:
-            raise TypeError("Variable loads should be of type dict, str, pd.Series, or Lst[str].")
-
+            raise TypeError(
+                "Variable loads should be of type dict, str, pd.Series, or Lst[str]."
+            )
 
     def __add__(self, other):
         """ Return new Current which is the sum of self and other.
