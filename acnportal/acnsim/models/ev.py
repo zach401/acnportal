@@ -14,7 +14,16 @@ class EV(BaseSimObj):
         battery (Battery-like): Battery object to be used by the EV.
     """
 
-    def __init__(self, arrival, departure, requested_energy, station_id, session_id, battery, estimated_departure=None):
+    def __init__(
+        self,
+        arrival,
+        departure,
+        requested_energy,
+        station_id,
+        session_id,
+        battery,
+        estimated_departure=None,
+    ):
         # User Defined Parameters
         self._arrival = arrival
         self._departure = departure
@@ -23,8 +32,9 @@ class EV(BaseSimObj):
 
         # Estimate of session parameters
         self._requested_energy = requested_energy
-        self._estimated_departure = estimated_departure if estimated_departure is not None else departure
-
+        self._estimated_departure = (
+            estimated_departure if estimated_departure is not None else departure
+        )
 
         # Internal State
         self._battery = battery
@@ -139,17 +149,22 @@ class EV(BaseSimObj):
     def _to_dict(self, context_dict=None):
         """ Implements BaseSimObj._to_dict. """
         attribute_dict = {}
-        nn_attr_lst = ['_arrival', '_departure', '_session_id',
-                       '_station_id', '_requested_energy',
-                       '_estimated_departure', '_energy_delivered',
-                       '_current_charging_rate']
+        nn_attr_lst = [
+            "_arrival",
+            "_departure",
+            "_session_id",
+            "_station_id",
+            "_requested_energy",
+            "_estimated_departure",
+            "_energy_delivered",
+            "_current_charging_rate",
+        ]
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
 
         # noinspection PyProtectedMember
-        registry, context_dict = self._battery._to_registry(
-            context_dict=context_dict)
-        attribute_dict['_battery'] = registry['id']
+        registry, context_dict = self._battery._to_registry(context_dict=context_dict)
+        attribute_dict["_battery"] = registry["id"]
 
         return attribute_dict, context_dict
 
@@ -158,18 +173,18 @@ class EV(BaseSimObj):
         """ Implements BaseSimObj._from_dict. """
         # noinspection PyProtectedMember
         battery, loaded_dict = BaseSimObj._build_from_id(
-            attribute_dict['_battery'], context_dict, loaded_dict=loaded_dict)
+            attribute_dict["_battery"], context_dict, loaded_dict=loaded_dict
+        )
 
         out_obj = cls(
-            attribute_dict['_arrival'],
-            attribute_dict['_departure'],
-            attribute_dict['_requested_energy'],
-            attribute_dict['_station_id'],
-            attribute_dict['_session_id'],
+            attribute_dict["_arrival"],
+            attribute_dict["_departure"],
+            attribute_dict["_requested_energy"],
+            attribute_dict["_station_id"],
+            attribute_dict["_session_id"],
             battery,
-            estimated_departure=attribute_dict['_estimated_departure']
+            estimated_departure=attribute_dict["_estimated_departure"],
         )
-        out_obj._energy_delivered = attribute_dict['_energy_delivered']
-        out_obj._current_charging_rate = \
-            attribute_dict['_current_charging_rate']
+        out_obj._energy_delivered = attribute_dict["_energy_delivered"]
+        out_obj._current_charging_rate = attribute_dict["_current_charging_rate"]
         return out_obj, loaded_dict

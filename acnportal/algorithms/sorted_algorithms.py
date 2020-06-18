@@ -42,11 +42,17 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         ev_queue = self._sort_fn(active_evs, self.interface)
         schedule = {ev.station_id: [0] for ev in active_evs}
         for ev in ev_queue:
-            continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
+            continuous, allowable_rates = self.interface.allowable_pilot_signals(
+                ev.station_id
+            )
             if continuous:
-                charging_rate = self.max_feasible_rate(ev.station_id, allowable_rates[-1], schedule, eps=0.01)
+                charging_rate = self.max_feasible_rate(
+                    ev.station_id, allowable_rates[-1], schedule, eps=0.01
+                )
             else:
-                charging_rate = self.discrete_max_feasible_rate(ev.station_id, allowable_rates, schedule)
+                charging_rate = self.discrete_max_feasible_rate(
+                    ev.station_id, allowable_rates, schedule
+                )
             schedule[ev.station_id][0] = charging_rate
         return schedule
 
@@ -67,6 +73,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Returns:
             float: maximum feasible rate less than ub subject to the environment's constraints. [A]
         """
+
         def bisection(_station_id, _lb, _ub, _schedule):
             """ Use the bisection method to find the maximum feasible charging rate for the EV. """
             mid = (_ub + _lb) / 2
@@ -80,7 +87,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 return bisection(_station_id, _lb, mid, new_schedule)
 
         if not self.interface.is_feasible(schedule):
-            raise ValueError('The initial schedule is not feasible.')
+            raise ValueError("The initial schedule is not feasible.")
         return bisection(station_id, 0, ub, schedule)
 
     def discrete_max_feasible_rate(self, station_id, allowable_rates, schedule, time=0):
@@ -100,7 +107,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             float: maximum feasible rate less than ub subject to the environment's constraints. [A]
         """
         if not self.interface.is_feasible(schedule):
-            raise ValueError('The initial schedule is not feasible.')
+            raise ValueError("The initial schedule is not feasible.")
         new_schedule = copy(schedule)
         feasible_idx = len(allowable_rates) - 1
         new_schedule[station_id][time] = allowable_rates[feasible_idx]
@@ -152,7 +159,9 @@ class RoundRobin(SortedSchedulingAlgo):
         rate_idx_map = {ev.station_id: 0 for ev in active_evs}
         allowable_rates = {}
         for ev in ev_queue:
-            evse_continuous, evse_rates = self.interface.allowable_pilot_signals(ev.station_id)
+            evse_continuous, evse_rates = self.interface.allowable_pilot_signals(
+                ev.station_id
+            )
             if evse_continuous:
                 evse_rates = np.arange(evse_rates[0], evse_rates[1], continuous_inc)
             allowable_rates[ev.station_id] = evse_rates
@@ -160,12 +169,16 @@ class RoundRobin(SortedSchedulingAlgo):
         while len(ev_queue) > 0:
             ev = ev_queue.popleft()
             if rate_idx_map[ev.station_id] < len(allowable_rates[ev.station_id]) - 1:
-                schedule[ev.station_id][0] = allowable_rates[ev.station_id][rate_idx_map[ev.station_id] + 1]
+                schedule[ev.station_id][0] = allowable_rates[ev.station_id][
+                    rate_idx_map[ev.station_id] + 1
+                ]
                 if self.interface.is_feasible(schedule):
                     rate_idx_map[ev.station_id] += 1
                     ev_queue.append(ev)
                 else:
-                    schedule[ev.station_id][0] = allowable_rates[ev.station_id][rate_idx_map[ev.station_id]]
+                    schedule[ev.station_id][0] = allowable_rates[ev.station_id][
+                        rate_idx_map[ev.station_id]
+                    ]
         return schedule
 
 
@@ -230,11 +243,12 @@ def least_laxity_first(evs, iface):
         Returns:
             float: The laxity of the EV.
         """
-        lax = (ev.departure - iface.current_time) - \
-              (iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id))
+        lax = (ev.departure - iface.current_time) - (
+            iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id)
+        )
         return lax
 
-    return sorted(evs, key=lambda x: laxity(x))
+    return sorted(evs, key=laxity)
 
 
 def largest_remaining_processing_time(evs, iface):
@@ -258,9 +272,7 @@ def largest_remaining_processing_time(evs, iface):
         Returns:
             float: The minimum remaining processing time of the EV.
         """
-        rpt = (iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id))
+        rpt = iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id)
         return rpt
 
-    return sorted(evs, key=lambda x: remaining_processing_time(x), reverse=True)
-
-
+    return sorted(evs, key=remaining_processing_time, reverse=True)

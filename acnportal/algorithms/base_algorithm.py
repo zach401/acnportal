@@ -29,8 +29,10 @@ class BaseAlgorithm:
         if self._interface is not None:
             return self._interface
         else:
-            raise ValueError('No interface has been registered yet. Please call register_interface prior to using the'
-                             'algorithm.')
+            raise ValueError(
+                "No interface has been registered yet. Please call register_interface prior to using the"
+                "algorithm."
+            )
 
     def register_interface(self, interface):
         """ Register interface to the _simulator/physical system.
