@@ -452,19 +452,15 @@ class Interface:
         )
 
     def get_prices(self, length, start=None):
-        """ Get a vector of prices beginning at time start and continuing for
-            length periods. ($/kWh)
+        """ Get a vector of prices beginning at time start and continuing for length periods. ($/kWh)
 
         Args:
-            length (int): Number of elements in the prices vector. One entry
-                per period.
-            start (int): Time step of the simulation where price vector should
-                begin. If None, uses the current timestep of the simulation.
-                Default None.
+            length (int): Number of elements in the prices vector. One entry per period.
+            start (int): Time step of the simulation where price vector should begin. If None, uses the current timestep
+                of the simulation. Default None.
 
         Returns:
-            np.ndarray[float]: Array of floats where each entry is the price
-                for the corresponding period. ($/kWh)
+            np.ndarray[float]: Array of floats where each entry is the price for the corresponding period. ($/kWh)
         """
         if "tariff" in self._simulator.signals:
             if start is None:
@@ -482,9 +478,8 @@ class Interface:
         """ Get the demand charge for the given period. ($/kW)
 
         Args:
-            start (int): Time step of the simulation where price vector should
-                begin. If None, uses the current timestep of the simulation.
-                Default None.
+            start (int): Time step of the simulation where price vector should begin. If None, uses the current timestep
+                of the simulation. Default None.
 
         Returns:
             float: Demand charge for the given period. ($/kW)

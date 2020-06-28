@@ -3,7 +3,6 @@ from copy import copy
 
 import numpy as np
 from .base_algorithm import BaseAlgorithm
-from acnportal.acnsim.interface import InfrastructureInfo, SessionInfo
 from .utils import infrastructure_constraints_feasible
 from .postprocessing import format_array_schedule
 from .preprocessing import (
@@ -68,8 +67,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             self.max_rate_estimator.register_interface(interface)
 
     def sorting_algorithm(self, active_sessions, infrastructure):
-        """ Schedule EVs by first sorting them by sort_fn, then allocating
-            them their maximum feasible rate.
+        """ Schedule EVs by first sorting them by sort_fn, then allocating them their maximum feasible rate.
 
         Implements abstract method schedule from BaseAlgorithm.
 
@@ -106,9 +104,30 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             lb = max(0, session.min_rates[0])
             # ub = max(lb, session.max_rates[0])
             if infrastructure.is_continuous[station_index]:
+                charging_rate = self.max_feasible_rate(station_index,
+                                                       ub,
+                                                       schedule,
+                                                       infrastructure,
+                                                       eps=0.0001)
+||||||||| 5f02583
+        ev_queue = self._sort_fn(active_evs, self.interface)
+        schedule = {ev.station_id: [0] for ev in active_evs}
+        for ev in ev_queue:
+            continuous, allowable_rates = self.interface.allowable_pilot_signals(ev.station_id)
+            if continuous:
+                charging_rate = self.max_feasible_rate(ev.station_id, allowable_rates[-1], schedule, eps=0.01)
+=========
+        ev_queue = self._sort_fn(active_evs, self.interface)
+        schedule = {ev.station_id: [0] for ev in active_evs}
+        for ev in ev_queue:
+            continuous, allowable_rates = self.interface.allowable_pilot_signals(
+                ev.station_id
+            )
+            if continuous:
                 charging_rate = self.max_feasible_rate(
                     station_index, ub, schedule, infrastructure, eps=0.01, lb=lb
                 )
+>>>>>>>>> Temporary merge branch 2
             else:
                 allowable = [
                     a
@@ -195,7 +214,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Args:
             station_index (int): Index for the station in the schedule
                 vector.
-            allowable_pilots List[float]: List of allowable charging rates
+            allowable_pilots (List[float]): List of allowable charging rates
                 sorted in ascending order.
             schedule (Dict[str, List[float]]): Dictionary mapping a station_id
                 to a list of already fixed charging rates.

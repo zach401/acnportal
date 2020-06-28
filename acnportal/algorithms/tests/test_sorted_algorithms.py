@@ -31,6 +31,13 @@ Scenario = namedtuple("Scenario", ["name", "schedule", "interface", "congested"]
 
 
 class BaseAlgorithmTest(unittest.TestCase):
+    @staticmethod
+    def get_interface(limit):
+        raise NotImplementedError(
+            "BaseAlgorithmTest is an abstract class. "
+            "Must implement get_interface method."
+        )
+
     @classmethod
     def setUpClass(cls):
         cls.scenarios = []
