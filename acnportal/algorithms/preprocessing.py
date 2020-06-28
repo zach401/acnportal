@@ -30,15 +30,17 @@ def least_laxity_first(evs, iface):
         Returns:
             float: The laxity of the EV.
         """
-        lax = (ev.departure - iface.current_time) - \
-              (iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id))
+        lax = (ev.departure - iface.current_time) - (
+            iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id)
+        )
         return lax
 
     return sorted(evs, key=lambda x: laxity(x))
 
 
-def enforce_pilot_limit(active_sessions: List[SessionInfo],
-                        infrastructure: InfrastructureInfo):
+def enforce_pilot_limit(
+    active_sessions: List[SessionInfo], infrastructure: InfrastructureInfo
+):
     """ Update the max_rates vector for each session to be less than the max
         pilot supported by its EVSE.
 
@@ -55,8 +57,7 @@ def enforce_pilot_limit(active_sessions: List[SessionInfo],
     new_sessions = deepcopy(active_sessions)
     for session in new_sessions:
         i = infrastructure.get_station_index(session.station_id)
-        session.max_rates = np.minimum(session.max_rates,
-                                       infrastructure.max_pilot[i])
+        session.max_rates = np.minimum(session.max_rates, infrastructure.max_pilot[i])
     return new_sessions
 
 
@@ -97,16 +98,15 @@ def expand_max_min_rates(active_sessions: List[SessionInfo]):
     new_sessions = deepcopy(active_sessions)
     for session in new_sessions:
         if np.isscalar(session.max_rates):
-            session.max_rates = np.full(session.max_rates,
-                                        session.remaining_time)
+            session.max_rates = np.full(session.max_rates, session.remaining_time)
         if np.isscalar(session.min_rates):
-            session.min_rates = np.full(session.min_rates,
-                                        session.remaining_time)
+            session.min_rates = np.full(session.min_rates, session.remaining_time)
     return new_sessions
 
 
-def apply_upper_bound_estimate(ub_estimator: UpperBoundEstimatorBase,
-                               active_sessions: List[SessionInfo]):
+def apply_upper_bound_estimate(
+    ub_estimator: UpperBoundEstimatorBase, active_sessions: List[SessionInfo]
+):
     """ Update max_rate in each SessionInfo object.
 
         If rampdown max_rate is less than min_rate, max_rate is set
@@ -125,19 +125,21 @@ def apply_upper_bound_estimate(ub_estimator: UpperBoundEstimatorBase,
     new_sessions = expand_max_min_rates(active_sessions)
     upper_bounds = ub_estimator.get_maximum_rates(active_sessions)
     for j, session in enumerate(new_sessions):
-        session.max_rates = np.minimum(session.max_rates,
-                                       upper_bounds.get(session.station_id,
-                                                        float('inf')))
+        session.max_rates = np.minimum(
+            session.max_rates, upper_bounds.get(session.station_id, float("inf"))
+        )
         new_sessions[j] = reconcile_max_and_min(session)
         if np.any(session.max_rates < 32):
             pass
     return new_sessions
 
 
-def apply_minimum_charging_rate(active_sessions: List[SessionInfo],
-                                infrastructure: InfrastructureInfo,
-                                interface,
-                                override=float('inf'),):
+def apply_minimum_charging_rate(
+    active_sessions: List[SessionInfo],
+    infrastructure: InfrastructureInfo,
+    interface,
+    override=float("inf"),
+):
     """ Modify active_sessions so that min_rates[0] is equal to the greater of
         the session minimum rate and the EVSE minimum pilot.
 
@@ -162,8 +164,9 @@ def apply_minimum_charging_rate(active_sessions: List[SessionInfo],
     for j, session in enumerate(session_queue):
         i = infrastructure.station_ids.index(session.station_id)
         rates[i] = min(infrastructure.min_pilot[i], override)
-        if rates[i] <= interface.remaining_amp_periods(session) and \
-                infrastructure_constraints_feasible(rates, infrastructure):
+        if rates[i] <= interface.remaining_amp_periods(
+            session
+        ) and infrastructure_constraints_feasible(rates, infrastructure):
             # Preserve existing min_rate if it is greater than the new one
             session.min_rates[0] = max(rates[i], session.min_rates[0])
             # Increase the maximum rate if it is less than the new min.

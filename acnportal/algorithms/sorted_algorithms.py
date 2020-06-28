@@ -6,8 +6,11 @@ from .base_algorithm import BaseAlgorithm
 from acnportal.acnsim.interface import InfrastructureInfo, SessionInfo
 from .utils import infrastructure_constraints_feasible
 from .postprocessing import format_array_schedule
-from .preprocessing import enforce_pilot_limit, apply_upper_bound_estimate, \
-    apply_minimum_charging_rate
+from .preprocessing import (
+    enforce_pilot_limit,
+    apply_upper_bound_estimate,
+    apply_minimum_charging_rate,
+)
 from warnings import warn
 
 
@@ -27,9 +30,14 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             sorted according to some metric.
     """
 
-    def __init__(self, sort_fn, estimate_max_rate=False,
-                 max_rate_estimator=None, uninterrupted_charging=False,
-                 allow_overcharging=False):
+    def __init__(
+        self,
+        sort_fn,
+        estimate_max_rate=False,
+        max_rate_estimator=None,
+        uninterrupted_charging=False,
+        allow_overcharging=False,
+    ):
         super().__init__()
         self._sort_fn = sort_fn
         # Call algorithm each period since it only returns a rate for the
@@ -81,44 +89,46 @@ class SortedSchedulingAlgo(BaseAlgorithm):
 
         # Start each EV at its lower bound
         for session in queue:
-            station_index = infrastructure.get_station_index(
-                session.station_id)
+            station_index = infrastructure.get_station_index(session.station_id)
             lb = max(0, session.min_rates[0])
             schedule[station_index] = lb
 
         if not infrastructure_constraints_feasible(schedule, infrastructure):
-            raise ValueError('Charging all sessions at their lower bound '
-                             'is not feasible.')
+            raise ValueError(
+                "Charging all sessions at their lower bound " "is not feasible."
+            )
 
         for session in queue:
-            station_index = infrastructure.get_station_index(
-                session.station_id)
-            ub = min(session.max_rates[0],
-                     self.interface.remaining_amp_periods(session))
+            station_index = infrastructure.get_station_index(session.station_id)
+            ub = min(
+                session.max_rates[0], self.interface.remaining_amp_periods(session)
+            )
             lb = max(0, session.min_rates[0])
             # ub = max(lb, session.max_rates[0])
             if infrastructure.is_continuous[station_index]:
-                charging_rate = self.max_feasible_rate(station_index,
-                                                       ub,
-                                                       schedule,
-                                                       infrastructure,
-                                                       eps=0.01,
-                                                       lb=lb)
+                charging_rate = self.max_feasible_rate(
+                    station_index, ub, schedule, infrastructure, eps=0.01, lb=lb
+                )
             else:
-                allowable = [a for a in infrastructure.allowable_pilots[
-                    station_index] if lb <= a <= ub]
+                allowable = [
+                    a
+                    for a in infrastructure.allowable_pilots[station_index]
+                    if lb <= a <= ub
+                ]
 
                 if len(allowable) == 0:
                     charging_rate = 0
                 else:
                     charging_rate = self.discrete_max_feasible_rate(
-                        station_index, allowable, schedule, infrastructure)
+                        station_index, allowable, schedule, infrastructure
+                    )
             schedule[station_index] = charging_rate
         return schedule
 
     @staticmethod
-    def max_feasible_rate(station_index, ub, schedule, infrastructure,
-                          eps=0.0001, lb=0.):
+    def max_feasible_rate(
+        station_index, ub, schedule, infrastructure, eps=0.0001, lb=0.0
+    ):
         """ Return the maximum feasible rate less than ub subject to the environment's constraints.
 
         If schedule contains non-zero elements at the given time, these are
@@ -147,6 +157,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             float: maximum feasible rate less than ub subject to the
                 environment's constraints. [A]
         """
+
         def bisection(_index, _lb, _ub, _schedule):
             """ Use the bisection method to find the maximum feasible charging
                 rate for the EV. """
@@ -155,14 +166,13 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             new_schedule[_index] = mid
             if (_ub - _lb) <= eps:
                 return _lb
-            elif infrastructure_constraints_feasible(new_schedule,
-                                                     infrastructure):
+            elif infrastructure_constraints_feasible(new_schedule, infrastructure):
                 return bisection(_index, mid, _ub, new_schedule)
             else:
                 return bisection(_index, _lb, mid, new_schedule)
 
         if not infrastructure_constraints_feasible(schedule, infrastructure):
-            raise ValueError('The initial schedule is not feasible.')
+            raise ValueError("The initial schedule is not feasible.")
 
         # Test maximum rate to short-circuit bisection
         new_schedule = copy(schedule)
@@ -172,8 +182,9 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         return bisection(station_index, lb, ub, schedule)
 
     @staticmethod
-    def discrete_max_feasible_rate(station_index, allowable_pilots,
-                                   schedule, infrastructure):
+    def discrete_max_feasible_rate(
+        station_index, allowable_pilots, schedule, infrastructure
+    ):
         """ Return the maximum feasible allowable rate subject to the
             infrastructure's constraints.
 
@@ -196,12 +207,11 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 infrastructure's constraints. [A]
         """
         if not infrastructure_constraints_feasible(schedule, infrastructure):
-            raise ValueError('The initial schedule is not feasible.')
+            raise ValueError("The initial schedule is not feasible.")
         new_schedule = copy(schedule)
         feasible_idx = len(allowable_pilots) - 1
         new_schedule[station_index] = allowable_pilots[feasible_idx]
-        while not infrastructure_constraints_feasible(new_schedule,
-                                                      infrastructure):
+        while not infrastructure_constraints_feasible(new_schedule, infrastructure):
             feasible_idx -= 1
             if feasible_idx < 0:
                 new_schedule[station_index] = 0
@@ -226,17 +236,18 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         infrastructure = self.interface.infrastructure_info()
         active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
         if self.estimate_max_rate:
-            active_sessions = apply_upper_bound_estimate(self.max_rate_estimator,
-                                                         active_sessions)
+            active_sessions = apply_upper_bound_estimate(
+                self.max_rate_estimator, active_sessions
+            )
         if self.uninterrupted_charging:
             active_sessions = apply_minimum_charging_rate(
-                active_sessions, infrastructure, self.interface)
+                active_sessions, infrastructure, self.interface
+            )
         if self.allow_overcharging:
-            warn('allow_overcharging is currently not supported.')
+            warn("allow_overcharging is currently not supported.")
             # active_sessions = inc_remaining_energy_to_min_allowable(
             #     active_sessions, infrastructure, self.interface.period)
-        array_schedule = self.sorting_algorithm(active_sessions,
-                                                infrastructure)
+        array_schedule = self.sorting_algorithm(active_sessions, infrastructure)
         return format_array_schedule(array_schedule, infrastructure)
 
 
@@ -264,11 +275,19 @@ class RoundRobin(SortedSchedulingAlgo):
         continuous_inc (float): Increment to use when pilot signal is
             continuously controllable.
     """
-    def __init__(self, sort_fn, estimate_max_rate=False,
-                 max_rate_estimator=None, uninterrupted_charging=False,
-                 continuous_inc=0.1, allow_overcharging=False):
-        super().__init__(sort_fn, estimate_max_rate, max_rate_estimator,
-                         uninterrupted_charging)
+
+    def __init__(
+        self,
+        sort_fn,
+        estimate_max_rate=False,
+        max_rate_estimator=None,
+        uninterrupted_charging=False,
+        continuous_inc=0.1,
+        allow_overcharging=False,
+    ):
+        super().__init__(
+            sort_fn, estimate_max_rate, max_rate_estimator, uninterrupted_charging
+        )
         self.continuous_inc = continuous_inc
 
     def round_robin(self, active_sessions, infrastructure):
@@ -294,28 +313,34 @@ class RoundRobin(SortedSchedulingAlgo):
             # If pilot signal is continuous discretize it with increments of
             # continuous_inc.
             if infrastructure.is_continuous[i]:
-                infrastructure.allowable_pilots[i] = \
-                    np.arange(session.min_rates[0],
-                              session.max_rates[0]+1e-7,
-                              self.continuous_inc)
-            ub = min(session.max_rates[0], infrastructure.max_pilot[i],
-                     self.interface.remaining_amp_periods(session))
+                infrastructure.allowable_pilots[i] = np.arange(
+                    session.min_rates[0],
+                    session.max_rates[0] + 1e-7,
+                    self.continuous_inc,
+                )
+            ub = min(
+                session.max_rates[0],
+                infrastructure.max_pilot[i],
+                self.interface.remaining_amp_periods(session),
+            )
             lb = max(0, session.min_rates[0])
             # Remove any charging rates which are not feasible.
-            infrastructure.allowable_pilots[i] = [a for a in
-                                                  infrastructure.allowable_pilots[i] if lb <= a <= ub]
+            infrastructure.allowable_pilots[i] = [
+                a for a in infrastructure.allowable_pilots[i] if lb <= a <= ub
+            ]
             # All charging rates should start at their lower bound
             schedule[i] = lb
 
         if not infrastructure_constraints_feasible(schedule, infrastructure):
-            raise ValueError('Charging all sessions at their lower bound '
-                             'is not feasible.')
+            raise ValueError(
+                "Charging all sessions at their lower bound " "is not feasible."
+            )
 
         while len(queue) > 0:
             session = queue.popleft()
             i = infrastructure.get_station_index(session.station_id)
             if rate_idx[i] < len(infrastructure.allowable_pilots[i]) - 1:
-                schedule[i] = infrastructure.allowable_pilots[i][rate_idx[i]+1]
+                schedule[i] = infrastructure.allowable_pilots[i][rate_idx[i] + 1]
                 if infrastructure_constraints_feasible(schedule, infrastructure):
                     rate_idx[i] += 1
                     queue.append(session)
@@ -340,18 +365,18 @@ class RoundRobin(SortedSchedulingAlgo):
         active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
         if self.estimate_max_rate:
             active_sessions = apply_upper_bound_estimate(
-                self.max_rate_estimator,
-                active_sessions)
+                self.max_rate_estimator, active_sessions
+            )
         if self.uninterrupted_charging:
             active_sessions = apply_minimum_charging_rate(
-                active_sessions, infrastructure, self.interface)
+                active_sessions, infrastructure, self.interface
+            )
         if self.allow_overcharging:
-            warn('allow_overcharging is currently not supported.')
+            warn("allow_overcharging is currently not supported.")
             # active_sessions = inc_remaining_energy_to_min_allowable(
             #     active_sessions, infrastructure, self.interface.period)
         array_schedule = self.round_robin(active_sessions, infrastructure)
         return format_array_schedule(array_schedule, infrastructure)
-
 
 
 # -------------------- Sorting Functions --------------------------
@@ -415,8 +440,9 @@ def least_laxity_first(evs, iface):
         Returns:
             float: The laxity of the EV.
         """
-        lax = (ev.departure - iface.current_time) - \
-              (iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id))
+        lax = (ev.departure - iface.current_time) - (
+            iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id)
+        )
         return lax
 
     return sorted(evs, key=laxity)

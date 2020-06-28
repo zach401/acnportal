@@ -85,6 +85,7 @@ class BaseAlgorithm:
         start_time = time.perf_counter()
         schedules = self.schedule(active_sessions)
         solve_time = time.perf_counter() - start_time
-        self.solve_stats.append({'solve_time': solve_time,
-                                 'active_sessions': len(active_sessions)})
+        self.solve_stats.append(
+            {"solve_time": solve_time, "active_sessions": len(active_sessions)}
+        )
         return schedules

@@ -30,10 +30,20 @@ class SessionInfo:
                 departure - arrival and each entry is a upper bound for the
                 corresponding time period.
     """
-    def __init__(self, station_id, session_id, requested_energy,
-                 energy_delivered, arrival, departure,
-                 estimated_departure=None, current_time=0, min_rates=0,
-                 max_rates=float('inf')):
+
+    def __init__(
+        self,
+        station_id,
+        session_id,
+        requested_energy,
+        energy_delivered,
+        arrival,
+        departure,
+        estimated_departure=None,
+        current_time=0,
+        min_rates=0,
+        max_rates=float("inf"),
+    ):
         self.station_id = station_id
         self.session_id = session_id
         self.requested_energy = requested_energy
@@ -42,10 +52,16 @@ class SessionInfo:
         self.departure = departure
         self.estimated_departure = estimated_departure
         self.current_time = current_time
-        self.min_rates = np.array([min_rates] * self.remaining_time) if \
-            np.isscalar(min_rates) else np.array(min_rates)
-        self.max_rates = np.array([max_rates] * self.remaining_time) if  \
-            np.isscalar(max_rates) else np.array(max_rates)
+        self.min_rates = (
+            np.array([min_rates] * self.remaining_time)
+            if np.isscalar(min_rates)
+            else np.array(min_rates)
+        )
+        self.max_rates = (
+            np.array([max_rates] * self.remaining_time)
+            if np.isscalar(max_rates)
+            else np.array(max_rates)
+        )
 
     @property
     def remaining_demand(self):
@@ -94,24 +110,41 @@ class InfrastructureInfo:
         is_continuous (np.array[bool]): True if a station supports continuous
             pilot signals, False otherwise.
     """
-    def __init__(self, constraint_matrix, constraint_limits, phases,
-                 voltages,  constraint_ids, station_ids, max_pilot,
-                 min_pilot, allowable_pilots=None, is_continuous=None):
+
+    def __init__(
+        self,
+        constraint_matrix,
+        constraint_limits,
+        phases,
+        voltages,
+        constraint_ids,
+        station_ids,
+        max_pilot,
+        min_pilot,
+        allowable_pilots=None,
+        is_continuous=None,
+    ):
         self.constraint_matrix = constraint_matrix
         self.constraint_limits = constraint_limits
         self.phases = phases
         self.voltages = voltages
         self.constraint_ids = constraint_ids
         self.station_ids = station_ids
-        self._station_ids_dict = {station_id: i for i, station_id in
-                                  enumerate(self.station_ids)}
+        self._station_ids_dict = {
+            station_id: i for i, station_id in enumerate(self.station_ids)
+        }
         self.max_pilot = max_pilot
         self.min_pilot = min_pilot
-        self.allowable_pilots = allowable_pilots if \
-            allowable_pilots is not None else [None] * self.num_stations
-        self.is_continuous = is_continuous if \
-            is_continuous is not None else np.ones(self.num_stations,
-                                                   dtype=bool)
+        self.allowable_pilots = (
+            allowable_pilots
+            if allowable_pilots is not None
+            else [None] * self.num_stations
+        )
+        self.is_continuous = (
+            is_continuous
+            if is_continuous is not None
+            else np.ones(self.num_stations, dtype=bool)
+        )
 
     @property
     def num_stations(self):
@@ -134,10 +167,12 @@ class Interface:
         Returns:
             List[EV]: List of EVs currently plugged in and not finished.
         """
-        warn('Property active_evs is depreciated and will be removed in a '
-             'future version. Please use active_sessions instead, '
-             'as it provides a read-only copy of charging session related '
-             'information.')
+        warn(
+            "Property active_evs is depreciated and will be removed in a "
+            "future version. Please use active_sessions instead, "
+            "as it provides a read-only copy of charging session related "
+            "information."
+        )
         return self._active_evs
 
     @property
@@ -162,8 +197,13 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i]
-                    for ev in self._active_evs if ev.arrival <= i}
+            return {
+                ev.session_id: self._simulator.pilot_signals[
+                    self._simulator.index_of_evse(ev.station_id), i
+                ]
+                for ev in self._active_evs
+                if ev.arrival <= i
+            }
         else:
             return {}
 
@@ -194,8 +234,9 @@ class Interface:
             datetime: The datetime corresponding to the  current time step of
                 the simulator.
         """
-        return self._simulator.start + \
-            timedelta(minutes=self.period) * self.current_time
+        return (
+            self._simulator.start + timedelta(minutes=self.period) * self.current_time
+        )
 
     @property
     def period(self):
@@ -213,8 +254,19 @@ class Interface:
         Returns:
             List[SessionInfo]: List of currently active charging sessions.
         """
-        return [SessionInfo(ev.station_id, ev.session_id, ev.requested_energy, ev.energy_delivered, ev.arrival,
-                            ev.departure, ev.estimated_departure, self.current_time) for ev in self._active_evs]
+        return [
+            SessionInfo(
+                ev.station_id,
+                ev.session_id,
+                ev.requested_energy,
+                ev.energy_delivered,
+                ev.arrival,
+                ev.departure,
+                ev.estimated_departure,
+                self.current_time,
+            )
+            for ev in self._active_evs
+        ]
 
     def infrastructure_info(self):
         """ Returns an InfrastructureInfo object generated from interface.
@@ -224,8 +276,12 @@ class Interface:
         """
         network = self._simulator.network
         station_ids = network.station_ids
-        max_pilot_signals = np.array([self.max_pilot_signal(station_id) for station_id in station_ids])
-        min_pilot_signals = np.array([self.min_pilot_signal(station_id) for station_id in station_ids])
+        max_pilot_signals = np.array(
+            [self.max_pilot_signal(station_id) for station_id in station_ids]
+        )
+        min_pilot_signals = np.array(
+            [self.min_pilot_signal(station_id) for station_id in station_ids]
+        )
         allowable_rates = []
         is_continuous = []
         for station_id in station_ids:
@@ -233,16 +289,18 @@ class Interface:
             allowable_rates.append(np.array(allowable))
             is_continuous.append(continuous)
         is_continuous = np.array(is_continuous)
-        return InfrastructureInfo(network.constraint_matrix,
-                                  network.magnitudes,
-                                  network._phase_angles,
-                                  network._voltages,
-                                  network.constraint_index,
-                                  station_ids,
-                                  max_pilot_signals,
-                                  min_pilot_signals,
-                                  allowable_rates,
-                                  is_continuous)
+        return InfrastructureInfo(
+            network.constraint_matrix,
+            network.magnitudes,
+            network._phase_angles,
+            network._voltages,
+            network.constraint_index,
+            station_ids,
+            max_pilot_signals,
+            min_pilot_signals,
+            allowable_rates,
+            is_continuous,
+        )
 
     def allowable_pilot_signals(self, station_id):
         """ Returns the allowable pilot signal levels for the specified EVSE.

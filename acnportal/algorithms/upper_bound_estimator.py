@@ -27,8 +27,9 @@ class UpperBoundEstimatorBase:
             return self._interface
         else:
             raise ValueError(
-                'No interface has been registered yet. Please call '
-                'register_interface prior to using the algorithm.')
+                "No interface has been registered yet. Please call "
+                "register_interface prior to using the algorithm."
+            )
 
     def register_interface(self, interface):
         """ Register interface to the _simulator/physical system.
@@ -56,7 +57,7 @@ class UpperBoundEstimatorBase:
             dict(str, float): Dictionary mapping session_ids to maximum
                 charging rates.
         """
-        raise NotImplementedError('Rampdown is an abstract class.')
+        raise NotImplementedError("Rampdown is an abstract class.")
 
 
 class SimpleRampdown(UpperBoundEstimatorBase):

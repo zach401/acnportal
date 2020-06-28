@@ -5,6 +5,7 @@ import json
 import operator
 import os
 import numpy as np
+
 # noinspection PyProtectedMember
 from pydoc import locate
 import warnings
@@ -70,6 +71,7 @@ class ErrorAllWrapper:
     def data(self):
         return self._data
 
+
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.integer):
@@ -80,6 +82,7 @@ class NpEncoder(json.JSONEncoder):
             return obj.tolist()
         else:
             return super(NpEncoder, self).default(obj)
+
 
 class BaseSimObj:
     """
