@@ -3,7 +3,6 @@ from copy import copy
 
 import numpy as np
 from .base_algorithm import BaseAlgorithm
-from acnportal.acnsim.interface import InfrastructureInfo
 from .utils import infrastructure_constraints_feasible
 from .postprocessing import format_array_schedule
 
