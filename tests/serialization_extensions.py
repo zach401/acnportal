@@ -5,6 +5,7 @@ from acnportal.acnsim.base import BaseSimObj
 
 class NamedEvent(acnsim.Event):
     """ An extension of Event that has a name. """
+
     def __init__(self, timestamp, name):
         super().__init__(timestamp)
         self.name = name
@@ -12,6 +13,7 @@ class NamedEvent(acnsim.Event):
 
 class DefaultNamedEvent(acnsim.Event):
     """ An extension of Event that has a name with a default. """
+
     def __init__(self, timestamp, name="my_event"):
         super().__init__(timestamp)
         self.name = name
@@ -19,6 +21,7 @@ class DefaultNamedEvent(acnsim.Event):
 
 class SetAttrEvent(acnsim.Event):
     """ An extension of Event with a settable attribute. """
+
     def __init__(self, timestamp):
         super().__init__(timestamp)
 
@@ -29,6 +32,7 @@ class SetAttrEvent(acnsim.Event):
 
 class BatteryListEvent(acnsim.Event):
     """ An extension of Event with a list of Batteries. """
+
     def __init__(self, timestamp, battery_list):
         super().__init__(timestamp)
         self.battery_list = battery_list
@@ -39,17 +43,18 @@ class BatteryListEvent(acnsim.Event):
         for ev in self.battery_list:
             # noinspection PyProtectedMember
             registry, context_dict = ev._to_registry(context_dict=context_dict)
-            battery_list.append(registry['id'])
-        attribute_dict['battery_list'] = battery_list
+            battery_list.append(registry["id"])
+        attribute_dict["battery_list"] = battery_list
         return attribute_dict, context_dict
 
     @classmethod
     def _from_dict(cls, attribute_dict, context_dict=None, loaded_dict=None):
         battery_list = []
-        for ev in attribute_dict['battery_list']:
+        for ev in attribute_dict["battery_list"]:
             # noinspection PyProtectedMember
             ev_elt, loaded_dict = BaseSimObj._build_from_id(
-                ev, context_dict=context_dict, loaded_dict=loaded_dict)
+                ev, context_dict=context_dict, loaded_dict=loaded_dict
+            )
             battery_list.append(ev_elt)
-        out_obj = cls(attribute_dict['timestamp'], battery_list)
+        out_obj = cls(attribute_dict["timestamp"], battery_list)
         return out_obj, loaded_dict

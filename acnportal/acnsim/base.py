@@ -4,6 +4,7 @@ This module contains a base class shared by all ACN-Sim objects.
 import json
 import operator
 import os
+
 # noinspection PyProtectedMember
 from pydoc import locate
 import warnings
@@ -12,7 +13,7 @@ import pandas
 from pandas.io.common import stringify_path, get_handle, get_filepath_or_buffer
 import numpy
 
-__NOT_SERIALIZED_FLAG__ = '__NOT_SERIALIZED__'
+__NOT_SERIALIZED_FLAG__ = "__NOT_SERIALIZED__"
 
 
 # Uses methodology discussed in https://stackoverflow.com/a/16372436
@@ -20,8 +21,9 @@ __NOT_SERIALIZED_FLAG__ = '__NOT_SERIALIZED__'
 
 
 def _operator_error_hooks(cls):
-    operator_hooks = [name for name in dir(operator)
-                      if name.startswith('__') and name.endswith('__')]
+    operator_hooks = [
+        name for name in dir(operator) if name.startswith("__") and name.endswith("__")
+    ]
 
     def add_hook(name):
         # noinspection PyUnusedLocal
@@ -31,6 +33,7 @@ def _operator_error_hooks(cls):
                 f"callable. Call {name} after correctly instantiating"
                 f" this object."
             )
+
         try:
             setattr(cls, name, op_hook)
         except (AttributeError, TypeError):
@@ -50,11 +53,12 @@ class ErrorAllWrapper:
     string, an error is raised. The only attribute accessible is the
     data attribute, which returns the wrapped string.
     """
+
     def __init__(self, data):
         self._data = data
 
     def __getattr__(self, item):
-        if item == 'data':
+        if item == "data":
             return
         raise TypeError(
             f"This object is a stub object whose methods are not "
@@ -72,6 +76,7 @@ class BaseSimObj:
     Base class for all ACN-Sim objects. Includes functions for
     representation and serialization of ACN-Sim objects.
     """
+
     def __repr__(self):
         """
         General string representation of an ACN-Sim object. Unless they
@@ -86,17 +91,17 @@ class BaseSimObj:
         """
         attr_repr_lst = []
         for key, value in self.__dict__.items():
-            if value.__class__.__module__ == 'builtins':
+            if value.__class__.__module__ == "builtins":
                 try:
                     _ = iter(value)
                 except TypeError:
-                    attr_repr_lst.append(f'{key}={value}')
+                    attr_repr_lst.append(f"{key}={value}")
                 else:
-                    attr_repr_lst.append(f'{key}={object.__repr__(value)}')
+                    attr_repr_lst.append(f"{key}={object.__repr__(value)}")
             else:
-                attr_repr_lst.append(f'{key}={object.__repr__(value)}')
-        attr_repr = ', '.join(attr_repr_lst)
-        return f'{self.__module__}.{self.__class__.__name__}({attr_repr})'
+                attr_repr_lst.append(f"{key}={object.__repr__(value)}")
+        attr_repr = ", ".join(attr_repr_lst)
+        return f"{self.__module__}.{self.__class__.__name__}({attr_repr})"
 
     @staticmethod
     def _none_to_empty_dict(*args):
@@ -128,14 +133,14 @@ class BaseSimObj:
                 f"Missing a recorded version of acnportal in the dict "
                 f"representation. Loading will not run an acnportal "
                 f"version check.",
-                UserWarning
+                UserWarning,
             )
         if json_serializable_data["dependency_versions"] is None:
             warnings.warn(
                 f"Missing recorded versions of dependencies in the "
                 f"dict representation. Loading will not run a "
                 f"dependency version check.",
-                UserWarning
+                UserWarning,
             )
         path_or_buf = stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
@@ -231,15 +236,15 @@ class BaseSimObj:
 
         """
         first_call = context_dict is None
-        context_dict, = self._none_to_empty_dict(context_dict)
-        obj_id = f'{id(self)}'
+        (context_dict,) = self._none_to_empty_dict(context_dict)
+        obj_id = f"{id(self)}"
 
         # Check if this object has already been converted, and return
         # the appropriate dict if this is the case.
         if obj_id in context_dict:
-            return {'id': obj_id, 'context_dict': context_dict}, context_dict
+            return {"id": obj_id, "context_dict": context_dict}, context_dict
 
-        obj_type = f'{self.__module__}.{self.__class__.__name__}'
+        obj_type = f"{self.__module__}.{self.__class__.__name__}"
 
         # Get a dictionary of the attributes of this object using the
         # object's _to_dict method.
@@ -248,15 +253,14 @@ class BaseSimObj:
         # Check that all attributes have been serialized.
         # Warn if some attributes weren't serialized.
         if attribute_dict.keys() != self.__dict__.keys():
-            unserialized_keys = \
-                set(self.__dict__.keys()) - set(attribute_dict.keys())
+            unserialized_keys = set(self.__dict__.keys()) - set(attribute_dict.keys())
             warnings.warn(
                 f"Attributes {unserialized_keys} present in object of "
                 f"type {obj_type} but not handled by object's _to_dict "
                 f"method. Serialized object may not load correctly. "
                 f"Write a _to_dict method and re-dump, or write an "
                 f"appropriate _from_dict method to accurately load.",
-                UserWarning
+                UserWarning,
             )
             for key in unserialized_keys:
                 unserialized_attr = self.__dict__[key]
@@ -264,8 +268,9 @@ class BaseSimObj:
                     # Try calling the attr's _to_registry method.
                     # noinspection PyProtectedMember
                     registry, context_dict = unserialized_attr._to_registry(
-                        context_dict=context_dict)
-                    attribute_dict[key] = registry['id']
+                        context_dict=context_dict
+                    )
+                    attribute_dict[key] = registry["id"]
                     continue
                 # Try dumping the object using the native JSON
                 # serializer.
@@ -277,14 +282,16 @@ class BaseSimObj:
                         f"Dumping the attribute's repr() "
                         f"representation. This attribute will not be "
                         f"fully loaded.",
-                        UserWarning
+                        UserWarning,
                     )
-                    attribute_dict[key] = [__NOT_SERIALIZED_FLAG__,
-                                           repr(unserialized_attr)]
+                    attribute_dict[key] = [
+                        __NOT_SERIALIZED_FLAG__,
+                        repr(unserialized_attr),
+                    ]
                 else:
                     attribute_dict[key] = unserialized_attr
 
-        obj_dict = {'class': obj_type, 'attributes': attribute_dict}
+        obj_dict = {"class": obj_type, "attributes": attribute_dict}
         context_dict[obj_id] = obj_dict
 
         # Check versions of acnportal and certain dependencies.
@@ -292,15 +299,21 @@ class BaseSimObj:
         # empty, indicating the first level of the recursive call.
         acnportal_version, dependency_versions = None, None
         if first_call:
-            acnportal_version = pkg_resources.require('acnportal')[0].version
-            dependency_versions = {'numpy': numpy.__version__,
-                                   'pandas': pandas.__version__}
+            acnportal_version = pkg_resources.require("acnportal")[0].version
+            dependency_versions = {
+                "numpy": numpy.__version__,
+                "pandas": pandas.__version__,
+            }
 
-        return ({'id': obj_id,
-                 'context_dict': context_dict,
-                 'version': acnportal_version,
-                 'dependency_versions': dependency_versions},
-                context_dict)
+        return (
+            {
+                "id": obj_id,
+                "context_dict": context_dict,
+                "version": acnportal_version,
+                "dependency_versions": dependency_versions,
+            },
+            context_dict,
+        )
 
     def _to_dict(self, context_dict=None):
         """ Converts the object's attributes into a JSON serializable
@@ -356,23 +369,23 @@ class BaseSimObj:
             return loaded_dict[obj_id], loaded_dict
 
         if obj_id not in context_dict:
-            raise KeyError(
-                f"Object with ID {obj_id} not found in context_dict."
-            )
+            raise KeyError(f"Object with ID {obj_id} not found in context_dict.")
 
         # Get the class of this object from the context_dict.
-        obj_type = context_dict[obj_id]['class']
+        obj_type = context_dict[obj_id]["class"]
         obj_class = locate(obj_type)
 
         # 'version' is None since we've already checked the version of the
         # parent object.
         # noinspection PyProtectedMember
         obj, loaded_dict = obj_class._from_registry(
-            {'id': obj_id,
-             'context_dict': context_dict,
-             'version': None,
-             'dependency_versions': None},
-            loaded_dict=loaded_dict
+            {
+                "id": obj_id,
+                "context_dict": context_dict,
+                "version": None,
+                "dependency_versions": None,
+            },
+            loaded_dict=loaded_dict,
         )
 
         loaded_dict[obj_id] = obj
@@ -390,8 +403,7 @@ class BaseSimObj:
         """
         # The code here is from pandas 1.0.1, io.json.from_json(), with
         # modifications.
-        filepath_or_buffer, _, _, should_close = get_filepath_or_buffer(
-            path_or_buf)
+        filepath_or_buffer, _, _, should_close = get_filepath_or_buffer(path_or_buf)
 
         exists = False
         if isinstance(filepath_or_buffer, str):
@@ -417,14 +429,14 @@ class BaseSimObj:
                 f"Missing a recorded version of acnportal in the "
                 f"loaded registry. Object may have been dumped with a "
                 f"different version of acnportal.",
-                UserWarning
+                UserWarning,
             )
         if out_registry["dependency_versions"] is None:
             warnings.warn(
                 f"Missing recorded dependency versions of acnportal in "
                 f"the loaded registry. Object may have been dumped "
                 f"with different dependency versions of acnportal.",
-                UserWarning
+                UserWarning,
             )
 
         out_obj = cls._from_registry(out_registry)[0]
@@ -518,18 +530,18 @@ class BaseSimObj:
                 the loaded attribute will be incorrect.
 
         """
-        loaded_dict, = cls._none_to_empty_dict(loaded_dict)
+        (loaded_dict,) = cls._none_to_empty_dict(loaded_dict)
         obj_id, context_dict, acnportal_version, dependency_versions = (
-            in_registry['id'],
-            in_registry['context_dict'],
-            in_registry['version'],
-            in_registry['dependency_versions']
+            in_registry["id"],
+            in_registry["context_dict"],
+            in_registry["version"],
+            in_registry["dependency_versions"],
         )
 
         # Check current versions of acnportal and certain dependencies
         # against serialized versions.
         if acnportal_version is not None:
-            current_version = pkg_resources.require('acnportal')[0].version
+            current_version = pkg_resources.require("acnportal")[0].version
             if current_version != acnportal_version:
                 warnings.warn(
                     f"Version {acnportal_version} of input acnportal "
@@ -539,12 +551,11 @@ class BaseSimObj:
 
         if dependency_versions is not None:
             current_dependency_versions = {
-                'numpy': numpy.__version__,
-                'pandas': pandas.__version__
+                "numpy": numpy.__version__,
+                "pandas": pandas.__version__,
             }
             for pkg in dependency_versions.keys():
-                if (current_dependency_versions[pkg]
-                        != dependency_versions[pkg]):
+                if current_dependency_versions[pkg] != dependency_versions[pkg]:
                     warnings.warn(
                         f"Current version of dependency {pkg} does not "
                         f"match serialized version. "
@@ -555,46 +566,42 @@ class BaseSimObj:
         try:
             obj_dict = context_dict[obj_id]
         except KeyError:
-            raise KeyError(
-                f"Object with ID {obj_id} not found in context_dict.")
+            raise KeyError(f"Object with ID {obj_id} not found in context_dict.")
 
         # Check if this object has already been converted, and return
         # the appropriate dict if this is the case.
         if obj_id in loaded_dict:
             return loaded_dict[obj_id], loaded_dict
 
-        if obj_dict['class'] != f'{cls.__module__}.{cls.__name__}':
+        if obj_dict["class"] != f"{cls.__module__}.{cls.__name__}":
             warnings.warn(
                 f"Deserializing as type "
                 f"{cls.__module__}.{cls.__name__}. Object was "
                 f"serialized as type {obj_dict['class']}.",
-                UserWarning
+                UserWarning,
             )
 
         # attribute_dict is a dict mapping attribute names to JSON
         # serializable values.
-        attribute_dict = obj_dict['attributes']
+        attribute_dict = obj_dict["attributes"]
 
         # Call this class' _from_dict method to convert the JSON
         # representation of this object's attributes into the actual
         # object.
-        out_obj, loaded_dict = cls._from_dict(
-            attribute_dict, context_dict, loaded_dict)
+        out_obj, loaded_dict = cls._from_dict(attribute_dict, context_dict, loaded_dict)
 
         # Check that all attributes have been loaded.
         # Warn if some attributes weren't loaded.
         if out_obj.__dict__.keys() != attribute_dict.keys():
-            unloaded_attrs = (set(attribute_dict.keys())
-                              - set(out_obj.__dict__.keys()))
-            unrecorded_attrs = (set(out_obj.__dict__.keys())
-                                - set(attribute_dict.keys()))
+            unloaded_attrs = set(attribute_dict.keys()) - set(out_obj.__dict__.keys())
+            unrecorded_attrs = set(out_obj.__dict__.keys()) - set(attribute_dict.keys())
             if len(unloaded_attrs) > 0:
                 warnings.warn(
                     f"Attributes {unloaded_attrs} present in object of "
                     f"type {obj_dict['class']} but not handled by object's "
                     f"_from_dict method. Loaded object may have inaccurate "
                     f"attributes.",
-                    UserWarning
+                    UserWarning,
                 )
             if len(unrecorded_attrs) > 0:
                 warnings.warn(
@@ -602,29 +609,27 @@ class BaseSimObj:
                     f"type {obj_dict['class']} but not recorded in "
                     f"serialization. Loaded object may need to have "
                     f"attributes set. ",
-                    UserWarning
+                    UserWarning,
                 )
             for attr in unloaded_attrs:
                 # Try reading this attribute from an ID in
                 # attribute_dict.
                 try:
                     out_attr, loaded_dict = cls._build_from_id(
-                        attribute_dict[attr],
-                        context_dict,
-                        loaded_dict=loaded_dict
+                        attribute_dict[attr], context_dict, loaded_dict=loaded_dict
                     )
                     setattr(out_obj, attr, out_attr)
                 except (KeyError, TypeError):
-                    if (isinstance(attribute_dict[attr], list)
-                            and attribute_dict[attr][0]
-                            == __NOT_SERIALIZED_FLAG__):
+                    if (
+                        isinstance(attribute_dict[attr], list)
+                        and attribute_dict[attr][0] == __NOT_SERIALIZED_FLAG__
+                    ):
                         warnings.warn(
                             f"Loader for attribute {attr} not found. "
                             f"Setting attribute {attr} directly.",
-                            UserWarning
+                            UserWarning,
                         )
-                        loaded_attr_value = ErrorAllWrapper(
-                            attribute_dict[attr][1])
+                        loaded_attr_value = ErrorAllWrapper(attribute_dict[attr][1])
                     else:
                         loaded_attr_value = attribute_dict[attr]
                     # If the attribute was originally JSON serializable,
