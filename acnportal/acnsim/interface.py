@@ -173,8 +173,7 @@ class Interface:
             active sessions.
 
         Returns:
-            Dict[str, number]:  A dictionary with the session ID as key and
-                actual charging rate as value.
+            Dict[str, number]:  A dictionary with the session ID as key and actual charging rate as value.
         """
         return {ev.session_id: ev.current_charging_rate for ev in self._active_evs}
 
@@ -251,20 +250,18 @@ class Interface:
         of this function's return values.
 
         Args:
-            station_id (str): The ID of the station for which the allowable
-                rates should be returned.
+            station_id (str): The ID of the station for which the allowable rates should be returned.
 
         Returns:
             bool: If the range is continuous or not
-            list[float]: The sorted set of acceptable pilot signals. If
-                continuous this range will have 2 values the min and the max
-                acceptable values. [A]
+            list[float]: The sorted set of acceptable pilot signals. If continuous this range will have 2 values
+                the min and the max acceptable values. [A]
         """
         evse = self._simulator.network._EVSEs[station_id]
         return evse.is_continuous, evse.allowable_pilot_signals
 
     def max_pilot_signal(self, station_id):
-        """ Returns the maximum allowable pilot signal level for the EVSE.
+        """ Returns the maximum allowable pilot signal level for the specified EVSE.
 
         Args:
             station_id (str): The ID of the station.
@@ -332,16 +329,25 @@ class Interface:
             np.ndarray: Matrix representing the constraints of the network.
                 Each row is a constraint and each
         """
-        Constraint = namedtuple('Constraint', ['constraint_matrix',
-                                               'magnitudes',
-                                               'constraint_index',
-                                               'evse_index'])
+        Constraint = namedtuple(
+            "Constraint",
+            ["constraint_matrix", "magnitudes", "constraint_index", "evse_index"],
+        )
         network = self._simulator.network
-        return Constraint(network.constraint_matrix, network.magnitudes,
-                          network.constraint_index, network.station_ids)
+        return Constraint(
+            network.constraint_matrix,
+            network.magnitudes,
+            network.constraint_index,
+            network.station_ids,
+        )
 
-    def is_feasible(self, load_currents, linear=False,
-                    violation_tolerance=None, relative_tolerance=None):
+    def is_feasible(
+        self,
+        load_currents,
+        linear=False,
+        violation_tolerance=None,
+        relative_tolerance=None,
+    ):
         """ Return if a set of current magnitudes for each load are feasible.
 
         Wraps Network's is_feasible method.
@@ -350,12 +356,9 @@ class Interface:
         and relative_tolerance is used to evaluate feasibility.
 
         Args:
-            load_currents (Dict[str, List[number]]): Dictionary mapping
-                load_ids to schedules of charging rates.
-            linear (bool): If True, linearize all constraints to a more
-                conservative but easier to compute constraint by ignoring
-                the phase angle and taking the absolute value of all load
-                coefficients. Default False.
+            load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
+            linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
+                ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
             violation_tolerance (float): Absolute amount by which
                 schedule may violate network constraints. Default
                 None, in which case the network's violation_tolerance
@@ -366,8 +369,7 @@ class Interface:
                 attribute is used.
 
         Returns:
-            bool: If load_currents is feasible at time t according to  this
-                set of constraints.
+            bool: If load_currents is feasible at time t according to this set of constraints.
         """
         if len(load_currents) == 0:
             return True
@@ -375,13 +377,21 @@ class Interface:
         # Check that all schedules are the same length
         schedule_lengths = set(len(x) for x in load_currents.values())
         if len(schedule_lengths) > 1:
-            raise InvalidScheduleError('All schedules should have the same length.')
+            raise InvalidScheduleError("All schedules should have the same length.")
         schedule_length = schedule_lengths.pop()
 
         # Convert input schedule into its matrix representation
         schedule_matrix = np.array(
-            [load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id in self._simulator.network.station_ids])
-        return self._simulator.network.is_feasible(schedule_matrix, linear, violation_tolerance, relative_tolerance)
+            [
+                load_currents[evse_id]
+                if evse_id in load_currents
+                else [0] * schedule_length
+                for evse_id in self._simulator.network.station_ids
+            ]
+        )
+        return self._simulator.network.is_feasible(
+            schedule_matrix, linear, violation_tolerance, relative_tolerance
+        )
 
     def get_prices(self, length, start=None):
         """ Get a vector of prices beginning at time start and continuing for
@@ -398,14 +408,17 @@ class Interface:
             np.ndarray[float]: Array of floats where each entry is the price
                 for the corresponding period. ($/kWh)
         """
-        if 'tariff' in self._simulator.signals:
+        if "tariff" in self._simulator.signals:
             if start is None:
                 start = self.current_time
-            price_start = self._simulator.start + \
-                          timedelta(minutes=self.period)*start
-            return np.array(self._simulator.signals['tariff'].get_tariffs(price_start, length, self.period))
+            price_start = self._simulator.start + timedelta(minutes=self.period) * start
+            return np.array(
+                self._simulator.signals["tariff"].get_tariffs(
+                    price_start, length, self.period
+                )
+            )
         else:
-            raise ValueError('No pricing method is specified.')
+            raise ValueError("No pricing method is specified.")
 
     def get_demand_charge(self, start=None):
         """ Get the demand charge for the given period. ($/kW)
@@ -418,14 +431,13 @@ class Interface:
         Returns:
             float: Demand charge for the given period. ($/kW)
         """
-        if 'tariff' in self._simulator.signals:
+        if "tariff" in self._simulator.signals:
             if start is None:
                 start = self.current_time
-            price_start = self._simulator.start + \
-                          timedelta(minutes=self.period) * start
-            return self._simulator.signals['tariff'].get_demand_charge(price_start)
+            price_start = self._simulator.start + timedelta(minutes=self.period) * start
+            return self._simulator.signals["tariff"].get_demand_charge(price_start)
         else:
-            raise ValueError('No pricing method is specified.')
+            raise ValueError("No pricing method is specified.")
 
     def get_prev_peak(self):
         """ Get the highest aggregate peak demand so far in the simulation.
@@ -438,5 +450,3 @@ class Interface:
 
 class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """
-    pass
-

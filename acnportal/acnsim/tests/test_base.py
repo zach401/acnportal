@@ -19,7 +19,7 @@ class TestErrorAllWrapper(unittest.TestCase):
         self.assertEqual(self.network_data, self.network_wrapper.data)
 
     def test_builtin_success(self):
-        self.assertEqual(self.builtin_wrapper.__dict__, {'_data': 2})
+        self.assertEqual(self.builtin_wrapper.__dict__, {"_data": 2})
 
     def test_builtin_error(self):
         with self.assertRaises(TypeError):
@@ -34,5 +34,5 @@ class TestErrorAllWrapper(unittest.TestCase):
             _ = self.network_wrapper.is_feasible(np.array([[0]]))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

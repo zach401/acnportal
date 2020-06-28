@@ -2,15 +2,17 @@ from unittest import TestCase
 
 from acnportal.acnsim.events import EventQueue, Event
 
+
 class TestEventAccessors(TestCase):
     def setUp(self):
         self.event = Event(5)
-        self.assertEqual(self.event.event_type, '')
+        self.assertEqual(self.event.event_type, "")
 
     def test_type_deprecation_warning(self):
         self.event = Event(5)
         with self.assertWarns(DeprecationWarning):
-            self.assertEqual(self.event.type, '')
+            self.assertEqual(self.event.type, "")
+
 
 class TestEventQueue(TestCase):
     def setUp(self):
@@ -54,7 +56,9 @@ class TestEventQueue(TestCase):
         self.assertEqual(5, self.events.get_last_timestamp())
         self.events.add_event(Event(8))
         self.assertEqual(8, self.events.get_last_timestamp())
-        curr_events = self.events.get_current_events(3)
+        # Check that the last timestamp is unaltered from a call to
+        # get_current_events at an earlier timestamp.
+        _ = self.events.get_current_events(3)
         self.assertEqual(8, self.events.get_last_timestamp())
 
     def test_get_last_timestamp_no_events(self):

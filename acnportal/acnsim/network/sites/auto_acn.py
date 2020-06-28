@@ -1,9 +1,15 @@
 from .. import ChargingNetwork
-from .. current import Current
+from ..current import Current
 from ...models.evse import get_evse_by_type
 
 
-def simple_acn(station_ids, evse_type='BASIC', voltage=208, aggregate_cap=150, network_type=ChargingNetwork):
+def simple_acn(
+    station_ids,
+    evse_type="BASIC",
+    voltage=208,
+    aggregate_cap=150,
+    network_type=ChargingNetwork,
+):
     """ Create a simple, single-phase network with a single aggregate constraint.
 
     Args:
@@ -23,6 +29,6 @@ def simple_acn(station_ids, evse_type='BASIC', voltage=208, aggregate_cap=150, n
 
     # Build constraint set
     current_cap = (aggregate_cap / voltage) * 1000
-    network.add_constraint(agg, current_cap, name='Aggregate Current')
+    network.add_constraint(agg, current_cap, name="Aggregate Current")
 
     return network
