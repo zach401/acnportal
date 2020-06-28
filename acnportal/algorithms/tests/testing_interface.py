@@ -319,5 +319,3 @@ class TestingInterface(Interface):
 
 class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """
-
-    pass

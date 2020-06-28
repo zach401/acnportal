@@ -3,7 +3,7 @@ from copy import copy
 
 import numpy as np
 from .base_algorithm import BaseAlgorithm
-from acnportal.acnsim.interface import InfrastructureInfo, SessionInfo
+from acnportal.acnsim.interface import InfrastructureInfo
 from .utils import infrastructure_constraints_feasible
 from .postprocessing import format_array_schedule
 
@@ -64,9 +64,8 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             schedule[station_index] = charging_rate
         return schedule
 
-    def max_feasible_rate(
-        self, station_index, ub, schedule, infrastructure, eps=0.0001
-    ):
+    @staticmethod
+    def max_feasible_rate(station_index, ub, schedule, infrastructure, eps=0.0001):
         """ Return the maximum feasible rate less than ub subject to the environment's constraints.
 
         If schedule contains non-zero elements at the given time, these are treated as fixed allocations and this
@@ -108,8 +107,9 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             return ub
         return bisection(station_index, 0, ub, schedule)
 
+    @staticmethod
     def discrete_max_feasible_rate(
-        self, station_index, allowable_pilots, schedule, infrastructure
+        station_index, allowable_pilots, schedule, infrastructure
     ):
         """ Return the maximum feasible allowable rate subject to the
             infrastructure's constraints.
@@ -120,7 +120,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Args:
             station_index (int): Index for the station in the schedule
                 vector.
-            allowable_pilots List[float]: List of allowable charging rates
+            allowable_pilots (List[float]): List of allowable charging rates
                 sorted in ascending order.
             schedule (Dict[str, List[float]]): Dictionary mapping a station_id
                 to a list of already fixed charging rates.
