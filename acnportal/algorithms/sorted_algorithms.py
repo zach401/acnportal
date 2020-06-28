@@ -48,27 +48,25 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         queue = self._sort_fn(active_sessions, self.interface)
         schedule = np.zeros(infrastructure.num_stations)
         for session in queue:
-            station_index = infrastructure.get_station_index(
-                session.station_id)
-            ub = min(session.max_rates[0],
-                     infrastructure.max_pilot[station_index])
+            station_index = infrastructure.get_station_index(session.station_id)
+            ub = min(session.max_rates[0], infrastructure.max_pilot[station_index])
             if infrastructure.is_continuous[station_index]:
-                charging_rate = self.max_feasible_rate(station_index,
-                                                       ub,
-                                                       schedule,
-                                                       infrastructure,
-                                                       eps=0.0001)
+                charging_rate = self.max_feasible_rate(
+                    station_index, ub, schedule, infrastructure, eps=0.0001
+                )
             else:
-                allowable = [a for a in infrastructure.allowable_pilots[station_index] if a <= ub]
-                charging_rate = self.discrete_max_feasible_rate(station_index,
-                                                                allowable,
-                                                                schedule,
-                                                                infrastructure)
+                allowable = [
+                    a for a in infrastructure.allowable_pilots[station_index] if a <= ub
+                ]
+                charging_rate = self.discrete_max_feasible_rate(
+                    station_index, allowable, schedule, infrastructure
+                )
             schedule[station_index] = charging_rate
         return schedule
 
-    def max_feasible_rate(self, station_index, ub, schedule, infrastructure,
-                          eps=0.0001):
+    def max_feasible_rate(
+        self, station_index, ub, schedule, infrastructure, eps=0.0001
+    ):
         """ Return the maximum feasible rate less than ub subject to the environment's constraints.
 
         If schedule contains non-zero elements at the given time, these are treated as fixed allocations and this
@@ -87,6 +85,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Returns:
             float: maximum feasible rate less than ub subject to the environment's constraints. [A]
         """
+
         def bisection(_index, _lb, _ub, _schedule):
             """ Use the bisection method to find the maximum feasible charging rate for the EV. """
             mid = (_ub + _lb) / 2
@@ -94,14 +93,13 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             new_schedule[_index] = mid
             if (_ub - _lb) <= eps:
                 return _lb
-            elif infrastructure_constraints_feasible(new_schedule,
-                                                     infrastructure):
+            elif infrastructure_constraints_feasible(new_schedule, infrastructure):
                 return bisection(_index, mid, _ub, new_schedule)
             else:
                 return bisection(_index, _lb, mid, new_schedule)
 
         if not infrastructure_constraints_feasible(schedule, infrastructure):
-            raise ValueError('The initial schedule is not feasible.')
+            raise ValueError("The initial schedule is not feasible.")
 
         # Test maximum rate to short-circuit bisection
         new_schedule = copy(schedule)
@@ -110,8 +108,9 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             return ub
         return bisection(station_index, 0, ub, schedule)
 
-    def discrete_max_feasible_rate(self, station_index, allowable_pilots,
-                                   schedule, infrastructure):
+    def discrete_max_feasible_rate(
+        self, station_index, allowable_pilots, schedule, infrastructure
+    ):
         """ Return the maximum feasible allowable rate subject to the
             infrastructure's constraints.
 
@@ -133,12 +132,11 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 infrastructure's constraints. [A]
         """
         if not infrastructure_constraints_feasible(schedule, infrastructure):
-            raise ValueError('The initial schedule is not feasible.')
+            raise ValueError("The initial schedule is not feasible.")
         new_schedule = copy(schedule)
         feasible_idx = len(allowable_pilots) - 1
         new_schedule[station_index] = allowable_pilots[feasible_idx]
-        while not infrastructure_constraints_feasible(new_schedule,
-                                                      infrastructure):
+        while not infrastructure_constraints_feasible(new_schedule, infrastructure):
             feasible_idx -= 1
             if feasible_idx < 0:
                 new_schedule[station_index] = 0
@@ -161,8 +159,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         infrastructure = self.interface.infrastructure_info()
-        array_schedule = self.sorting_algorithm(active_sessions,
-                                                infrastructure)
+        array_schedule = self.sorting_algorithm(active_sessions, infrastructure)
         return format_array_schedule(array_schedule, infrastructure)
 
 
@@ -185,6 +182,7 @@ class RoundRobin(SortedSchedulingAlgo):
         continuous_inc (float): Increment to use when pilot signal is
             continuously controllable.
     """
+
     def __init__(self, sort_fn, continuous_inc=0.1):
         super().__init__(sort_fn)
         self.continuous_inc = continuous_inc
@@ -210,18 +208,21 @@ class RoundRobin(SortedSchedulingAlgo):
         for session in queue:
             i = infrastructure.get_station_index(session.station_id)
             if infrastructure.is_continuous[i]:
-                infrastructure.allowable_pilots[i] = \
-                    np.arange(session.min_rates[0],
-                              session.max_rates[0]+1e-7,
-                              self.continuous_inc)
+                infrastructure.allowable_pilots[i] = np.arange(
+                    session.min_rates[0],
+                    session.max_rates[0] + 1e-7,
+                    self.continuous_inc,
+                )
             ub = min(session.max_rates[0], infrastructure.max_pilot[i])
-            infrastructure.allowable_pilots[i] = [a for a in infrastructure.allowable_pilots[i] if a <= ub]
+            infrastructure.allowable_pilots[i] = [
+                a for a in infrastructure.allowable_pilots[i] if a <= ub
+            ]
 
         while len(queue) > 0:
             session = queue.popleft()
             i = infrastructure.get_station_index(session.station_id)
             if rate_idx[i] < len(infrastructure.allowable_pilots[i]) - 1:
-                schedule[i] = infrastructure.allowable_pilots[i][rate_idx[i]+1]
+                schedule[i] = infrastructure.allowable_pilots[i][rate_idx[i] + 1]
                 if infrastructure_constraints_feasible(schedule, infrastructure):
                     rate_idx[i] += 1
                     queue.append(session)
