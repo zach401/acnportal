@@ -28,3 +28,9 @@ def infrastructure_constraints_feasible(
             ):
                 return False
     return True
+
+
+def remaining_amp_periods(session, infrastructure, period):
+    i = infrastructure.get_station_index(session.station_id)
+    amp_hours = session.remaining_demand * 1000 / infrastructure.voltages[i]
+    return amp_hours * 60 / period

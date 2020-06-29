@@ -240,7 +240,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             )
         if self.uninterrupted_charging:
             active_sessions = apply_minimum_charging_rate(
-                active_sessions, infrastructure, self.interface
+                active_sessions, infrastructure, self.interface.period
             )
         if self.allow_overcharging:
             warn("allow_overcharging is currently not supported.")
@@ -368,7 +368,7 @@ class RoundRobin(SortedSchedulingAlgo):
             )
         if self.uninterrupted_charging:
             active_sessions = apply_minimum_charging_rate(
-                active_sessions, infrastructure, self.interface
+                active_sessions, infrastructure, self.interface.period
             )
         if self.allow_overcharging:
             warn("allow_overcharging is currently not supported.")

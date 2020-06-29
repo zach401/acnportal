@@ -1,14 +1,16 @@
 from unittest import TestCase
 from unittest.mock import Mock
 from numpy import testing as nptest
-from algorithms.preprocessing import *
-from algorithms.tests.generate_test_cases import *
+from acnportal.algorithms.preprocessing import *
+from acnportal.algorithms.tests.generate_test_cases import *
 from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo
 
 ARRIVAL_TIME = 0
 SESSION_DUR = 5
 ENERGY_DEMAND = 32 * 5
 N = 3
+CURRENT_TIME = 0
+PERIOD = 5
 
 
 class TestEnforcePilotLimit(TestCase):
@@ -145,7 +147,7 @@ class TestApplyUpperBoundEstimate(TestCase):
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates, 16)
             nptest.assert_almost_equal(session.min_rates, 0)
-
+    
     def test_vector_lower_existing_max_scalar_rampdown(self):
         sessions = session_generator(
             num_sessions=N,
@@ -230,7 +232,9 @@ class TestApplyMinimumChargingRate(TestCase):
         infrastructure = InfrastructureInfo(
             **single_phase_single_constraint(N, 32, 32, 8)
         )
-        modified_sessions = apply_minimum_charging_rate(sessions, infrastructure, 5)
+        modified_sessions = apply_minimum_charging_rate(
+            sessions, infrastructure, PERIOD
+        )
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates, 32)
             nptest.assert_almost_equal(session.min_rates[0], 8)
@@ -250,7 +254,9 @@ class TestApplyMinimumChargingRate(TestCase):
         infrastructure = InfrastructureInfo(
             **single_phase_single_constraint(N, 32, 32, 8)
         )
-        modified_sessions = apply_minimum_charging_rate(sessions, infrastructure, 5)
+        modified_sessions = apply_minimum_charging_rate(
+            sessions, infrastructure, PERIOD
+        )
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates, 32)
             nptest.assert_almost_equal(session.min_rates, 16)
@@ -268,7 +274,9 @@ class TestApplyMinimumChargingRate(TestCase):
         infrastructure = InfrastructureInfo(
             **single_phase_single_constraint(N, 32, 32, 8)
         )
-        modified_sessions = apply_minimum_charging_rate(sessions, infrastructure, 5)
+        modified_sessions = apply_minimum_charging_rate(
+            sessions, infrastructure, PERIOD
+        )
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates[0], 0)
             nptest.assert_almost_equal(session.max_rates[1:], 32)
@@ -288,7 +296,9 @@ class TestApplyMinimumChargingRate(TestCase):
         infrastructure = InfrastructureInfo(
             **single_phase_single_constraint(N, 32, 32, 8)
         )
-        modified_sessions = apply_minimum_charging_rate(sessions, infrastructure, 5)
+        modified_sessions = apply_minimum_charging_rate(
+            sessions, infrastructure, PERIOD
+        )
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates[0], 8)
             nptest.assert_almost_equal(session.max_rates[1:], 6)
@@ -309,7 +319,9 @@ class TestApplyMinimumChargingRate(TestCase):
         infrastructure = InfrastructureInfo(
             **single_phase_single_constraint(N, 16, 32, 8)
         )
-        modified_sessions = apply_minimum_charging_rate(sessions, infrastructure, 5)
+        modified_sessions = apply_minimum_charging_rate(
+            sessions, infrastructure, PERIOD
+        )
         for i in range(2):
             nptest.assert_almost_equal(modified_sessions[i].min_rates[0], 8)
             nptest.assert_almost_equal(modified_sessions[i].min_rates[1:], 0)
@@ -317,74 +329,3 @@ class TestApplyMinimumChargingRate(TestCase):
         # min should be 0 at time t=0.
         nptest.assert_almost_equal(modified_sessions[2].min_rates, 0)
         nptest.assert_almost_equal(modified_sessions[2].max_rates[0], 0)
-
-
-class TestIncRemainingEnergyToMinAllowable(TestCase):
-    def test_energy_unchanged_when_above_min(self):
-        N = 3
-        period = 5
-        min_energy = 12 * 208 / 1000 / 12
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[0] * N,
-            departures=[3] * 3,
-            requested_energy=[3.3] * N,
-            remaining_energy=[min_energy] * N,
-            max_rates=[np.repeat(32, SESSION_DUR)] * N,
-            min_rates=[np.repeat(12, SESSION_DUR)] * N,
-        )
-        sessions = [SessionInfo(**s) for s in sessions]
-        infrastructure = InfrastructureInfo(
-            **single_phase_single_constraint(N, 64, 32, 8)
-        )
-        modified_sessions = inc_remaining_energy_to_min_allowable(
-            sessions, infrastructure, period
-        )
-        for session in modified_sessions:
-            self.assertAlmostEqual(session.remaining_demand, min_energy)
-
-    def test_energy_unchanged_at_min(self):
-        N = 3
-        period = 5
-        min_energy = 12 * 208 / 1000 / 12
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[0] * N,
-            departures=[3] * 3,
-            requested_energy=[3.3] * N,
-            remaining_energy=[min_energy] * N,
-            max_rates=[np.repeat(32, SESSION_DUR)] * N,
-            min_rates=[np.repeat(12, SESSION_DUR)] * N,
-        )
-        sessions = [SessionInfo(**s) for s in sessions]
-        infrastructure = InfrastructureInfo(
-            **single_phase_single_constraint(N, 64, 32, 8)
-        )
-        modified_sessions = inc_remaining_energy_to_min_allowable(
-            sessions, infrastructure, period
-        )
-        for session in modified_sessions:
-            self.assertAlmostEqual(session.remaining_demand, min_energy)
-
-    def test_energy_increased_below_min(self):
-        N = 3
-        period = 5
-        min_energy = 12 * 208 / 1000 / 12
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[0] * N,
-            departures=[3] * 3,
-            requested_energy=[3.3] * N,
-            remaining_energy=[min_energy - 0.1] * N,
-            max_rates=[np.repeat(32, SESSION_DUR)] * N,
-            min_rates=[np.repeat(12, SESSION_DUR)] * N,
-        )
-        sessions = [SessionInfo(**s) for s in sessions]
-        infrastructure = InfrastructureInfo(
-            **single_phase_single_constraint(N, 64, 32, 8)
-        )
-        modified_sessions = inc_remaining_energy_to_min_allowable(
-            sessions, infrastructure, period
-        )
-        for session in modified_sessions:
-            self.assertGreaterEqual(session.remaining_demand, min_energy)

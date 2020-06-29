@@ -4,7 +4,7 @@ import numpy as np
 
 from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo
 from .upper_bound_estimator import UpperBoundEstimatorBase
-from .utils import infrastructure_constraints_feasible
+from .utils import infrastructure_constraints_feasible, remaining_amp_periods
 
 
 def least_laxity_first(evs, iface):
@@ -35,7 +35,7 @@ def least_laxity_first(evs, iface):
         )
         return lax
 
-    return sorted(evs, key=lambda x: laxity(x))
+    return sorted(evs, key=laxity)
 
 
 def enforce_pilot_limit(
@@ -68,7 +68,7 @@ def reconcile_max_and_min(session: SessionInfo, choose_min=True):
     Args:
         session (SessionInfo): Session object.
         choose_min (bool): If True, when in conflict defer to the minimum
-        rate. If False, defer to maximum.
+            rate. If False, defer to maximum.
 
 
     Returns:
@@ -137,7 +137,7 @@ def apply_upper_bound_estimate(
 def apply_minimum_charging_rate(
     active_sessions: List[SessionInfo],
     infrastructure: InfrastructureInfo,
-    interface,
+    period: int,
     override=float("inf"),
 ):
     """ Modify active_sessions so that min_rates[0] is equal to the greater of
@@ -156,66 +156,25 @@ def apply_minimum_charging_rate(
         List[SessionInfo]: Active sessions with updated minimum charging rate
             for the first control period.
     """
-    new_sessions = []
-    session_queue = least_laxity_first(active_sessions, interface)
-    # session_queue = sorted(active_sessions, key=lambda x: x.remaining_time)
+    # session_queue = least_laxity_first(active_sessions)
+    session_queue = sorted(active_sessions, key=lambda x: x.remaining_time)
     session_queue = expand_max_min_rates(session_queue)
     rates = np.zeros(len(infrastructure.station_ids))
     for j, session in enumerate(session_queue):
         i = infrastructure.station_ids.index(session.station_id)
         rates[i] = min(infrastructure.min_pilot[i], override)
-        if rates[i] <= interface.remaining_amp_periods(
-            session
+        if rates[i] <= remaining_amp_periods(
+            session, infrastructure, period
         ) and infrastructure_constraints_feasible(rates, infrastructure):
             # Preserve existing min_rate if it is greater than the new one
             session.min_rates[0] = max(rates[i], session.min_rates[0])
             # Increase the maximum rate if it is less than the new min.
             session_queue[j] = reconcile_max_and_min(session)
             # Keep this session as active
-            new_sessions.append(session_queue[j])
         else:
             # If an EV cannot be charged at the minimum rate, it should be
             # removed from the problem. So it is not appended to new_sessions.
             rates[i] = 0
-            # session.min_rates = 0
-            # session.max_rates = 0
-    return new_sessions
-
-
-# def inc_remaining_energy_to_min_allowable(active_sessions: List[SessionInfo],
-#                                           infrastructure: InfrastructureInfo,
-#                                           period):
-#     """ Modify active_sessions so that remaining_energy is greater than or
-#         equal to the energy delivered in one period charging at the
-#         session's minimum rate.
-#
-#         Using this preprocessor ensures that EVs will not leave unsatisfied
-#         if there is sufficient capacity in the system.
-#
-#         Note this could mean that the energy delivered to an EV could exceed
-#         100% of its requested energy. This should be considered during
-#         analysis.
-#
-#     Args:
-#         active_sessions (List[SessionInfo]): List of SessionInfo objects for
-#             all active charging sessions.
-#         infrastructure (InfrastructureInfo): Description of the charging
-#             infrastructure.
-#
-#     Returns:
-#         List[SessionInfo]: Active sessions with updated minimum charging rate
-#             for the first control period.
-#     """
-#     time_interval_length = period / 60
-#
-#     def minimum_first_period_charge(session):
-#         i = infrastructure.get_station_index(session.station_id)
-#         return (session.min_rates[0] * infrastructure.voltages[i] / 1000 *
-#                 time_interval_length)
-#
-#     for session in active_sessions:
-#         min_charge = minimum_first_period_charge(session)
-#         diff = min_charge - session.remaining_demand
-#         if diff > 0:
-#             session.requested_energy += diff
-#     return active_sessions
+            session.min_rates[0] = 0
+            session.max_rates[0] = 0
+    return session_queue
