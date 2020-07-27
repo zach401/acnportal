@@ -174,7 +174,7 @@ class TestIntegration(TestCase):
                 ),
                 np.array(
                     self.edf_algo_true_analysis_dict["primary_current_unbalance_nema"]
-                ),
+                ), atol=1e-6
             )
         with self.assertWarns(RuntimeWarning):
             np.testing.assert_allclose(
