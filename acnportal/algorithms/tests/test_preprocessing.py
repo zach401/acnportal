@@ -147,7 +147,7 @@ class TestApplyUpperBoundEstimate(TestCase):
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates, 16)
             nptest.assert_almost_equal(session.min_rates, 0)
-    
+
     def test_vector_lower_existing_max_scalar_rampdown(self):
         sessions = session_generator(
             num_sessions=N,
