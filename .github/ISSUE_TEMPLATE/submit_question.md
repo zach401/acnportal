@@ -1,7 +1,7 @@
 ---
 
 name: Submit Question
-about: Ask a general question about pandas
+about: Ask a general question about acnportal
 title: "QST:"
 labels: "Usage Question"
 
