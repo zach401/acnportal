@@ -9,7 +9,7 @@ def http_date(dt):
     :return: dt as a string according to RFC 1123 format
     :rtype: str
     """
-    return dt.astimezone(pytz.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
+    return dt.astimezone(pytz.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
 
 
 def parse_http_date(ds, tz):
@@ -20,7 +20,7 @@ def parse_http_date(ds, tz):
     :return: datetime object.
     :rtype: datetime
     """
-    dt = pytz.UTC.localize(datetime.strptime(ds, '%a, %d %b %Y %H:%M:%S GMT'))
+    dt = pytz.UTC.localize(datetime.strptime(ds, "%a, %d %b %Y %H:%M:%S GMT"))
     return dt.astimezone(tz)
 
 
@@ -31,7 +31,7 @@ def parse_dates(doc):
     :return: doc with all RFC 1123 datetime fields replaced by datetime objects.
     :rtype: dict
     """
-    tz = pytz.timezone(doc['timezone'])
+    tz = pytz.timezone(doc["timezone"])
     for field in doc:
         if isinstance(doc[field], str):
             try:
@@ -39,5 +39,7 @@ def parse_dates(doc):
                 doc[field] = dt
             except ValueError:
                 pass
-        if isinstance(doc[field], dict) and 'timestamps' in doc[field]:
-            doc[field]['timestamps'] = [parse_http_date(ds, tz) for ds in doc[field]['timestamps']]
+        if isinstance(doc[field], dict) and "timestamps" in doc[field]:
+            doc[field]["timestamps"] = [
+                parse_http_date(ds, tz) for ds in doc[field]["timestamps"]
+            ]

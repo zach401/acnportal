@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import warnings
 import json
+
 # noinspection PyProtectedMember
 from pydoc import locate
 
@@ -34,8 +35,17 @@ class Simulator(BaseSimObj):
             of memory for long simulations.
     """
 
-    def __init__(self, network, scheduler, events, start, period=1, signals=None,
-                 store_schedule_history=False, verbose=True):
+    def __init__(
+        self,
+        network,
+        scheduler,
+        events,
+        start,
+        period=1,
+        signals=None,
+        store_schedule_history=False,
+        verbose=True,
+    ):
         self.network = network
         self.scheduler = scheduler
         self.scheduler.register_interface(Interface(self))
@@ -87,10 +97,15 @@ class Simulator(BaseSimObj):
             for e in current_events:
                 self.event_history.append(e)
                 self._process_event(e)
-            if self._resolve or \
-                    self.max_recompute is not None and \
-                    (self._last_schedule_update is None or
-                     self._iteration - self._last_schedule_update >= self.max_recompute):
+            if (
+                self._resolve
+                or self.max_recompute is not None
+                and (
+                    self._last_schedule_update is None
+                    or self._iteration - self._last_schedule_update
+                    >= self.max_recompute
+                )
+            ):
                 new_schedule = self.scheduler.run()
                 self._update_schedules(new_schedule)
                 if self.schedule_history is not None:
@@ -128,20 +143,24 @@ class Simulator(BaseSimObj):
         Returns:
             None
         """
-        if event.event_type == 'Plugin':
-            self._print('Plugin Event...')
+        if event.event_type == "Plugin":
+            self._print("Plugin Event...")
             self.network.plugin(event.ev, event.ev.station_id)
             self.ev_history[event.ev.session_id] = event.ev
-            self.event_queue.add_event(UnplugEvent(event.ev.departure, event.ev.station_id, event.ev.session_id))
+            self.event_queue.add_event(
+                UnplugEvent(
+                    event.ev.departure, event.ev.station_id, event.ev.session_id
+                )
+            )
             self._resolve = True
             self._last_schedule_update = event.timestamp
-        elif event.event_type == 'Unplug':
-            self._print('Unplug Event...')
+        elif event.event_type == "Unplug":
+            self._print("Unplug Event...")
             self.network.unplug(event.station_id)
             self._resolve = True
             self._last_schedule_update = event.timestamp
-        elif event.event_type == 'Recompute':
-            self._print('Recompute Event...')
+        elif event.event_type == "Recompute":
+            self._print("Recompute Event...")
             self._resolve = True
 
     def _update_schedules(self, new_schedule):
@@ -161,17 +180,34 @@ class Simulator(BaseSimObj):
 
         for station_id in new_schedule:
             if station_id not in self.network.station_ids:
-                raise KeyError('Station {0} in schedule but not found in network.'.format(station_id))
+                raise KeyError(
+                    "Station {0} in schedule but not found in network.".format(
+                        station_id
+                    )
+                )
 
         schedule_lengths = set(len(x) for x in new_schedule.values())
         if len(schedule_lengths) > 1:
-            raise InvalidScheduleError('All schedules should have the same length.')
+            raise InvalidScheduleError("All schedules should have the same length.")
         schedule_length = schedule_lengths.pop()
         # TODO: test 0 case here
-        schedule_matrix = np.array([new_schedule[evse_id] if evse_id in new_schedule else [0] * schedule_length for evse_id in self.network.station_ids])
+        schedule_matrix = np.array(
+            [
+                new_schedule[evse_id]
+                if evse_id in new_schedule
+                else [0] * schedule_length
+                for evse_id in self.network.station_ids
+            ]
+        )
         if not self.network.is_feasible(schedule_matrix):
             aggregate_currents = self.network.constraint_current(schedule_matrix)
-            diff_vec = np.abs(aggregate_currents) - np.tile(self.network.magnitudes + self.network.violation_tolerance, (schedule_length, 1)).T
+            diff_vec = (
+                np.abs(aggregate_currents)
+                - np.tile(
+                    self.network.magnitudes + self.network.violation_tolerance,
+                    (schedule_length, 1),
+                ).T
+            )
             max_idx = np.unravel_index(np.argmax(diff_vec), diff_vec.shape)
             max_diff = diff_vec[max_idx]
             max_timeidx = max_idx[1]
@@ -180,14 +216,24 @@ class Simulator(BaseSimObj):
                 f"Invalid schedule provided at iteration {self._iteration}. "
                 f"Max violation is {max_diff} A on {max_constraint} "
                 f"at time index {max_timeidx}.",
-                UserWarning)
+                UserWarning,
+            )
         if self._iteration + schedule_length <= self.pilot_signals.shape[1]:
-            self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
+            self.pilot_signals[
+                :, self._iteration : (self._iteration + schedule_length)
+            ] = schedule_matrix
         else:
             # We've reached the end of pilot_signals, so double pilot_signal array width
-            self.pilot_signals = _increase_width(self.pilot_signals,
-                max(self.event_queue.get_last_timestamp() + 1, self._iteration + schedule_length + 1))
-            self.pilot_signals[:, self._iteration:(self._iteration + schedule_length)] = schedule_matrix
+            self.pilot_signals = _increase_width(
+                self.pilot_signals,
+                max(
+                    self.event_queue.get_last_timestamp() + 1,
+                    self._iteration + schedule_length + 1,
+                ),
+            )
+            self.pilot_signals[
+                :, self._iteration : (self._iteration + schedule_length)
+            ] = schedule_matrix
 
     def _store_actual_charging_rates(self):
         """ Store actual charging rates from the network in the simulator for later analysis."""
@@ -217,7 +263,9 @@ class Simulator(BaseSimObj):
                 of the simulation. Columns are EVSE id, and the index is
                 the iteration.
         """
-        return pd.DataFrame(data=self.charging_rates.T, columns=self.network.station_ids)
+        return pd.DataFrame(
+            data=self.charging_rates.T, columns=self.network.station_ids
+        )
 
     def pilot_signals_as_df(self):
         """ Return the pilot signals as a pandas DataFrame
@@ -255,53 +303,62 @@ class Simulator(BaseSimObj):
         attribute_dict = {}
 
         # noinspection PyProtectedMember
-        registry, context_dict = self.network._to_registry(
-            context_dict=context_dict)
-        attribute_dict['network'] = registry['id']
+        registry, context_dict = self.network._to_registry(context_dict=context_dict)
+        attribute_dict["network"] = registry["id"]
 
         registry, context_dict = self.event_queue._to_registry(
-            context_dict=context_dict)
-        attribute_dict['event_queue'] = registry['id']
+            context_dict=context_dict
+        )
+        attribute_dict["event_queue"] = registry["id"]
 
-        attribute_dict['scheduler'] = (f'{self.scheduler.__module__}.'
-                                       f'{self.scheduler.__class__.__name__}')
+        attribute_dict["scheduler"] = (
+            f"{self.scheduler.__module__}." f"{self.scheduler.__class__.__name__}"
+        )
 
-        attribute_dict['start'] = self.start.strftime('%H:%M:%S.%f %d%m%Y')
+        attribute_dict["start"] = self.start.strftime("%H:%M:%S.%f %d%m%Y")
 
         try:
             json.dumps(self.signals)
         except TypeError:
-            warnings.warn("Not serializing signals as value types"
-                          "are not natively JSON serializable.",
-                          UserWarning)
-            attribute_dict['signals'] = None
+            warnings.warn(
+                "Not serializing signals as value types"
+                "are not natively JSON serializable.",
+                UserWarning,
+            )
+            attribute_dict["signals"] = None
         else:
-            attribute_dict['signals'] = self.signals
+            attribute_dict["signals"] = self.signals
 
         # Serialize non-nested attributes.
-        nn_attr_lst = ['period', 'max_recompute', 'verbose', 'peak',
-                       '_iteration', '_resolve', '_last_schedule_update',
-                       'schedule_history']
+        nn_attr_lst = [
+            "period",
+            "max_recompute",
+            "verbose",
+            "peak",
+            "_iteration",
+            "_resolve",
+            "_last_schedule_update",
+            "schedule_history",
+        ]
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
 
-        attribute_dict['pilot_signals'] = self.pilot_signals.tolist()
-        attribute_dict['charging_rates'] = self.charging_rates.tolist()
+        attribute_dict["pilot_signals"] = self.pilot_signals.tolist()
+        attribute_dict["charging_rates"] = self.charging_rates.tolist()
 
         ev_history = {}
         for session_id, ev in self.ev_history.items():
             # noinspection PyProtectedMember
             registry, context_dict = ev._to_registry(context_dict=context_dict)
-            ev_history[session_id] = registry['id']
-        attribute_dict['ev_history'] = ev_history
+            ev_history[session_id] = registry["id"]
+        attribute_dict["ev_history"] = ev_history
 
         event_history = []
         for past_event in self.event_history:
             # noinspection PyProtectedMember
-            registry, context_dict = past_event._to_registry(
-                context_dict=context_dict)
-            event_history.append(registry['id'])
-        attribute_dict['event_history'] = event_history
+            registry, context_dict = past_event._to_registry(context_dict=context_dict)
+            event_history.append(registry["id"])
+        attribute_dict["event_history"] = event_history
 
         return attribute_dict, context_dict
 
@@ -329,70 +386,74 @@ class Simulator(BaseSimObj):
         """
         # noinspection PyProtectedMember
         network, loaded_dict = BaseSimObj._build_from_id(
-            attribute_dict['network'],
-            context_dict,
-            loaded_dict=loaded_dict
+            attribute_dict["network"], context_dict, loaded_dict=loaded_dict
         )
 
         # noinspection PyProtectedMember
         events, loaded_dict = BaseSimObj._build_from_id(
-            attribute_dict['event_queue'],
-            context_dict,
-            loaded_dict=loaded_dict
+            attribute_dict["event_queue"], context_dict, loaded_dict=loaded_dict
         )
 
-        scheduler_cls = locate(attribute_dict['scheduler'])
+        scheduler_cls = locate(attribute_dict["scheduler"])
         try:
             scheduler = scheduler_cls()
         except TypeError:
-            warnings.warn(f"Scheduler {attribute_dict['scheduler']} "
-                          f"requires constructor inputs. Setting "
-                          f"scheduler to BaseAlgorithm instead.")
+            warnings.warn(
+                f"Scheduler {attribute_dict['scheduler']} "
+                f"requires constructor inputs. Setting "
+                f"scheduler to BaseAlgorithm instead."
+            )
             scheduler = BaseAlgorithm()
 
-        start = datetime.strptime(
-            attribute_dict['start'], '%H:%M:%S.%f %d%m%Y')
+        start = datetime.strptime(attribute_dict["start"], "%H:%M:%S.%f %d%m%Y")
 
         out_obj = cls(
             network,
             scheduler,
             events,
             start,
-            period=attribute_dict['period'],
-            signals=attribute_dict['signals'],
-            verbose=attribute_dict['verbose']
+            period=attribute_dict["period"],
+            signals=attribute_dict["signals"],
+            verbose=attribute_dict["verbose"],
         )
         scheduler.register_interface(Interface(out_obj))
 
-        attr_lst = ['max_recompute', 'peak', '_iteration', '_resolve',
-                    '_last_schedule_update']
+        attr_lst = [
+            "max_recompute",
+            "peak",
+            "_iteration",
+            "_resolve",
+            "_last_schedule_update",
+        ]
         for attr in attr_lst:
             setattr(out_obj, attr, attribute_dict[attr])
 
-        if attribute_dict['schedule_history'] is not None:
+        if attribute_dict["schedule_history"] is not None:
             out_obj.schedule_history = {
                 int(key): value
-                for key, value in attribute_dict['schedule_history'].items()
+                for key, value in attribute_dict["schedule_history"].items()
             }
         else:
             out_obj.schedule_history = None
 
-        out_obj.pilot_signals = np.array(attribute_dict['pilot_signals'])
-        out_obj.charging_rates = np.array(attribute_dict['charging_rates'])
+        out_obj.pilot_signals = np.array(attribute_dict["pilot_signals"])
+        out_obj.charging_rates = np.array(attribute_dict["charging_rates"])
 
         ev_history = {}
-        for session_id, ev in attribute_dict['ev_history'].items():
+        for session_id, ev in attribute_dict["ev_history"].items():
             # noinspection PyProtectedMember
             ev_elt, loaded_dict = BaseSimObj._build_from_id(
-                ev, context_dict, loaded_dict=loaded_dict)
+                ev, context_dict, loaded_dict=loaded_dict
+            )
             ev_history[session_id] = ev_elt
         out_obj.ev_history = ev_history
 
         event_history = []
-        for past_event in attribute_dict['event_history']:
+        for past_event in attribute_dict["event_history"]:
             # noinspection PyProtectedMember
             loaded_event, loaded_dict = BaseSimObj._build_from_id(
-                past_event, context_dict, loaded_dict=loaded_dict)
+                past_event, context_dict, loaded_dict=loaded_dict
+            )
             event_history.append(loaded_event)
         out_obj.event_history = event_history
 
@@ -418,5 +479,5 @@ def _increase_width(a, target_width):
     if target_width <= a.shape[1]:
         return a
     new_matrix = np.zeros((a.shape[0], target_width))
-    new_matrix[:, :a.shape[1]] = a
+    new_matrix[:, : a.shape[1]] = a
     return new_matrix
