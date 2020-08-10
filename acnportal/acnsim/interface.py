@@ -11,7 +11,6 @@ class Interface:
 
     def __init__(self, simulator):
         self._simulator = simulator
-        pass
 
     @property
     def active_evs(self):
@@ -278,5 +277,3 @@ class Interface:
 
 class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """
-
-    pass

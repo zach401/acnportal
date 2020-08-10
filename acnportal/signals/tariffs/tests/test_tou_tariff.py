@@ -40,4 +40,4 @@ class TestTimeOfUseTariff(TestCase):
 
     def test_tariff_not_start_at_0(self):
         with self.assertRaises(ValueError):
-            tariff = TimeOfUseTariff("invalid_tariff_schedule", tariff_dir="tests")
+            _ = TimeOfUseTariff("invalid_tariff_schedule", tariff_dir="tests")

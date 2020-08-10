@@ -1,11 +1,12 @@
 from unittest import TestCase
-from unittest.mock import Mock, create_autospec, patch
-
-from acnportal.acnsim import Simulator, Interface, InvalidScheduleError
-from acnportal.acnsim.network import ChargingNetwork
-from acnportal.acnsim.models import EV, EVSE
+from unittest.mock import create_autospec
 
 import numpy as np
+
+from acnportal.acnsim import Simulator, Interface, InvalidScheduleError
+from acnportal.acnsim.models import EVSE
+from acnportal.acnsim.network import ChargingNetwork
+
 
 
 class TestInterface(TestCase):
@@ -25,7 +26,7 @@ class TestInterface(TestCase):
         self.assertIs(self.interface._simulator, self.simulator)
 
     def test_active_evs(self):
-        _ = self.interface.active_evs()
+        _ = self.interface.active_evs
         self.simulator.get_active_evs.assert_called_once()
 
     def test_last_applied_pilot_signals_low_iteration(self):

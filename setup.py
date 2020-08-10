@@ -4,9 +4,9 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
     name="acnportal",
-    version="0.1.3",
-    author="Zachary Lee",
-    author_email="zlee@caltech.edu",
+    version="0.2.1",
+    author="Zachary Lee, Sunash Sharma",
+    author_email="ev-help@caltech.edu",
     url="https://github.com/zach401/acnportal",
     description="A package of tools for large-scale EV charging research.",
     long_description=long_description,
