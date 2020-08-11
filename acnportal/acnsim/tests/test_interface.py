@@ -1,6 +1,5 @@
-from typing import Any, Dict, List, Tuple
 from unittest import TestCase
-from unittest.mock import Mock, create_autospec, patch
+from unittest.mock import create_autospec
 
 import numpy as np
 
@@ -8,9 +7,6 @@ from .. import (
     Simulator,
     Interface,
     InvalidScheduleError,
-    EventQueue,
-    FiniteRatesEVSE,
-    EV,
     EVSE,
     ChargingNetwork,
 )
@@ -22,18 +18,18 @@ class TestInterface(TestCase):
         self.network = ChargingNetwork()
         self.simulator.network = self.network
         self.interface = Interface(self.simulator)
-        self.evse1 = EVSE("PS-001")
-        self.network.register_evse(self.evse1, 120, -30)
-        self.evse2 = EVSE("PS-002")
-        self.evse3 = EVSE("PS-003")
-        self.network.register_evse(self.evse3, 360, 150)
-        self.network.register_evse(self.evse2, 240, 90)
+        evse1 = EVSE("PS-001")
+        self.network.register_evse(evse1, 120, -30)
+        evse2 = EVSE("PS-002")
+        evse3 = EVSE("PS-003")
+        self.network.register_evse(evse3, 360, 150)
+        self.network.register_evse(evse2, 240, 90)
 
     def test_init(self):
         self.assertIs(self.interface._simulator, self.simulator)
 
     def test_active_evs(self):
-        _ = self.interface.active_evs()
+        _ = self.interface.active_evs
         self.simulator.get_active_evs.assert_called_once()
 
     def test_last_applied_pilot_signals_low_iteration(self):

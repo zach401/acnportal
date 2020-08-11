@@ -1,3 +1,5 @@
+from typing import Optional
+
 import requests
 from datetime import datetime
 from .utils import parse_dates, http_date
@@ -94,7 +96,13 @@ class DataClient(object):
         return r.headers["x-total-count"]
 
     def get_sessions_by_time(
-        self, site, start=None, end=None, min_energy=None, timeseries=False, count=False
+        self,
+        site,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        min_energy=None,
+        timeseries=False,
+        count=False,
     ):
         """ Wrapper for get_sessions with condition based on start and end times and a minimum energy delivered.
 
@@ -112,8 +120,6 @@ class DataClient(object):
         Raises:
             See get_sessions/count_sessions.
         """
-        start_str = http_date(start) if start is not None else None
-        end_str = http_date(end) if end is not None else None
         cond = []
         if start is not None:
             cond.append('connectionTime >= "{0}"'.format(http_date(start)))

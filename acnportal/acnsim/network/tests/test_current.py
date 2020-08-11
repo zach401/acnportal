@@ -1,12 +1,9 @@
 from unittest import TestCase
-from unittest.mock import Mock, create_autospec
-
-from acnportal.acnsim.models import EV
-from acnportal.acnsim.models import EVSE, InvalidRateError
-from acnportal.acnsim import Current
 
 import pandas as pd
-import numpy as np
+
+from acnportal.acnsim import Current
+
 
 
 class TestCurrent(TestCase):

@@ -1,15 +1,14 @@
+from collections import OrderedDict
 from unittest import TestCase
 from unittest.mock import Mock, create_autospec
 
-from collections import OrderedDict
+import numpy as np
+import pandas as pd
 
-from acnportal.acnsim.models import EV
-from acnportal.acnsim.models import EVSE, InvalidRateError
 from acnportal.acnsim import ChargingNetwork
 from acnportal.acnsim import Current
-
-import pandas as pd
-import numpy as np
+from acnportal.acnsim.models import EV
+from acnportal.acnsim.models import EVSE
 
 
 class TestChargingNetwork(TestCase):

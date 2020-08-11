@@ -20,13 +20,12 @@ from copy import deepcopy
 
 
 class EarliestDeadlineFirstAlgoStateful(BaseAlgorithm):
-    """ See EarliestDeadlineFirstAlgo in tutorial 2. This is a stateful
-    version that occasionally records charging rates and pilot signals
-    to test the last_applied_pilot_signals and last_actual_charging_rate
-    functions in Interface.
+    """ See EarliestDeadlineFirstAlgo in tutorial 2. This is a stateful version that
+    occasionally records charging rates and pilot signals to test the last_applied_pilot_signals
+    and last_actual_charging_rate functions in Interface.
     """
 
-    def __init__(self, increment: int = 1) -> None:
+    def __init__(self, increment=1):
         super().__init__()
         self._increment = increment
         self.polled_pilots = {}
@@ -116,7 +115,7 @@ class TestIntegration(TestCase):
         with open(
             os.path.join(
                 os.path.dirname(__file__), "edf_algo_true_analysis_fields.json"
-            )
+            ),
         ) as infile:
             cls.edf_algo_true_analysis_dict = json.load(infile)
 
@@ -198,7 +197,7 @@ class TestIntegration(TestCase):
                 ),
                 np.array(
                     self.edf_algo_true_analysis_dict["primary_current_unbalance_nema"]
-                ),
+                ), atol=1e-6
             )
         with self.assertWarns(RuntimeWarning):
             np.testing.assert_allclose(
@@ -207,7 +206,7 @@ class TestIntegration(TestCase):
                 ),
                 np.array(
                     self.edf_algo_true_analysis_dict["secondary_current_unbalance_nema"]
-                ),
+                ), atol=1e-6
             )
 
     def test_datetimes_array_tutorial_2(self) -> None:

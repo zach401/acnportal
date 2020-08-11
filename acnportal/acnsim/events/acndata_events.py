@@ -26,8 +26,8 @@ def generate_events(token, site, start, end, period, voltage, max_rate, **kwargs
 def get_evs(
     token,
     site,
-    start,
-    end,
+    start: datetime,
+    end: datetime,
     period,
     voltage,
     max_battery_power,

@@ -1,5 +1,4 @@
 import heapq
-from .event import Event
 from ..base import BaseSimObj
 
 
@@ -75,7 +74,7 @@ class EventQueue(BaseSimObj):
             timestep (int): Time index in periods.
 
         Returns:
-            List[Event like]: List of all events occurring before or during timestep.
+            List[Event]: List of all events occurring before or during timestep.
         """
         self._timestep = timestep
         current_events = []
