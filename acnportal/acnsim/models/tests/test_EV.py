@@ -8,7 +8,7 @@ from acnportal.acnsim.models import EV
 class TestEV(TestCase):
     def setUp(self):
         basicBatt = create_autospec(Battery)
-        self.ev = EV(0, 10, 25.0, 'PS-001', '0001', basicBatt)
+        self.ev = EV(0, 10, 25.0, "PS-001", "0001", basicBatt)
 
     def test_charge_valid_rate(self):
         self.ev._battery.charge = Mock(return_value=16)

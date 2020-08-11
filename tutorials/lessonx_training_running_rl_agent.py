@@ -41,14 +41,18 @@ from acnportal import acnsim
 from acnportal import algorithms
 from acnportal.acnsim import events, models, Simulator
 from acnportal.acnsim.gym_acnsim.envs.action_spaces import SimAction
-from acnportal.acnsim.gym_acnsim.envs import BaseSimEnv, \
-    reward_functions, CustomSimEnv, default_action_object, \
-    default_observation_objects
+from acnportal.acnsim.gym_acnsim.envs import (
+    BaseSimEnv,
+    reward_functions,
+    CustomSimEnv,
+    default_action_object,
+    default_observation_objects,
+)
 from acnportal.acnsim.gym_acnsim.envs.observation import SimObservation
 from acnportal.acnsim.interface import GymTrainedInterface, Interface
 from acnportal.algorithms import SimRLModelWrapper, BaseAlgorithm
 
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 
 # For this lesson, we will use a simple example. Imagine we have a
@@ -60,8 +64,9 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 # some functions to generate Simulation instances that simulate this
 # scenario. We'll start by defining a function which generates random
 # plugins for a single EVSE.
-def random_plugin(num, time_limit, evse, laxity_ratio=1 / 2,
-                  max_rate=32, voltage=208, period=1):
+def random_plugin(
+    num, time_limit, evse, laxity_ratio=1 / 2, max_rate=32, voltage=208, period=1
+):
     """ Returns a list of num random plugin events occurring anytime
     from time 0 to time_limit. Each plugin has a random arrival and
     departure under the time limit, and a satisfiable requested
@@ -96,11 +101,20 @@ def random_plugin(num, time_limit, evse, laxity_ratio=1 / 2,
         arrival_time = times[2 * i]
         departure_time = times[2 * i + 1]
         requested_energy = (
-                (departure_time - arrival_time) / (60 / period)
-                * max_rate * voltage / (1 / laxity_ratio)
+            (departure_time - arrival_time)
+            / (60 / period)
+            * max_rate
+            * voltage
+            / (1 / laxity_ratio)
         )
-        ev = models.EV(arrival_time, departure_time, requested_energy,
-                       evse, f'rs-{evse}-{i}', battery)
+        ev = models.EV(
+            arrival_time,
+            departure_time,
+            requested_energy,
+            evse,
+            f"rs-{evse}-{i}",
+            battery,
+        )
         out_event_lst.append(events.PluginEvent(arrival_time, ev))
     return out_event_lst
 
@@ -110,22 +124,26 @@ def random_plugin(num, time_limit, evse, laxity_ratio=1 / 2,
 # reset, so that the next simulation has a new event queue. As such,
 # we will define a simulation generating function.
 def _random_sim_builder(algorithm: BaseAlgorithm) -> Simulator:
-    timezone = pytz.timezone('America/Los_Angeles')
+    timezone = pytz.timezone("America/Los_Angeles")
     start = timezone.localize(datetime(2018, 9, 5))
     period = 1
 
     # Make random event queue
-    cn = acnsim.sites.simple_acn(['EVSE-001'],
-                                 aggregate_cap=20 * 208 / 1000)
+    cn = acnsim.sites.simple_acn(["EVSE-001"], aggregate_cap=20 * 208 / 1000)
     event_list = []
     for station_id in cn.station_ids:
         event_list.extend(random_plugin(10, 100, station_id))
     event_queue = events.EventQueue(event_list)
 
     # Simulation to be wrapped
-    return acnsim.Simulator(deepcopy(cn), algorithm,
-                            deepcopy(event_queue), start, period=period,
-                            verbose=False)
+    return acnsim.Simulator(
+        deepcopy(cn),
+        algorithm,
+        deepcopy(event_queue),
+        start,
+        period=period,
+        verbose=False,
+    )
 
 
 def interface_generating_function() -> BaseAlgorithm:
@@ -182,11 +200,17 @@ def interface_generating_function() -> BaseAlgorithm:
 # a registered gym environment that provides this functionality. To
 # make this environment, we need to input as a `kwarg` the
 # `sim_gen_func` we defined earlier.
-vec_env = DummyVecEnv([lambda: FlattenObservation(
-    gym.make('default-rebuilding-acnsim-v0',
-             interface_generating_function=interface_generating_function)
-)])
-model = PPO2('MlpPolicy', vec_env, verbose=2)
+vec_env = DummyVecEnv(
+    [
+        lambda: FlattenObservation(
+            gym.make(
+                "default-rebuilding-acnsim-v0",
+                interface_generating_function=interface_generating_function,
+            )
+        )
+    ]
+)
+model = PPO2("MlpPolicy", vec_env, verbose=2)
 num_iterations: int = int(1e3)
 model_name: str = f"PPO2_{num_iterations}_test_{'today'}.zip"
 # model.learn(num_iterations)
@@ -204,6 +228,7 @@ model.load(model_name)
 class StableBaselinesRLModel(SimRLModelWrapper):
     """ An RL model wrapper that wraps stable_baselines style models.
     """
+
     model: BaseRLModel
 
     def predict(self, observation, reward, done, info, **kwargs) -> np.ndarray:
@@ -236,8 +261,9 @@ class GymTrainedAlgorithmVectorized(algorithms.BaseAlgorithm):
         self.max_recompute = max_recompute
         self._model = None
 
-    def __deepcopy__(self, memodict: Optional[Dict] = None
-                     ) -> "GymTrainedAlgorithmVectorized":
+    def __deepcopy__(
+        self, memodict: Optional[Dict] = None
+    ) -> "GymTrainedAlgorithmVectorized":
         return type(self)(max_recompute=self.max_recompute)
 
     def register_interface(self, interface: Interface) -> None:
@@ -245,8 +271,9 @@ class GymTrainedAlgorithmVectorized(algorithms.BaseAlgorithm):
         interface to GymTrainedInterface.
         """
         if not isinstance(interface, GymTrainedInterface):
-            gym_interface: GymTrainedInterface = \
-                GymTrainedInterface.from_interface(interface)
+            gym_interface: GymTrainedInterface = GymTrainedInterface.from_interface(
+                interface
+            )
         else:
             gym_interface: GymTrainedInterface = interface
         super().register_interface(gym_interface)
@@ -268,9 +295,9 @@ class GymTrainedAlgorithmVectorized(algorithms.BaseAlgorithm):
             return self._env
         else:
             raise ValueError(
-                'No vec_env has been registered yet. Please call '
-                'register_env with an appropriate environment before '
-                'attempting to call vec_env or schedule.'
+                "No vec_env has been registered yet. Please call "
+                "register_env with an appropriate environment before "
+                "attempting to call vec_env or schedule."
             )
 
     def register_env(self, env: DummyVecEnv) -> None:
@@ -300,9 +327,9 @@ class GymTrainedAlgorithmVectorized(algorithms.BaseAlgorithm):
             return self._model
         else:
             raise ValueError(
-                'No model has been registered yet. Please call '
-                'register_model with an appropriate model before '
-                'attempting to call model or schedule.'
+                "No model has been registered yet. Please call "
+                "register_model with an appropriate model before "
+                "attempting to call model or schedule."
             )
 
     def register_model(self, new_model: SimRLModelWrapper) -> None:
@@ -341,7 +368,9 @@ class GymTrainedAlgorithmVectorized(algorithms.BaseAlgorithm):
         env.store_previous_state()
         env.action = self.model.predict(
             self._env.env_method("observation", env.observation)[0],
-            env.reward, env.done, env.info
+            env.reward,
+            env.done,
+            env.info,
         )[0]
         env.schedule = env.action_to_schedule()
         return env.schedule
@@ -354,11 +383,20 @@ evaluation_simulation = _random_sim_builder(evaluation_algorithm)
 observation_objects: List[SimObservation] = default_observation_objects
 action_object: SimAction = default_action_object
 reward_functions: List[Callable[[BaseSimEnv], float]] = [
-    reward_functions.hard_charging_reward]
-eval_env: DummyVecEnv = DummyVecEnv([lambda: FlattenObservation(CustomSimEnv(evaluation_algorithm.interface,
-                                      observation_objects,
-                                      action_object,
-                                      reward_functions))])
+    reward_functions.hard_charging_reward
+]
+eval_env: DummyVecEnv = DummyVecEnv(
+    [
+        lambda: FlattenObservation(
+            CustomSimEnv(
+                evaluation_algorithm.interface,
+                observation_objects,
+                action_object,
+                reward_functions,
+            )
+        )
+    ]
+)
 evaluation_algorithm.register_env(eval_env)
 evaluation_algorithm.register_model(StableBaselinesRLModel(model))
 

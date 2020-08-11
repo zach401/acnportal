@@ -2,15 +2,17 @@ from unittest import TestCase
 
 from acnportal.acnsim.events import EventQueue, Event
 
+
 class TestEventAccessors(TestCase):
     def setUp(self):
         self.event = Event(5)
-        self.assertEqual(self.event.event_type, '')
+        self.assertEqual(self.event.event_type, "")
 
     def test_type_deprecation_warning(self):
         self.event = Event(5)
         with self.assertWarns(DeprecationWarning):
-            self.assertEqual(self.event.type, '')
+            self.assertEqual(self.event.type, "")
+
 
 class TestEventQueue(TestCase):
     def setUp(self):

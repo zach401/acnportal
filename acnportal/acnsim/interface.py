@@ -36,8 +36,13 @@ class Interface:
         """
         i = self._simulator.iteration - 1
         if i > 0:
-            return {ev.session_id: self._simulator.pilot_signals[self._simulator.index_of_evse(ev.station_id), i] for ev in self.active_evs if
-                ev.arrival <= i}
+            return {
+                ev.session_id: self._simulator.pilot_signals[
+                    self._simulator.index_of_evse(ev.station_id), i
+                ]
+                for ev in self.active_evs
+                if ev.arrival <= i
+            }
         else:
             return {}
 
@@ -165,11 +170,25 @@ class Interface:
                     column is an index.
             TODO: The rest of these docs.
         """
-        Constraint = namedtuple('Constraint', ['constraint_matrix', 'magnitudes', 'constraint_index', 'evse_index'])
+        Constraint = namedtuple(
+            "Constraint",
+            ["constraint_matrix", "magnitudes", "constraint_index", "evse_index"],
+        )
         network = self._simulator.network
-        return Constraint(network.constraint_matrix, network.magnitudes, network.constraint_index, network.station_ids)
+        return Constraint(
+            network.constraint_matrix,
+            network.magnitudes,
+            network.constraint_index,
+            network.station_ids,
+        )
 
-    def is_feasible(self, load_currents, linear=False, violation_tolerance=None, relative_tolerance=None):
+    def is_feasible(
+        self,
+        load_currents,
+        linear=False,
+        violation_tolerance=None,
+        relative_tolerance=None,
+    ):
         """ Return if a set of current magnitudes for each load are feasible.
 
         Wraps Network's is_feasible method.
@@ -199,13 +218,21 @@ class Interface:
         # Check that all schedules are the same length
         schedule_lengths = set(len(x) for x in load_currents.values())
         if len(schedule_lengths) > 1:
-            raise InvalidScheduleError('All schedules should have the same length.')
+            raise InvalidScheduleError("All schedules should have the same length.")
         schedule_length = schedule_lengths.pop()
 
         # Convert input schedule into its matrix representation
         schedule_matrix = np.array(
-            [load_currents[evse_id] if evse_id in load_currents else [0] * schedule_length for evse_id in self._simulator.network.station_ids])
-        return self._simulator.network.is_feasible(schedule_matrix, linear, violation_tolerance, relative_tolerance)
+            [
+                load_currents[evse_id]
+                if evse_id in load_currents
+                else [0] * schedule_length
+                for evse_id in self._simulator.network.station_ids
+            ]
+        )
+        return self._simulator.network.is_feasible(
+            schedule_matrix, linear, violation_tolerance, relative_tolerance
+        )
 
     def get_prices(self, length, start=None):
         """ Get a vector of prices beginning at time start and continuing for length periods. ($/kWh)
@@ -218,13 +245,17 @@ class Interface:
         Returns:
             np.ndarray[float]: Array of floats where each entry is the price for the corresponding period. ($/kWh)
         """
-        if 'tariff' in self._simulator.signals:
+        if "tariff" in self._simulator.signals:
             if start is None:
                 start = self.current_time
-            price_start = self._simulator.start + timedelta(minutes=self.period)*start
-            return np.array(self._simulator.signals['tariff'].get_tariffs(price_start, length, self.period))
+            price_start = self._simulator.start + timedelta(minutes=self.period) * start
+            return np.array(
+                self._simulator.signals["tariff"].get_tariffs(
+                    price_start, length, self.period
+                )
+            )
         else:
-            raise ValueError('No pricing method is specified.')
+            raise ValueError("No pricing method is specified.")
 
     def get_demand_charge(self, start=None):
         """ Get the demand charge for the given period. ($/kW)
@@ -236,13 +267,13 @@ class Interface:
         Returns:
             float: Demand charge for the given period. ($/kW)
         """
-        if 'tariff' in self._simulator.signals:
+        if "tariff" in self._simulator.signals:
             if start is None:
                 start = self.current_time
             price_start = self._simulator.start + timedelta(minutes=self.period) * start
-            return self._simulator.signals['tariff'].get_demand_charge(price_start)
+            return self._simulator.signals["tariff"].get_demand_charge(price_start)
         else:
-            raise ValueError('No pricing method is specified.')
+            raise ValueError("No pricing method is specified.")
 
     def get_prev_peak(self):
         """ Get the highest aggregate peak demand so far in the simulation.
@@ -322,31 +353,42 @@ class GymTrainedInterface(Interface):
             # network.
             if station_id not in self.station_ids:
                 raise KeyError(
-                    f'Station {station_id} in schedule but not found '
-                    f'in network.'
+                    f"Station {station_id} in schedule but not found " f"in network."
                 )
             # Check that none of the EVSE pilot signal limits are
             # violated.
-            evse_is_continuous, evse_allowable_pilots = \
-                self.allowable_pilot_signals(station_id)
+            evse_is_continuous, evse_allowable_pilots = self.allowable_pilot_signals(
+                station_id
+            )
             if evse_is_continuous:
                 min_rate = evse_allowable_pilots[0]
                 max_rate = evse_allowable_pilots[1]
-                evse_satisfied = np.all(np.array([
-                    (min_rate <= pilot <= max_rate) or pilot == 0
-                    for pilot in load_currents[station_id]
-                ]))
+                evse_satisfied = np.all(
+                    np.array(
+                        [
+                            (min_rate <= pilot <= max_rate) or pilot == 0
+                            for pilot in load_currents[station_id]
+                        ]
+                    )
+                )
             else:
-                evse_satisfied = np.all(np.isin(
-                    np.array(load_currents[station_id]),
-                    np.array(evse_allowable_pilots)
-                ))
+                evse_satisfied = np.all(
+                    np.isin(
+                        np.array(load_currents[station_id]),
+                        np.array(evse_allowable_pilots),
+                    )
+                )
             if not evse_satisfied:
                 break
         return evse_satisfied
 
-    def is_feasible(self, load_currents, linear=False,
-                    violation_tolerance=None, relative_tolerance=None):
+    def is_feasible(
+        self,
+        load_currents,
+        linear=False,
+        violation_tolerance=None,
+        relative_tolerance=None,
+    ):
         """ Overrides Interface.is_feasible with extra feasibility
         checks. These include:
 
@@ -360,7 +402,7 @@ class GymTrainedInterface(Interface):
             load_currents,
             linear=linear,
             violation_tolerance=violation_tolerance,
-            relative_tolerance=relative_tolerance
+            relative_tolerance=relative_tolerance,
         )
 
         evse_satisfied = self.is_feasible_evse(load_currents)
@@ -378,8 +420,9 @@ class GymTrainedInterface(Interface):
         return sum([ev.current_charging_rate for ev in self.active_evs])
 
     def current_constraint_currents(self, input_schedule):
-        return abs(self._simulator.network.constraint_current(
-            input_schedule, time_indices=[0]))
+        return abs(
+            self._simulator.network.constraint_current(input_schedule, time_indices=[0])
+        )
 
 
 class GymTrainingInterface(GymTrainedInterface):
@@ -416,9 +459,10 @@ class GymTrainingInterface(GymTrainedInterface):
         """
         # Check that length of new schedules is not less than
         # max_recompute.
-        if (len(new_schedule) == 0
-                or len(list(new_schedule.values())[0])
-                < self._simulator.max_recompute):
+        if (
+            len(new_schedule) == 0
+            or len(list(new_schedule.values())[0]) < self._simulator.max_recompute
+        ):
             warnings.warn(
                 f"Length of schedules is less than this simulation's max_recompute "
                 f"parameter {self._simulator.max_recompute}. Pilots "
@@ -433,4 +477,5 @@ class GymTrainingInterface(GymTrainedInterface):
 
 class InvalidScheduleError(Exception):
     """ Raised when the schedule passed to the simulator is invalid. """
+
     pass

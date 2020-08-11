@@ -12,6 +12,7 @@ algorithms package, so we will compare the results of our implementation with th
 
 # -- Custom Algorithm --------------------------------------------------------------------------------------------------
 from acnportal.algorithms import BaseAlgorithm
+
 # All custom algorithms should inherit from the abstract class BaseAlgorithm. It is the responsibility of all derived
 # classes to implement the schedule method. This method takes as an input a list of EVs which are currently connected
 # to the system but have not yet finished charging. Its output is a dictionary which maps a station_id to a list of
@@ -37,6 +38,7 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
     Args:
         increment (number): Minimum increment of charging rate. Default: 1.
     """
+
     def __init__(self, increment=1):
         super().__init__()
         self._increment = increment
@@ -96,20 +98,22 @@ from acnportal import algorithms
 
 
 # -- Experiment Parameters ---------------------------------------------------------------------------------------------
-timezone = pytz.timezone('America/Los_Angeles')
+timezone = pytz.timezone("America/Los_Angeles")
 start = timezone.localize(datetime(2018, 9, 5))
 end = timezone.localize(datetime(2018, 9, 6))
 period = 5  # minute
 voltage = 220  # volts
-default_battery_power = 32 * voltage / 1000 # kW
-site = 'caltech'
+default_battery_power = 32 * voltage / 1000  # kW
+site = "caltech"
 
 # -- Network -----------------------------------------------------------------------------------------------------------
 cn = acnsim.sites.caltech_acn(basic_evse=True, voltage=voltage)
 
 # -- Events ------------------------------------------------------------------------------------------------------------
-API_KEY = 'DEMO_TOKEN'
-events = acnsim.acndata_events.generate_events(API_KEY, site, start, end, period, voltage, default_battery_power)
+API_KEY = "DEMO_TOKEN"
+events = acnsim.acndata_events.generate_events(
+    API_KEY, site, start, end, period, voltage, default_battery_power
+)
 
 
 # -- Scheduling Algorithm ----------------------------------------------------------------------------------------------
@@ -117,7 +121,9 @@ sch = EarliestDeadlineFirstAlgo(increment=1)
 sch2 = algorithms.SortedSchedulingAlgo(algorithms.earliest_deadline_first)
 
 # -- Simulator ---------------------------------------------------------------------------------------------------------
-sim = acnsim.Simulator(deepcopy(cn), sch, deepcopy(events), start, period=period, verbose=True)
+sim = acnsim.Simulator(
+    deepcopy(cn), sch, deepcopy(events), start, period=period, verbose=True
+)
 sim.run()
 
 # For comparison we will also run the builtin earliest deadline first algorithm
@@ -139,12 +145,12 @@ locator = mdates.AutoDateLocator(maxticks=6)
 formatter = mdates.ConciseDateFormatter(locator)
 
 fig, axs = plt.subplots(1, 2, sharey=True, sharex=True)
-axs[0].plot(sim_dates, acnsim.aggregate_current(sim), label='Our EDF')
-axs[1].plot(sim2_dates, acnsim.aggregate_current(sim2), label='Included EDF')
-axs[0].set_title('Our EDF')
-axs[1].set_title('Included EDF')
+axs[0].plot(sim_dates, acnsim.aggregate_current(sim), label="Our EDF")
+axs[1].plot(sim2_dates, acnsim.aggregate_current(sim2), label="Included EDF")
+axs[0].set_title("Our EDF")
+axs[1].set_title("Included EDF")
 for ax in axs:
-    ax.set_ylabel('Current (A)')
+    ax.set_ylabel("Current (A)")
     for label in ax.get_xticklabels():
         label.set_rotation(40)
     ax.xaxis.set_major_locator(locator)
