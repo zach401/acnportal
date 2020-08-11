@@ -14,30 +14,41 @@ class TestCurrent(TestCase):
         self.current = Current(curr_dict)
         pd.testing.assert_series_equal(
             self.current,
-            pd.Series([0.25, 0.50, -0.25], index=["PS-001", "PS-002", "PS-003"]),
-            check_series_type=False
+            Current(
+                pd.Series([0.25, 0.50, -0.25], index=["PS-001", "PS-002", "PS-003"])
+            ),
         )
 
     def test_init_str_load_input(self):
         curr_str = "PS-001"
         self.current = Current(curr_str)
-        pd.testing.assert_series_equal(self.current, pd.Series([1], index=["PS-001"]),
-                                       check_series_type=False)
+        pd.testing.assert_series_equal(
+            self.current, Current(pd.Series([1], index=["PS-001"]))
+        )
 
     def test_init_none_input(self):
         self.current = Current()
         # The object type is specified explicitly here to address a
         # warning in pandas 1.x.
-        pd.testing.assert_series_equal(self.current, pd.Series(dtype="float64"),
-                                       check_series_type=False)
+        pd.testing.assert_series_equal(
+            self.current, Current(pd.Series(dtype="float64"))
+        )
 
     def test_init_str_lst_input(self):
         curr_strs = ["PS-001", "PS-002", "PS-003"]
         self.current = Current(curr_strs)
         pd.testing.assert_series_equal(
-            self.current, pd.Series([1, 1, 1], index=["PS-001", "PS-002", "PS-003"]),
-            check_series_type=False
+            self.current,
+            Current(pd.Series([1, 1, 1], index=["PS-001", "PS-002", "PS-003"])),
         )
+
+    def test_init_data_warning(self):
+        with self.assertWarns(UserWarning):
+            self.current = Current(data=[1, 2, 3])
+
+    def test_supertype_kwarg_passing(self):
+        self.current = Current(name="Empty Current")
+        self.assertEqual(self.current.name, "Empty Current")
 
     def test_add_current_equal_station_ids(self):
         curr_dict1 = {"PS-001": 0.25, "PS-002": 0.50, "PS-003": -0.25}
@@ -48,8 +59,9 @@ class TestCurrent(TestCase):
         self.assertIsInstance(self.sum_curr, Current)
         pd.testing.assert_series_equal(
             self.sum_curr,
-            pd.Series([0.55, -0.10, 0.25], index=["PS-001", "PS-002", "PS-003"]),
-            check_series_type=False
+            Current(
+                pd.Series([0.55, -0.10, 0.25], index=["PS-001", "PS-002", "PS-003"])
+            ),
         )
 
     def test_add_current_unequal_station_ids(self):
@@ -61,11 +73,12 @@ class TestCurrent(TestCase):
         self.assertIsInstance(self.sum_curr, Current)
         pd.testing.assert_series_equal(
             self.sum_curr,
-            pd.Series(
-                [0.25, 1.00, -0.25, -0.60, 0.30],
-                index=["PS-001", "PS-002", "PS-003", "PS-004", "PS-006"],
+            Current(
+                pd.Series(
+                    [0.25, 1.00, -0.25, -0.60, 0.30],
+                    index=["PS-001", "PS-002", "PS-003", "PS-004", "PS-006"],
+                )
             ),
-            check_series_type=False
         )
 
     def test_sub_current_unequal_station_ids(self):
@@ -77,11 +90,12 @@ class TestCurrent(TestCase):
         self.assertIsInstance(self.diff_curr, Current)
         pd.testing.assert_series_equal(
             self.diff_curr,
-            pd.Series(
-                [0.25, 0.00, -0.25, 0.60, -0.30],
-                index=["PS-001", "PS-002", "PS-003", "PS-004", "PS-006"],
+            Current(
+                pd.Series(
+                    [0.25, 0.00, -0.25, 0.60, -0.30],
+                    index=["PS-001", "PS-002", "PS-003", "PS-004", "PS-006"],
+                )
             ),
-            check_series_type=False
         )
 
     def test_mul_current(self):
@@ -91,6 +105,7 @@ class TestCurrent(TestCase):
         self.assertIsInstance(self.current, Current)
         pd.testing.assert_series_equal(
             self.current,
-            pd.Series([0.50, 1.00, -0.5], index=["PS-001", "PS-002", "PS-003"]),
-            check_series_type=False
+            Current(
+                pd.Series([0.50, 1.00, -0.5], index=["PS-001", "PS-002", "PS-003"])
+            ),
         )

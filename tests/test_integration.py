@@ -174,7 +174,8 @@ class TestIntegration(TestCase):
                 ),
                 np.array(
                     self.edf_algo_true_analysis_dict["primary_current_unbalance_nema"]
-                ), atol=1e-6
+                ),
+                atol=1e-6,
             )
         with self.assertWarns(RuntimeWarning):
             np.testing.assert_allclose(
@@ -183,7 +184,8 @@ class TestIntegration(TestCase):
                 ),
                 np.array(
                     self.edf_algo_true_analysis_dict["secondary_current_unbalance_nema"]
-                ), atol=1e-6
+                ),
+                atol=1e-6,
             )
 
     def test_datetimes_array_tutorial_2(self):
