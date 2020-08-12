@@ -42,14 +42,6 @@ class TestCurrent(TestCase):
             Current(pd.Series([1, 1, 1], index=["PS-001", "PS-002", "PS-003"])),
         )
 
-    def test_init_data_warning(self):
-        with self.assertWarns(UserWarning):
-            self.current = Current(data=[1, 2, 3])
-
-    def test_supertype_kwarg_passing(self):
-        self.current = Current(name="Empty Current")
-        self.assertEqual(self.current.name, "Empty Current")
-
     def test_add_current_equal_station_ids(self):
         curr_dict1 = {"PS-001": 0.25, "PS-002": 0.50, "PS-003": -0.25}
         self.current1 = Current(curr_dict1)

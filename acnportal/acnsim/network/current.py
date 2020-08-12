@@ -1,5 +1,5 @@
 import warnings
-from typing import Union, Dict, SupportsFloat, List
+from typing import Union, Dict, SupportsFloat, List, Optional
 
 import pandas as pd
 
@@ -20,36 +20,24 @@ class Current(pd.Series):
 
     def __init__(
         self,
-        loads: Union[Dict[str, SupportsFloat], str, List[str], pd.Series] = None,
-        **kwargs
+        loads: Optional[
+            Union[Dict[str, SupportsFloat], str, List[str], pd.Series]
+        ] = None,
     ):
-        # This subclass doesn't use the data keyword argument, so if the user
-        # provides it, a warning is raised.
-        if "data" in kwargs and kwargs["data"] is not None:
-            warnings.warn(
-                "Current class does not use the data keyword of Series constructor. "
-                "Use the loads keyword instead."
-            )
-
-        # Remove "data" keyword for passing up to constructor.
-        if "data" in kwargs:
-            del kwargs["data"]
 
         # Backwards compatibility with previous Current specification methods
         if isinstance(loads, dict):
-            super().__init__(loads, **kwargs)
+            super().__init__(loads)
         elif isinstance(loads, str):
-            super().__init__({loads: 1}, **kwargs)
+            super().__init__({loads: 1})
         elif loads is not None and all(isinstance(load, str) for load in loads):
-            super().__init__({load_id: 1 for load_id in loads}, **kwargs)
+            super().__init__({load_id: 1 for load_id in loads})
         elif isinstance(loads, pd.Series):
-            super().__init__(loads, **kwargs)
+            super().__init__(loads)
         elif loads is None:
             # The object type is specified explicitly here to address a
             # warning in pandas 1.x.
-            if "dtype" not in kwargs:
-                kwargs["dtype"] = "float64"
-            super().__init__(**kwargs)
+            super().__init__(dtype="float64")
         else:
             raise TypeError(
                 "Variable loads should be of type dict, str, pd.Series, or Lst[str]."
