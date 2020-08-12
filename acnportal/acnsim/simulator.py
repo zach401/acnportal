@@ -339,12 +339,11 @@ class Simulator(BaseSimObj):
             "_resolve",
             "_last_schedule_update",
             "schedule_history",
+            "pilot_signals",
+            "charging_rates",
         ]
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
-
-        attribute_dict["pilot_signals"] = self.pilot_signals.tolist()
-        attribute_dict["charging_rates"] = self.charging_rates.tolist()
 
         ev_history = {}
         for session_id, ev in self.ev_history.items():

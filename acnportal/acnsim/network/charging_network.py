@@ -394,7 +394,15 @@ class ChargingNetwork(BaseSimObj):
 
         attribute_dict = {}
         # Serialize non-nested attributes.
-        nn_attr_lst = ["violation_tolerance", "relative_tolerance"]
+        nn_attr_lst = [
+            "violation_tolerance",
+            "relative_tolerance",
+            "constraint_matrix",
+            "magnitudes",
+            "_voltages",
+            "_phase_angles",
+            "constraint_index",
+        ]
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
 
@@ -405,14 +413,6 @@ class ChargingNetwork(BaseSimObj):
             evses[station_id] = registry["id"]
         attribute_dict["_EVSEs"] = evses
 
-        if self.constraint_matrix is not None:
-            attribute_dict["constraint_matrix"] = self.constraint_matrix.tolist()
-        else:
-            attribute_dict["constraint_matrix"] = self.constraint_matrix
-        attribute_dict["magnitudes"] = self.magnitudes.tolist()
-        attribute_dict["_voltages"] = self._voltages.tolist()
-        attribute_dict["_phase_angles"] = self._phase_angles.tolist()
-        attribute_dict["constraint_index"] = self.constraint_index
         return attribute_dict, context_dict
 
     @classmethod
