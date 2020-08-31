@@ -53,7 +53,7 @@ class TestSessionInfo(TestCase):
 
     def test_min_rates_too_long(self):
         with self.assertRaises(ValueError):
-            s = SessionInfo(
+            SessionInfo(
                 "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, min_rates=[8.0] * 6
             )
 
