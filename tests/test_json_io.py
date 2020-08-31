@@ -38,7 +38,7 @@ class TestJSONIO(TestCase):
             "PS-001",
             "EV-001",
             deepcopy(cls.battery1),
-            estimated_departure=25,
+            estimated_departure=35,
         )
         cls.ev1._energy_delivered = 0.05
         cls.ev1._current_charging_rate = 10
@@ -51,7 +51,7 @@ class TestJSONIO(TestCase):
             "PS-002",
             "EV-002",
             deepcopy(cls.battery2),
-            estimated_departure=25,
+            estimated_departure=65,
         )
         cls.ev2._energy_delivered = 0.05
         cls.ev2._current_charging_rate = 10
@@ -64,7 +64,7 @@ class TestJSONIO(TestCase):
             "PS-003",
             "EV-003",
             deepcopy(cls.battery2),
-            estimated_departure=25,
+            estimated_departure=75,
         )
         cls.ev3._energy_delivered = 0.05
         cls.ev3._current_charging_rate = 10
