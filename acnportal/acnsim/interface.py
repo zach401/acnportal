@@ -59,7 +59,11 @@ class SessionInfo:
                 f"Departure:{self.departure}"
             )
 
-        self.estimated_departure = estimated_departure
+        if estimated_departure is None:
+            self.estimated_departure = departure
+        else:
+            self.estimated_departure = estimated_departure
+
         if self.estimated_departure <= self.arrival:
             raise ValueError(
                 "Departure must be later than arrival."
