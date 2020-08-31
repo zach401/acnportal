@@ -53,15 +53,19 @@ class SessionInfo:
         self.arrival = arrival
         self.departure = departure
         if self.departure <= self.arrival:
-            raise ValueError(f"Departure must be later than arrival."
-                             f"\nArrival:{self.arrival}\n"
-                             f"Departure:{self.departure}")
+            raise ValueError(
+                f"Departure must be later than arrival."
+                f"\nArrival:{self.arrival}\n"
+                f"Departure:{self.departure}"
+            )
 
         self.estimated_departure = estimated_departure
         if self.estimated_departure <= self.arrival:
-            raise ValueError("Departure must be later than arrival."
-                             f"\nArrival:{self.arrival}\n"
-                             f"Estimated Departure:{self.estimated_departure}")
+            raise ValueError(
+                "Departure must be later than arrival."
+                f"\nArrival:{self.arrival}\n"
+                f"Estimated Departure:{self.estimated_departure}"
+            )
 
         self.current_time = current_time
 
@@ -70,20 +74,24 @@ class SessionInfo:
         elif len(min_rates) == self.remaining_time:
             self.min_rates = np.array(min_rates)
         else:
-            raise ValueError("min_rates must be a scalar or list-like with length "
-                             "equal to the remaining_time of the session.\n"
-                             f"Length of min_rates: {len(min_rates)}\n"
-                             f"Remaining time: {self.remaining_time}")
+            raise ValueError(
+                "min_rates must be a scalar or list-like with length "
+                "equal to the remaining_time of the session.\n"
+                f"Length of min_rates: {len(min_rates)}\n"
+                f"Remaining time: {self.remaining_time}"
+            )
 
         if np.isscalar(max_rates):
             self.max_rates = np.array([max_rates] * self.remaining_time)
         elif len(max_rates) == self.remaining_time:
             self.max_rates = np.array(max_rates)
         else:
-            raise ValueError("max_rates must be a scalar or list-like with length "
-                             "equal to the remaining_time of the session.\n"
-                              f"Length of max_rates: {len(max_rates)}\n"
-                             f"Remaining time: {self.remaining_time}")
+            raise ValueError(
+                "max_rates must be a scalar or list-like with length "
+                "equal to the remaining_time of the session.\n"
+                f"Length of max_rates: {len(max_rates)}\n"
+                f"Remaining time: {self.remaining_time}"
+            )
 
     @property
     def remaining_demand(self):
@@ -95,8 +103,9 @@ class SessionInfo:
 
     @property
     def remaining_time(self):
-        remaining = min(self.departure - self.arrival,
-                        self.departure - self.current_time)
+        remaining = min(
+            self.departure - self.arrival, self.departure - self.current_time
+        )
         return max(remaining, 0)
 
 
@@ -188,36 +197,38 @@ class InfrastructureInfo:
             len(self.max_pilot),
             len(self.min_pilot),
             len(self.allowable_pilots),
-            len(self.is_continuous)
+            len(self.is_continuous),
         }
         num_constraints_set = {
             self.constraint_matrix.shape[0],
             len(self.constraint_limits),
-            len(self.constraint_ids)
+            len(self.constraint_ids),
         }
 
         errors = []
         if len(num_stations_set) > 1:
-            errors.append("Number of stations should be consistent between inputs.\n"
-                          "Stations implied by argument:\n"
-                          f"constraint_matrix: {self.constraint_matrix.shape[1]},\n"
-                          f"phases: {len(self.phases)},\n"
-                          f"voltages: {len(self.voltages)},\n"
-                          f"max_pilot: {len(self.max_pilot)},\n"
-                          f"min_pilot: {len(self.min_pilot)},\n"
-                          f"allowable_pilots: {len(self.allowable_pilots)},\n"
-                          f"is_continuous: {len(self.is_continuous)},\n")
+            errors.append(
+                "Number of stations should be consistent between inputs.\n"
+                "Stations implied by argument:\n"
+                f"constraint_matrix: {self.constraint_matrix.shape[1]},\n"
+                f"phases: {len(self.phases)},\n"
+                f"voltages: {len(self.voltages)},\n"
+                f"max_pilot: {len(self.max_pilot)},\n"
+                f"min_pilot: {len(self.min_pilot)},\n"
+                f"allowable_pilots: {len(self.allowable_pilots)},\n"
+                f"is_continuous: {len(self.is_continuous)},\n"
+            )
         if len(num_constraints_set) > 1:
-            errors.append("Number of constraints should be consistent between inputs.\n"
-                          "Constraints implied by argument:\n"
-                          f"constraint_matrix: {self.constraint_matrix.shape[0]},\n"
-                          f"constraint_limits: {len(self.constraint_limits)},\n"
-                          f"constraint_ids: {len(self.constraint_ids)},\n")
+            errors.append(
+                "Number of constraints should be consistent between inputs.\n"
+                "Constraints implied by argument:\n"
+                f"constraint_matrix: {self.constraint_matrix.shape[0]},\n"
+                f"constraint_limits: {len(self.constraint_limits)},\n"
+                f"constraint_ids: {len(self.constraint_ids)},\n"
+            )
 
         if len(errors) > 0:
             raise ValueError("\n---\n".join(errors))
-
-
 
 
 class Interface:

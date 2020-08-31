@@ -39,40 +39,42 @@ class TestSessionInfo(TestCase):
         self.assertEqual(s.remaining_time, 55)
 
     def test_proper_length_min_rates(self):
-        s = SessionInfo("PS-001", "01", 10, 4, 5, 10, 12,
-                        current_time=0,
-                        min_rates=[8.0]*5)
+        s = SessionInfo(
+            "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, min_rates=[8.0] * 5
+        )
         self.assertEqual(len(s.min_rates), 5)
         nptest.assert_array_equal(s.min_rates, 8.0)
 
     def test_min_rates_too_short(self):
         with self.assertRaises(ValueError):
-            SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, current_time=0,
-                        min_rates=[8.0]*4)
+            SessionInfo(
+                "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, min_rates=[8.0] * 4
+            )
 
     def test_min_rates_too_long(self):
         with self.assertRaises(ValueError):
-            s = SessionInfo("PS-001", "01", 10, 4, 5, 10, 12,
-                            current_time=0,
-                            min_rates=[8.0]*6)
+            s = SessionInfo(
+                "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, min_rates=[8.0] * 6
+            )
 
     def test_proper_length_max_rates(self):
-        s = SessionInfo("PS-001", "01", 10, 4, 5, 10, 12,
-                        current_time=0,
-                        max_rates=[8.0]*5)
+        s = SessionInfo(
+            "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, max_rates=[8.0] * 5
+        )
         self.assertEqual(len(s.max_rates), 5)
         nptest.assert_array_equal(s.max_rates, 8.0)
 
     def test_max_rates_too_short(self):
         with self.assertRaises(ValueError):
-            SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, current_time=0,
-                        max_rates=[8.0]*4)
+            SessionInfo(
+                "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, max_rates=[8.0] * 4
+            )
 
     def test_max_rates_too_long(self):
         with self.assertRaises(ValueError):
-            s = SessionInfo("PS-001", "01", 10, 4, 5, 10, 12,
-                            current_time=0,
-                            max_rates=[8.0]*6)
+            s = SessionInfo(
+                "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, max_rates=[8.0] * 6
+            )
 
 
 class TestInfrastructureInfo(TestCase):
@@ -87,8 +89,8 @@ class TestInfrastructureInfo(TestCase):
             [f"S-{i}" for i in range(N)],
             np.ones((N,)),
             np.zeros((N,)),
-            [np.array([1, 2, 3, 4])]*N,
-            np.zeros((N,))
+            [np.array([1, 2, 3, 4])] * N,
+            np.zeros((N,)),
         )
         self.assertEqual(infra.constraint_matrix.shape, (M, N))
         self.assertEqual(len(infra.constraint_limits), M)
@@ -112,7 +114,7 @@ class TestInfrastructureInfo(TestCase):
             [f"S-{i}" for i in range(N)],
             np.ones((N,)),
             np.zeros((N,)),
-            is_continuous=np.zeros((N,))
+            is_continuous=np.zeros((N,)),
         )
         self.assertEqual(len(infra.allowable_pilots), N)
 
@@ -148,7 +150,7 @@ class TestInfrastructureInfo(TestCase):
                         np.ones((N + errors[4],)),
                         np.zeros((N + errors[5],)),
                         [np.array([1, 2, 3, 4])] * (N + errors[6]),
-                        np.zeros((N + errors[7],))
+                        np.zeros((N + errors[7],)),
                     )
 
     def test_num_constraints_mismatch(self):
@@ -168,7 +170,7 @@ class TestInfrastructureInfo(TestCase):
                         np.ones((N,)),
                         np.zeros((N,)),
                         [np.array([1, 2, 3, 4])] * (N),
-                        np.zeros((N,))
+                        np.zeros((N,)),
                     )
 
 
