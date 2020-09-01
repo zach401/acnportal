@@ -148,7 +148,9 @@ class TestApplyUpperBoundEstimate(TestCase):
             nptest.assert_almost_equal(session.max_rates, 16)
             nptest.assert_almost_equal(session.min_rates, 0)
 
-    def test_vector_lower_existing_max_scalar_rampdown(self):  # pylint: disable=no-self-use
+    def test_vector_lower_existing_max_scalar_rampdown(
+        self,
+    ):  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -261,7 +263,9 @@ class TestApplyMinimumChargingRate(TestCase):
             nptest.assert_almost_equal(session.max_rates, 32)
             nptest.assert_almost_equal(session.min_rates, 16)
 
-    def test_evse_min_greater_than_remaining_energy(self):  # pylint: disable=no-self-use
+    def test_evse_min_greater_than_remaining_energy(
+        self,
+    ):  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
