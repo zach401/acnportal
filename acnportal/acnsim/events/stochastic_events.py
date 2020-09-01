@@ -5,12 +5,35 @@ from .event_queue import EventQueue
 import numpy as np
 
 
-def gmm_events(gmm, arrivals_per_day, period, voltage, max_battery_power, **kwargs):
+class StochasticSessionModel:
+    def get_sessions(self, num_sessions):
+        raise NotImplementedError("StochasticEventModel is an abstract class.")
+
+
+class GaussianMixtureSessionModel(StochasticSessionModel):
+    """ Model to draw charging session parameters from a gaussian mixture model.
+
+    Args:
+        gmm (scikitlearn.GaussianMixture): A trained Gaussian Mixure Model with
+            variables arrival time (h), sojourn time (h), energy demand (kWh).
+    """
+    def __init__(self, gmm):
+        self.gmm = gmm
+
+    def get_sessions(self, num_sessions):
+        if num_sessions > 0:
+            daily_arrivals, _ = self.gmm.sample(num_sessions)
+            return daily_arrivals
+        else:
+            return None
+
+
+def stochastic_events(model, arrivals_per_day, period, voltage, max_battery_power,
+                      **kwargs):
     """ Return EventQueue filled using events gathered from the acndata API.
 
     Args:
-        gmm (scikitlearn.GaussianMixture): A trained Gaussian Mixure Model with variables arrival time (h),
-            sojourn time (h), energy demand (kWh).
+        model (StochasticSessionModel): Model from which to draw session data.
         arrivals_per_day (List[int]): Number of arrivals for each day.
         period (int): Length of each time interval. (minutes)
         voltage (float): Voltage of the network.
@@ -30,17 +53,13 @@ def gmm_events(gmm, arrivals_per_day, period, voltage, max_battery_power, **kwar
     Returns:
         EventQueue: An EventQueue filled with Events gathered through the acndata API.
     """
-    total_evs = sum(arrivals_per_day)
-    ev_matrix = np.zeros(shape=(total_evs, 3))
-    working_head = 0
+    daily_sessions = []
     for d in range(len(arrivals_per_day)):
         if arrivals_per_day[d] > 0:
-            daily_arrivals, _ = gmm.sample(arrivals_per_day[d])
+            daily_arrivals, _ = model.get_sessions(arrivals_per_day[d])
             daily_arrivals[:, 0] += 24 * d
-            ev_matrix[
-                working_head : working_head + arrivals_per_day[d], :
-            ] = daily_arrivals
-            working_head += arrivals_per_day[d]
+            daily_sessions.append(daily_arrivals)
+    ev_matrix = np.hstack([day for day in daily_sessions if day is not None])
     evs = _convert_ev_matrix(ev_matrix, period, voltage, max_battery_power, **kwargs)
     events = [PluginEvent(sess.arrival, sess) for sess in evs]
     return EventQueue(events)
