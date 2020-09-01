@@ -9,7 +9,6 @@ import json
 from pydoc import locate
 
 from .events import *
-from .models import EV
 from .events import UnplugEvent
 from .interface import Interface
 from .interface import InvalidScheduleError
@@ -120,6 +119,7 @@ class Simulator(BaseSimObj):
             self.charging_rates = _increase_width(self.charging_rates, width_increase)
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
+            self.network.post_charging_update()
             self._iteration = self._iteration + 1
 
     def get_active_evs(self):
@@ -147,16 +147,12 @@ class Simulator(BaseSimObj):
             self._print("Plugin Event...")
             self.network.plugin(event.ev, event.ev.station_id)
             self.ev_history[event.ev.session_id] = event.ev
-            self.event_queue.add_event(
-                UnplugEvent(
-                    event.ev.departure, event.ev.station_id, event.ev.session_id
-                )
-            )
+            self.event_queue.add_event(UnplugEvent(event.ev.departure, event.ev))
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.event_type == "Unplug":
             self._print("Unplug Event...")
-            self.network.unplug(event.station_id)
+            self.network.unplug(event.ev)
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.event_type == "Recompute":

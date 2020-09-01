@@ -109,33 +109,34 @@ class UnplugEvent(Event):
 
     Args:
         timestamp (int): See Event.
-        station_id (str): ID of the EVSE where the EV is to be unplugged.
-        session_id (str): ID of the session which should be ended.
+        ev (EV): The EV which will be unplugged.
     """
 
-    def __init__(self, timestamp, station_id, session_id):
+    def __init__(self, timestamp, ev):
         super().__init__(timestamp)
         self.event_type = "Unplug"
-        self.station_id = station_id
-        self.session_id = session_id
+        self.ev = ev
         self.precedence = 0
 
     def _to_dict(self, context_dict=None):
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
-        # Unplug-specific attributes
-        attribute_dict["station_id"] = self.station_id
-        attribute_dict["session_id"] = self.session_id
+        # Plugin-specific attributes
+
+        # noinspection PyProtectedMember
+        registry, context_dict = self.ev._to_registry(context_dict=context_dict)
+        attribute_dict["ev"] = registry["id"]
+
         return attribute_dict, context_dict
 
     @classmethod
     def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
         """ Implements BaseSimObj._from_dict. """
-        out_obj = cls(
-            attribute_dict["timestamp"],
-            attribute_dict["station_id"],
-            attribute_dict["session_id"],
+        # noinspection PyProtectedMember
+        ev, loaded_dict = BaseSimObj._build_from_id(
+            attribute_dict["ev"], context_dict, loaded_dict=loaded_dict
         )
+        out_obj = cls(attribute_dict["timestamp"], ev)
         cls._from_dict_helper(out_obj, attribute_dict)
         return out_obj, loaded_dict
 

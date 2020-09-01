@@ -230,11 +230,11 @@ class ChargingNetwork(BaseSimObj):
         else:
             raise KeyError("Station {0} not found.".format(station_id))
 
-    def unplug(self, station_id):
+    def unplug(self, ev):
         """ Detach EV from a specific EVSE.
 
         Args:
-            station_id (str): ID of the EVSE.
+            ev (EV): EV to unplug.
 
         Returns:
             None
@@ -242,10 +242,10 @@ class ChargingNetwork(BaseSimObj):
         Raises:
             KeyError: Raised when the station id has not yet been registered.
         """
-        if station_id in self._EVSEs:
-            self._EVSEs[station_id].unplug()
+        if ev.station_id in self._EVSEs:
+            self._EVSEs[ev.station_id].unplug()
         else:
-            raise KeyError("Station {0} not found.".format(station_id))
+            raise KeyError("Station {0} not found.".format(ev.station_id))
 
     def get_ev(self, station_id):
         """ Return the EV attached to the specified EVSE.
@@ -388,6 +388,9 @@ class ChargingNetwork(BaseSimObj):
             ).T
             >= np.abs(aggregate_currents)
         )
+
+    def post_charging_update(self):
+        pass
 
     def _to_dict(self, context_dict=None):
         """ Implements BaseSimObj._to_dict. """

@@ -73,12 +73,16 @@ class TestChargingNetwork(TestCase):
         evse = EVSE("PS-001")
         evse.unplug = Mock(evse.unplug)
         self.network.register_evse(evse, 240, 0)
-        self.network.unplug("PS-001")
+        ev = create_autospec(EV)
+        ev.station_id = "PS-001"
+        self.network.unplug(ev)
         evse.unplug.assert_called_once()
 
     def test_unplug_station_does_not_exist(self):
         with self.assertRaises(KeyError):
-            self.network.unplug("PS-001")
+            ev = create_autospec(EV)
+            ev.station_id = "PS-001"
+            self.network.unplug(ev)
 
     def test_get_ev_station_exists(self):
         evse = EVSE("PS-001")
