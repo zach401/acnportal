@@ -27,8 +27,10 @@ algorithms = {
 # -----------------------------------------------------------------------------
 # Test Suite
 # -----------------------------------------------------------------------------
-Scenario = namedtuple("Scenario", ["name", "interface", "assert_at_max",
-                                   "uninterrupted", "estimate_max_rate"])
+Scenario = namedtuple(
+    "Scenario",
+    ["name", "interface", "assert_at_max", "uninterrupted", "estimate_max_rate"],
+)
 
 
 class BaseAlgorithmTest(unittest.TestCase):
@@ -46,7 +48,9 @@ class BaseAlgorithmTest(unittest.TestCase):
             self.algo.register_interface(scenario.interface)
             self.algo.uninterrupted = scenario.uninterrupted
             estimator_mock = UpperBoundEstimatorBase()
-            estimator_mock.get_maximum_rates = Mock(return_value=self.max_rate_estimation)
+            estimator_mock.get_maximum_rates = Mock(
+                return_value=self.max_rate_estimation
+            )
             self.algo.max_rate_estimator = estimator_mock
             self.algo.estimate_max_rate = scenario.estimate_max_rate
 
@@ -57,11 +61,18 @@ class BaseAlgorithmTest(unittest.TestCase):
                 schedule,
                 scenario.interface,
                 scenario.assert_at_max,
-                scenario.uninterrupted
+                scenario.uninterrupted,
             )
 
-    def run_tests(self, name, sessions, schedule, interface, assert_at_max=False,
-                  uninterrupted=False):
+    def run_tests(
+        self,
+        name,
+        sessions,
+        schedule,
+        interface,
+        assert_at_max=False,
+        uninterrupted=False,
+    ):
         with self.subTest(msg=f"test_all_rates_less_than_evse_limit - {name}"):
             self._test_all_rates_less_than_evse_limit(schedule, interface)
 
@@ -145,13 +156,16 @@ class BaseAlgorithmTest(unittest.TestCase):
 
     def _test_max_rate_estimator_not_exceeded(self, sessions, schedule):
         for session in sessions:
-            self.assertLessEqual(np.array(schedule[session.session_id]),
-                                 self.max_rate_estimation[session.session_id])
+            self.assertLessEqual(
+                np.array(schedule[session.session_id]),
+                self.max_rate_estimation[session.session_id],
+            )
 
 
 # Two Station Test Case
 def two_station(
-    limit, continuous, session_max_rate, session_min_rate=0, remaining_energy=None):
+    limit, continuous, session_max_rate, session_min_rate=0, remaining_energy=None
+):
     if continuous:
         allowable = [[0, 32]] * 2
     else:
@@ -180,25 +194,25 @@ def two_station(
 
 
 def big_three_phase_network(num_sessions=30, limit=1000):
-        # Network is WAY over designed to deal with unbalance and ensure
-        # all EVs can charge at their maximum rate
-        network = three_phase_balanced_network(num_sessions // 3, limit)
-        sessions = session_generator(
-            num_sessions=num_sessions,
-            arrivals=[0] * num_sessions,
-            departures=[2] * num_sessions,
-            requested_energy=[10] * num_sessions,
-            remaining_energy=[10] * num_sessions,
-            max_rates=[32] * num_sessions,
-        )
-        random.shuffle(sessions)
-        data = {
-            "active_sessions": sessions,
-            "infrastructure_info": network,
-            "current_time": CURRENT_TIME,
-            "period": PERIOD,
-        }
-        return TestingInterface(data)
+    # Network is WAY over designed to deal with unbalance and ensure
+    # all EVs can charge at their maximum rate
+    network = three_phase_balanced_network(num_sessions // 3, limit)
+    sessions = session_generator(
+        num_sessions=num_sessions,
+        arrivals=[0] * num_sessions,
+        departures=[2] * num_sessions,
+        requested_energy=[10] * num_sessions,
+        remaining_energy=[10] * num_sessions,
+        max_rates=[32] * num_sessions,
+    )
+    random.shuffle(sessions)
+    data = {
+        "active_sessions": sessions,
+        "infrastructure_info": network,
+        "current_time": CURRENT_TIME,
+        "period": PERIOD,
+    }
+    return TestingInterface(data)
 
 
 class TestTwoStationsBase(BaseAlgorithmTest):
@@ -227,16 +241,20 @@ class TestTwoStationsBase(BaseAlgorithmTest):
                             # Consider both interruptable and uninterrupted charging
                             for uninterrupted in [True, False]:
                                 for estimate_max_rate in [True, False]:
-                                    if limit < 64 or \
-                                            session_energy_demands == [0.3, 0.05] or \
-                                            estimate_max_rate:
+                                    if (
+                                        limit < 64
+                                        or session_energy_demands == [0.3, 0.05]
+                                        or estimate_max_rate
+                                    ):
                                         assert_at_max = False
                                     else:
                                         assert_at_max = True
                                     interface = two_station(
-                                        limit, continuous, session_max_rate,
+                                        limit,
+                                        continuous,
+                                        session_max_rate,
                                         session_min_rate,
-                                        remaining_energy=session_energy_demands
+                                        remaining_energy=session_energy_demands,
                                     )
                                     scenario_name = (
                                         f"capacity: {limit}, "
@@ -246,11 +264,15 @@ class TestTwoStationsBase(BaseAlgorithmTest):
                                         f"uninterrupted: {uninterrupted}, "
                                         f"estimate_max_rate: {estimate_max_rate} "
                                     )
-                                    scenarios.append(Scenario(scenario_name,
-                                                              interface,
-                                                              assert_at_max,
-                                                              uninterrupted,
-                                                              estimate_max_rate))
+                                    scenarios.append(
+                                        Scenario(
+                                            scenario_name,
+                                            interface,
+                                            assert_at_max,
+                                            uninterrupted,
+                                            estimate_max_rate,
+                                        )
+                                    )
         return scenarios
 
 
@@ -271,6 +293,7 @@ class TestThirtyStationsBase(BaseAlgorithmTest):
 
 class TestTwoStationsMinRatesInfeasible(unittest.TestCase):
     """ Check that error is thrown when minimum rates are not feasible. """
+
     def test_sorted_min_rates_infeasible(self):
         limit = 16
         max_rate = 32

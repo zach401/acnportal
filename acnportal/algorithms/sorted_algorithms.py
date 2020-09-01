@@ -325,12 +325,9 @@ class RoundRobin(SortedSchedulingAlgo):
             )
             lb = max(0, session.min_rates[0])
             # Remove any charging rates which are not feasible.
-            allowable_pilots[i] = [
-                a for a in allowable_pilots[i] if lb <= a <= ub
-            ]
+            allowable_pilots[i] = [a for a in allowable_pilots[i] if lb <= a <= ub]
             # All charging rates should start at their lower bound
-            schedule[i] = allowable_pilots[i][0] if \
-                len(allowable_pilots[i]) > 0 else 0
+            schedule[i] = allowable_pilots[i][0] if len(allowable_pilots[i]) > 0 else 0
 
         if not infrastructure_constraints_feasible(schedule, infrastructure):
             raise ValueError(
