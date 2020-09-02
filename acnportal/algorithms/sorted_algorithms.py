@@ -307,12 +307,13 @@ class RoundRobin(SortedSchedulingAlgo):
         queue = deque(self._sort_fn(active_sessions, self.interface))
         schedule = np.zeros(infrastructure.num_stations)
         rate_idx = np.zeros(infrastructure.num_stations, dtype=int)
+        allowable_pilots = infrastructure.allowable_pilots.copy()
         for session in queue:
             i = infrastructure.get_station_index(session.station_id)
             # If pilot signal is continuous discretize it with increments of
             # continuous_inc.
             if infrastructure.is_continuous[i]:
-                infrastructure.allowable_pilots[i] = np.arange(
+                allowable_pilots[i] = np.arange(
                     session.min_rates[0],
                     session.max_rates[0] + 1e-7,
                     self.continuous_inc,
@@ -324,27 +325,25 @@ class RoundRobin(SortedSchedulingAlgo):
             )
             lb = max(0, session.min_rates[0])
             # Remove any charging rates which are not feasible.
-            infrastructure.allowable_pilots[i] = [
-                a for a in infrastructure.allowable_pilots[i] if lb <= a <= ub
-            ]
+            allowable_pilots[i] = [a for a in allowable_pilots[i] if lb <= a <= ub]
             # All charging rates should start at their lower bound
-            schedule[i] = lb
+            schedule[i] = allowable_pilots[i][0] if len(allowable_pilots[i]) > 0 else 0
 
         if not infrastructure_constraints_feasible(schedule, infrastructure):
             raise ValueError(
-                "Charging all sessions at their lower bound " "is not feasible."
+                "Charging all sessions at their lower bound is not feasible."
             )
 
         while len(queue) > 0:
             session = queue.popleft()
             i = infrastructure.get_station_index(session.station_id)
-            if rate_idx[i] < len(infrastructure.allowable_pilots[i]) - 1:
-                schedule[i] = infrastructure.allowable_pilots[i][rate_idx[i] + 1]
+            if rate_idx[i] < len(allowable_pilots[i]) - 1:
+                schedule[i] = allowable_pilots[i][rate_idx[i] + 1]
                 if infrastructure_constraints_feasible(schedule, infrastructure):
                     rate_idx[i] += 1
                     queue.append(session)
                 else:
-                    schedule[i] = infrastructure.allowable_pilots[i][rate_idx[i]]
+                    schedule[i] = allowable_pilots[i][rate_idx[i]]
         return schedule
 
     def schedule(self, active_sessions):

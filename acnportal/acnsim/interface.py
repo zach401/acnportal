@@ -14,12 +14,14 @@ class SessionInfo:
             station_id (str): Unique identifier of the station (EVSE) where the
                 session takes place.
             session_id (str): Unique identifier of the charging session.
-            energy_requested (float): Energy requested by the user during the
+            requested_energy (float): Energy requested by the user during the
                 session. [kWh]
             energy_delivered (float): Energy delivered already during the
                 session. [kWh]
             arrival (int): Time index when the session begins.
             departure (int): Time index when the session ends.
+            estimated_departure (int): Time index when the user estimates the session
+                will end.
             current_time (int): Time index of the current time.
             min_rates (Union[float, List[float]): Lower bound for the charging
                 rate of the session. If List (or np.array) length should be
@@ -50,18 +52,50 @@ class SessionInfo:
         self.energy_delivered = energy_delivered
         self.arrival = arrival
         self.departure = departure
-        self.estimated_departure = estimated_departure
+        if self.departure <= self.arrival:
+            raise ValueError(
+                f"Departure must be later than arrival."
+                f"\nArrival:{self.arrival}\n"
+                f"Departure:{self.departure}"
+            )
+
+        if estimated_departure is None:
+            self.estimated_departure = departure
+        else:
+            self.estimated_departure = estimated_departure
+
+        if self.estimated_departure <= self.arrival:
+            raise ValueError(
+                "Departure must be later than arrival."
+                f"\nArrival:{self.arrival}\n"
+                f"Estimated Departure:{self.estimated_departure}"
+            )
+
         self.current_time = current_time
-        self.min_rates = (
-            np.array([min_rates] * self.remaining_time)
-            if np.isscalar(min_rates)
-            else np.array(min_rates)
-        )
-        self.max_rates = (
-            np.array([max_rates] * self.remaining_time)
-            if np.isscalar(max_rates)
-            else np.array(max_rates)
-        )
+
+        if np.isscalar(min_rates):
+            self.min_rates = np.array([min_rates] * self.remaining_time)
+        elif len(min_rates) == self.remaining_time:
+            self.min_rates = np.array(min_rates)
+        else:
+            raise ValueError(
+                "min_rates must be a scalar or list-like with length "
+                "equal to the remaining_time of the session.\n"
+                f"Length of min_rates: {len(min_rates)}\n"
+                f"Remaining time: {self.remaining_time}"
+            )
+
+        if np.isscalar(max_rates):
+            self.max_rates = np.array([max_rates] * self.remaining_time)
+        elif len(max_rates) == self.remaining_time:
+            self.max_rates = np.array(max_rates)
+        else:
+            raise ValueError(
+                "max_rates must be a scalar or list-like with length "
+                "equal to the remaining_time of the session.\n"
+                f"Length of max_rates: {len(max_rates)}\n"
+                f"Remaining time: {self.remaining_time}"
+            )
 
     @property
     def remaining_demand(self):
@@ -73,8 +107,10 @@ class SessionInfo:
 
     @property
     def remaining_time(self):
-        offset = max(self.arrival_offset, self.current_time)
-        return max(self.departure - offset, 0)
+        remaining = min(
+            self.departure - self.arrival, self.departure - self.current_time
+        )
+        return max(remaining, 0)
 
 
 class InfrastructureInfo:
@@ -145,6 +181,7 @@ class InfrastructureInfo:
             if is_continuous is not None
             else np.ones(self.num_stations, dtype=bool)
         )
+        self._validate()
 
     @property
     def num_stations(self):
@@ -152,6 +189,50 @@ class InfrastructureInfo:
 
     def get_station_index(self, station_id):
         return self._station_ids_dict[station_id]
+
+    def _validate(self):
+        """ Raise error if shapes do not have consistent shapes."""
+        # Check number of stations
+        num_stations_set = {
+            self.constraint_matrix.shape[1],
+            len(self.phases),
+            len(self.voltages),
+            len(self.station_ids),
+            len(self.max_pilot),
+            len(self.min_pilot),
+            len(self.allowable_pilots),
+            len(self.is_continuous),
+        }
+        num_constraints_set = {
+            self.constraint_matrix.shape[0],
+            len(self.constraint_limits),
+            len(self.constraint_ids),
+        }
+
+        errors = []
+        if len(num_stations_set) > 1:
+            errors.append(
+                "Number of stations should be consistent between inputs.\n"
+                "Stations implied by argument:\n"
+                f"constraint_matrix: {self.constraint_matrix.shape[1]},\n"
+                f"phases: {len(self.phases)},\n"
+                f"voltages: {len(self.voltages)},\n"
+                f"max_pilot: {len(self.max_pilot)},\n"
+                f"min_pilot: {len(self.min_pilot)},\n"
+                f"allowable_pilots: {len(self.allowable_pilots)},\n"
+                f"is_continuous: {len(self.is_continuous)},\n"
+            )
+        if len(num_constraints_set) > 1:
+            errors.append(
+                "Number of constraints should be consistent between inputs.\n"
+                "Constraints implied by argument:\n"
+                f"constraint_matrix: {self.constraint_matrix.shape[0]},\n"
+                f"constraint_limits: {len(self.constraint_limits)},\n"
+                f"constraint_ids: {len(self.constraint_ids)},\n"
+            )
+
+        if len(errors) > 0:
+            raise ValueError("\n---\n".join(errors))
 
 
 class Interface:
@@ -246,6 +327,16 @@ class Interface:
             int: Length of each time interval in the simulation. [minutes]
         """
         return self._simulator.period
+
+    @property
+    def max_recompute_time(self):
+        """ Return the maximum recompute time of the simulator.
+
+        Returns:
+            int: Maximum recompute time of the simulation in number of periods.
+                [periods]
+        """
+        return self._simulator.max_recompute
 
     def active_sessions(self):
         """ Return a list of SessionInfo objects describing the currently
