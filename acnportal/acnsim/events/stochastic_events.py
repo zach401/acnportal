@@ -56,10 +56,10 @@ def stochastic_events(model, arrivals_per_day, period, voltage, max_battery_powe
     daily_sessions = []
     for d in range(len(arrivals_per_day)):
         if arrivals_per_day[d] > 0:
-            daily_arrivals, _ = model.get_sessions(arrivals_per_day[d])
+            daily_arrivals = model.get_sessions(arrivals_per_day[d])
             daily_arrivals[:, 0] += 24 * d
             daily_sessions.append(daily_arrivals)
-    ev_matrix = np.hstack([day for day in daily_sessions if day is not None])
+    ev_matrix = np.vstack([day for day in daily_sessions if day is not None])
     evs = _convert_ev_matrix(ev_matrix, period, voltage, max_battery_power, **kwargs)
     events = [PluginEvent(sess.arrival, sess) for sess in evs]
     return EventQueue(events)
@@ -130,41 +130,38 @@ def _convert_ev_matrix(
 
     """
 
-    if force_feasible:
-        max_feasible = max_battery_power * ev_matrix[:, 1]
-        ev_matrix[:, 2] = np.minimum(max_feasible, ev_matrix[:, 2])
-
-    # Convert arrival and sojourn time from hours to periods
     period_per_hour = 60 / period
-    ev_matrix[:, :2] = (ev_matrix[:, :2] * period_per_hour).astype(int)
-
-    if max_len is not None:
-        ev_matrix[:, 1] = np.minimum(max_len, ev_matrix[:, 1])
-
     evs = []
     for row_idx, row in enumerate(ev_matrix):
-        arrival, sojourn, kWh_delivered = row
-        arrival = int(arrival)
-        sojourn = int(sojourn)
+        arrival, sojourn, energy_delivered = row
 
-        if arrival < 0 or sojourn <= 0 or kWh_delivered <= 0:
+        if arrival < 0 or sojourn <= 0 or energy_delivered <= 0:
             print("Invalid session.")
             continue
-        departure = arrival + sojourn
 
+        if max_len is not None and sojourn > max_len:
+            sojourn = max_len
+
+        if force_feasible:
+            max_feasible = max_battery_power * sojourn
+            energy_delivered = np.minimum(max_feasible, energy_delivered)
+
+        departure = int((arrival + sojourn) * period_per_hour)
+        arrival = int(arrival * period_per_hour)
         session_id = "session_{0}".format(row_idx)
-        station_id = session_id  # By default a new station is created for each EV. Infinite space assumption.
+        # By default a new station is created for each EV. Infinite space assumption.
+        station_id = "station_{0}".format(row_idx)
 
         if battery_params is None:
             battery_params = {"type": Battery}
         batt_kwargs = battery_params["kwargs"] if "kwargs" in battery_params else {}
         if "capacity_fn" in battery_params:
             cap, init = battery_params["capacity_fn"](
-                kWh_delivered, sojourn, voltage, period
+                energy_delivered, sojourn, voltage, period
             )
         else:
-            cap = kWh_delivered
+            cap = energy_delivered
             init = 0
         batt = battery_params["type"](cap, init, max_battery_power, **batt_kwargs)
-        evs.append(EV(arrival, departure, kWh_delivered, station_id, session_id, batt))
+        evs.append(EV(arrival, departure, energy_delivered, station_id, session_id, batt))
     return evs
