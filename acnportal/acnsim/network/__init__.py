@@ -1,5 +1,6 @@
 from .charging_network import ChargingNetwork
 from .charging_network import StationOccupiedError
+from .stochastic_network import StochasticNetwork
 from .current import Current
 from . import sites
 
