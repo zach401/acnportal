@@ -1,10 +1,17 @@
+from typing import List
 from unittest import TestCase
 from unittest.mock import create_autospec
 import numpy.testing as nptest
 import numpy as np
 
-from acnportal.acnsim import Simulator, Interface, InvalidScheduleError
-from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo
+from acnportal.acnsim import (
+    Simulator,
+    Interface,
+    InvalidScheduleError,
+    FiniteRatesEVSE,
+    DeadbandEVSE,
+)
+from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo, Constraint
 from acnportal.acnsim.models import EVSE
 from acnportal.acnsim.network import ChargingNetwork
 
@@ -183,15 +190,23 @@ class TestInterface(TestCase):
         evse1 = EVSE("PS-001")
         self.network.register_evse(evse1, 120, -30)
         evse2 = EVSE("PS-002")
-        evse3 = EVSE("PS-003")
+        evse3 = DeadbandEVSE("PS-003")
         self.network.register_evse(evse3, 360, 150)
         self.network.register_evse(evse2, 240, 90)
+        # Include a FiniteRatesEVSE for more thorough testing.
+        self.allowable_rates: List[int] = [0, 8, 16, 24, 32]
+        evse4: FiniteRatesEVSE = FiniteRatesEVSE("PS-004", self.allowable_rates)
+        self.network.register_evse(evse4, 120, -30)
+        self.network.constraint_matrix = np.eye(4)
+        self.network.magnitudes = np.ones((4, 1))
+        self.network.constraint_index = ["C1", "C2", "C3", "C4"]
 
     def test_init(self):
         self.assertIs(self.interface._simulator, self.simulator)
 
     def test_active_evs(self):
-        _ = self.interface.active_evs
+        with self.assertWarns(UserWarning):
+            _ = self.interface.active_evs
         self.simulator.get_active_evs.assert_called_once()
 
     def test_last_applied_pilot_signals_low_iteration(self):
@@ -203,8 +218,51 @@ class TestInterface(TestCase):
             self.interface.allowable_pilot_signals("PS-001"), (True, [0, float("inf")])
         )
 
+    def test_allowable_pilot_signals_deadband(self) -> None:
+        self.assertEqual(
+            self.interface.allowable_pilot_signals("PS-003"), (True, [6, float("inf")])
+        )
+
+    def test_allowable_pilot_signals_finite_rates(self) -> None:
+        self.assertEqual(
+            self.interface.allowable_pilot_signals("PS-004"),
+            (False, self.allowable_rates),
+        )
+
+    def test_max_pilot_signal(self) -> None:
+        self.assertEqual(self.interface.max_pilot_signal("PS-001"), float("inf"))
+
+    def test_max_pilot_signal_deadband(self) -> None:
+        self.assertEqual(self.interface.max_pilot_signal("PS-003"), float("inf"))
+
+    def test_max_pilot_signal_finite_rates(self) -> None:
+        self.assertEqual(self.interface.max_pilot_signal("PS-004"), 32)
+
+    def test_min_pilot_signal(self) -> None:
+        self.assertEqual(self.interface.min_pilot_signal("PS-001"), 0)
+
+    def test_min_pilot_signal_deadband(self) -> None:
+        self.assertEqual(self.interface.min_pilot_signal("PS-003"), 0)
+
+    def test_min_pilot_signal_finite_rates(self) -> None:
+        self.assertEqual(self.interface.min_pilot_signal("PS-004"), 8)
+
     def test_evse_voltage(self):
         self.assertEqual(self.interface.evse_voltage("PS-002"), 240)
+
+    def test_evse_phase(self) -> None:
+        self.assertEqual(self.interface.evse_phase("PS-002"), 90)
+
+    def test_get_constraints(self) -> None:
+        constraint_info: Constraint = self.interface.get_constraints()
+        nptest.assert_equal(
+            constraint_info.constraint_matrix, self.network.constraint_matrix
+        )
+        nptest.assert_equal(constraint_info.magnitudes, self.network.magnitudes)
+        self.assertEqual(
+            constraint_info.constraint_index, self.network.constraint_index
+        )
+        self.assertEqual(constraint_info.evse_index, self.network.station_ids)
 
     def test_is_feasible_empty_schedule(self):
         self.assertTrue(self.interface.is_feasible({}))
@@ -220,13 +278,16 @@ class TestInterface(TestCase):
         self.network.is_feasible = create_autospec(self.network.is_feasible)
         self.interface.is_feasible({"PS-001": [1, 2], "PS-002": [4, 5]})
         network_is_feasible_args = self.network.is_feasible.call_args
-        # Check that the call to the network's is_feasible method has the correct arguments
+        # Check that the call to the network's is_feasible method has the correct
+        # arguments.
         np.testing.assert_allclose(
-            network_is_feasible_args[0][0], np.array([[1, 2], [0, 0], [4, 5]])
+            network_is_feasible_args[0][0], np.array([[1, 2], [0, 0], [4, 5], [0, 0]])
         )
-        # Network's is_feasible method has its second argument (linear) defaulting to False. Check this is the case.
+        # Network's is_feasible method has its second argument (linear) defaulting to
+        # False. Check this is the case.
         self.assertEqual(network_is_feasible_args[0][1], False)
-        # Network's is_feasible method has its third argument (violation_tolerance) defaulting to None. Check this is the case.
+        # Network's is_feasible method has its third argument (violation_tolerance)
+        # defaulting to None. Check this is the case.
         self.assertIsNone(network_is_feasible_args[0][2])
         self.assertIsNone(network_is_feasible_args[0][3])
 
@@ -240,9 +301,10 @@ class TestInterface(TestCase):
             relative_tolerance=1e-5,
         )
         network_is_feasible_args = self.network.is_feasible.call_args
-        # Check that the call to the network's is_feasible method has the correct arguments
+        # Check that the call to the network's is_feasible method has the correct
+        # arguments.
         np.testing.assert_allclose(
-            network_is_feasible_args[0][0], np.array([[1, 2], [0, 0], [4, 5]])
+            network_is_feasible_args[0][0], np.array([[1, 2], [0, 0], [4, 5], [0, 0]])
         )
         self.assertEqual(network_is_feasible_args[0][1], True)
         self.assertEqual(network_is_feasible_args[0][2], 1e-3)

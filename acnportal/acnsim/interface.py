@@ -191,7 +191,7 @@ class InfrastructureInfo:
         return self._station_ids_dict[station_id]
 
     def _validate(self):
-        """ Raise error if shapes do not have consistent shapes."""
+        """ Raise error if attributes do not have consistent shapes."""
         # Check number of stations
         num_stations_set = {
             self.constraint_matrix.shape[1],
@@ -267,6 +267,8 @@ class Interface:
 
     @property
     def last_applied_pilot_signals(self):
+        # TODO: last_applied_pilot_signals should be obtained from a new SystemInfo
+        #  object in a future release.
         """ Return the pilot signals that were applied in the last _iteration
             of the simulation for all active EVs.
 
@@ -290,6 +292,8 @@ class Interface:
 
     @property
     def last_actual_charging_rate(self):
+        # TODO: last_actual_charging_rate should be obtained from a new SystemInfo
+        #  object in a future release.
         """ Return the actual charging rates in the last period for all
             active sessions.
 
@@ -300,6 +304,8 @@ class Interface:
 
     @property
     def current_time(self):
+        # TODO: current_time should be obtained from a new SystemInfo
+        #  object in a future release.
         """ Get the current time (the current _iteration) of the simulator.
 
         Returns:
@@ -309,6 +315,8 @@ class Interface:
 
     @property
     def current_datetime(self):
+        # TODO: current_datetime should be obtained from a new SystemInfo
+        #  object in a future release.
         """ Get the simulated wall time of the simulator.
 
         Returns:
@@ -321,6 +329,8 @@ class Interface:
 
     @property
     def period(self):
+        # TODO: period should be obtained from a new SystemInfo
+        #  object in a future release.
         """ Return the length of each timestep in the simulation.
 
         Returns:
@@ -368,15 +378,23 @@ class Interface:
         network = self._simulator.network
         station_ids = network.station_ids
         max_pilot_signals = np.array(
-            [self.max_pilot_signal(station_id) for station_id in station_ids]
+            [
+                self._simulator.network._EVSEs[station_id].max_rate
+                for station_id in station_ids
+            ]
         )
         min_pilot_signals = np.array(
-            [self.min_pilot_signal(station_id) for station_id in station_ids]
+            [
+                self._simulator.network._EVSEs[station_id].min_rate
+                for station_id in station_ids
+            ]
         )
         allowable_rates = []
         is_continuous = []
         for station_id in station_ids:
-            continuous, allowable = self.allowable_pilot_signals(station_id)
+            # Get allowable pilot signals and continuity for this EVSE.
+            evse = self._simulator.network._EVSEs[station_id]
+            continuous, allowable = evse.is_continuous, evse.allowable_pilot_signals
             allowable_rates.append(np.array(allowable))
             is_continuous.append(continuous)
         is_continuous = np.array(is_continuous)
@@ -406,8 +424,15 @@ class Interface:
             list[float]: The sorted set of acceptable pilot signals. If continuous this range will have 2 values
                 the min and the max acceptable values. [A]
         """
-        evse = self._simulator.network._EVSEs[station_id]
-        return evse.is_continuous, evse.allowable_pilot_signals
+        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        return (
+            infrastructure_info.is_continuous[
+                infrastructure_info.get_station_index(station_id)
+            ].tolist(),
+            infrastructure_info.allowable_pilots[
+                infrastructure_info.get_station_index(station_id)
+            ].tolist(),
+        )
 
     def max_pilot_signal(self, station_id):
         """ Returns the maximum allowable pilot signal level for the specified EVSE.
@@ -418,10 +443,16 @@ class Interface:
         Returns:
             float: the maximum pilot signal supported by this EVSE. [A]
         """
-        return self._simulator.network._EVSEs[station_id].max_rate
+        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        return infrastructure_info.max_pilot[
+            infrastructure_info.get_station_index(station_id)
+        ]
 
     def min_pilot_signal(self, station_id):
         """ Returns the minimum allowable pilot signal level for the EVSE.
+        A zero pilot signal is always assumed to be allowed; the minimum allowable pilot
+        signal returned here is the minimum nonzero pilot signal allowed by the EVSE if
+        said EVSE is non-continuous.
 
         Args:
             station_id (str): The ID of the station.
@@ -429,7 +460,10 @@ class Interface:
         Returns:
             float: the minimum pilot signal supported by this EVSE. [A]
         """
-        return self._simulator.network._EVSEs[station_id].min_rate
+        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        return infrastructure_info.min_pilot[
+            infrastructure_info.get_station_index(station_id)
+        ]
 
     def evse_voltage(self, station_id):
         """ Returns the voltage of the EVSE.
@@ -440,7 +474,10 @@ class Interface:
         Returns:
             float: voltage of the EVSE. [V]
         """
-        return self._simulator.network.voltages[station_id]
+        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        return infrastructure_info.voltages[
+            infrastructure_info.get_station_index(station_id)
+        ]
 
     def evse_phase(self, station_id):
         """ Returns the phase angle of the EVSE.
@@ -451,9 +488,12 @@ class Interface:
         Returns:
             float: phase angle of the EVSE. [degrees]
         """
-        return self._simulator.network.phase_angles[station_id]
+        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        return infrastructure_info.phases[
+            infrastructure_info.get_station_index(station_id)
+        ]
 
-    def remaining_amp_periods(self, ev):
+    def remaining_amp_periods(self, ev: SessionInfo):
         """ Return the EV's remaining demand in A*periods.
 
         Returns:
@@ -475,19 +515,15 @@ class Interface:
         """ Get the constraint matrix and EVSE ids for the network.
 
         Returns:
-            np.ndarray: Matrix representing the constraints of the network.
+            Constraint: Matrix representing the constraints of the network.
                 Each row is a constraint and each
         """
-        Constraint = namedtuple(
-            "Constraint",
-            ["constraint_matrix", "magnitudes", "constraint_index", "evse_index"],
-        )
-        network = self._simulator.network
+        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
         return Constraint(
-            network.constraint_matrix,
-            network.magnitudes,
-            network.constraint_index,
-            network.station_ids,
+            infrastructure_info.constraint_matrix,
+            infrastructure_info.constraint_limits,
+            infrastructure_info.constraint_ids,
+            infrastructure_info.station_ids,
         )
 
     def is_feasible(
@@ -497,6 +533,7 @@ class Interface:
         violation_tolerance=None,
         relative_tolerance=None,
     ):
+        # TODO: Should Interface.is_feasible replace network is_feasible?
         """ Return if a set of current magnitudes for each load are feasible.
 
         Wraps Network's is_feasible method.
@@ -541,6 +578,9 @@ class Interface:
         return self._simulator.network.is_feasible(
             schedule_matrix, linear, violation_tolerance, relative_tolerance
         )
+
+    # TODO: Pricing Interface functions should be re-implemented once we determine how
+    #  to handle them in the Live setting, or moved to an Interface subclass.
 
     def get_prices(self, length, start=None):
         """ Get a vector of prices beginning at time start and continuing for length periods. ($/kWh)
@@ -590,6 +630,11 @@ class Interface:
             float: Peak demand so far in the simulation. (A)
         """
         return self._simulator.peak
+
+
+Constraint = namedtuple(
+    "Constraint", ["constraint_matrix", "magnitudes", "constraint_index", "evse_index"],
+)
 
 
 class InvalidScheduleError(Exception):

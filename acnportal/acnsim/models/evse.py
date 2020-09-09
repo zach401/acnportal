@@ -222,6 +222,7 @@ class BaseEVSE(BaseSimObj):
 
 
 class EVSE(BaseEVSE):
+    # TODO: For this class, is a 0 pilot assumed to be allowed?
     """ This class of EVSE allows for charging in a continuous range
     from min_rate to max_rate.
 
