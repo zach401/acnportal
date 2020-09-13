@@ -496,6 +496,9 @@ class Interface:
     def remaining_amp_periods(self, ev: SessionInfo):
         """ Return the EV's remaining demand in A*periods.
 
+        Args:
+            ev (SessionInfo): The SessionInfo object for which to get remaining demand.
+
         Returns:
             float: the EV's remaining demand in A*periods.
         """
