@@ -1,3 +1,7 @@
+# coding=utf-8
+"""
+Pre-processing functions for scheduling algorithms.
+"""
 from typing import List
 from copy import deepcopy
 import numpy as np
@@ -7,28 +11,30 @@ from .upper_bound_estimator import UpperBoundEstimatorBase
 from .utils import infrastructure_constraints_feasible, remaining_amp_periods
 
 
-def least_laxity_first(evs, iface):
+# TODO: This should now take session info objects, correct?
+def least_laxity_first(evs: List[SessionInfo], iface) -> List[SessionInfo]:
     """ Sort EVs by laxity in increasing order.
 
     Laxity is a measure of the charging flexibility of an EV. Here we define laxity as:
         LAX_i(t) = (departure_i - t) - (remaining_demand_i(t) / max_rate_i)
 
     Args:
-        evs (List[EV]): List of EVs to be sorted.
+        evs (List[SessionInfo]): List of SessionInfo objects to be sorted.
         iface (Interface): Interface object.
 
     Returns:
-        List[EV]: List of EVs sorted by laxity in increasing order.
+        List[SessionInfo]: List of SessionInfo objects sorted by laxity in increasing
+            order.
     """
 
-    def laxity(ev):
+    def laxity(ev: SessionInfo) -> float:
         """ Calculate laxity of the EV.
 
         Args:
-            ev (EV): An EV object.
+            ev (SessionInfo): A SessionInfo object.
 
         Returns:
-            float: The laxity of the EV.
+            float: The laxity of the EV represented by the SessionInfo object.
         """
         lax = (ev.departure - iface.current_time) - (
             iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id)
@@ -40,7 +46,7 @@ def least_laxity_first(evs, iface):
 
 def enforce_pilot_limit(
     active_sessions: List[SessionInfo], infrastructure: InfrastructureInfo
-):
+) -> List[SessionInfo]:
     """ Update the max_rates vector for each session to be less than the max
         pilot supported by its EVSE.
 
@@ -61,7 +67,7 @@ def enforce_pilot_limit(
     return new_sessions
 
 
-def reconcile_max_and_min(session: SessionInfo, choose_min=True):
+def reconcile_max_and_min(session: SessionInfo, choose_min: bool = True) -> SessionInfo:
     """ Modify session.max_rates[t] to equal session.min_rates[t] for times
         when max_rates[t] < min_rates[t]
 
@@ -69,7 +75,6 @@ def reconcile_max_and_min(session: SessionInfo, choose_min=True):
         session (SessionInfo): Session object.
         choose_min (bool): If True, when in conflict defer to the minimum
             rate. If False, defer to maximum.
-
 
     Returns:
         SessionInfo: session modified such that max_rates[t] is never less
@@ -84,8 +89,10 @@ def reconcile_max_and_min(session: SessionInfo, choose_min=True):
     return new_sess
 
 
-def expand_max_min_rates(active_sessions: List[SessionInfo]):
-    """ Expand max_rates and min_rates to vectors if they are scalars.
+def expand_max_min_rates(active_sessions: List[SessionInfo]) -> List[SessionInfo]:
+    """ Expand max_rates and min_rates to vectors if they are scalars. Doing so is
+    helpful for scheduling algorithms that use a Model Predictive Control framework
+    such as CVXPY.
 
     Args:
         active_sessions (List[SessionInfo]): List of SessionInfo objects for
@@ -106,11 +113,10 @@ def expand_max_min_rates(active_sessions: List[SessionInfo]):
 
 def apply_upper_bound_estimate(
     ub_estimator: UpperBoundEstimatorBase, active_sessions: List[SessionInfo]
-):
+) -> List[SessionInfo]:
     """ Update max_rate in each SessionInfo object.
 
-        If rampdown max_rate is less than min_rate, max_rate is set
-        equal to min_rate.
+    If rampdown max_rate is less than min_rate, max_rate is set equal to min_rate.
 
     Args:
         ub_estimator (UpperBoundEstimatorBase): UpperBoundEstimatorBase-like
@@ -138,8 +144,8 @@ def apply_minimum_charging_rate(
     active_sessions: List[SessionInfo],
     infrastructure: InfrastructureInfo,
     period: int,
-    override=float("inf"),
-):
+    override: float = float("inf"),
+) -> List[SessionInfo]:
     """ Modify active_sessions so that min_rates[0] is equal to the greater of
         the session minimum rate and the EVSE minimum pilot.
 
@@ -150,13 +156,12 @@ def apply_minimum_charging_rate(
             infrastructure.
         period (int): Length of each time period in minutes.
         override (float): Alternative minimum pilot which overrides the EVSE
-            minimum if the EVSE minimum is less than override.
+            minimum if the EVSE minimum is greater than override.
 
     Returns:
         List[SessionInfo]: Active sessions with updated minimum charging rate
             for the first control period.
     """
-    # session_queue = least_laxity_first(active_sessions)
     session_queue = sorted(active_sessions, key=lambda x: x.remaining_time)
     session_queue = expand_max_min_rates(session_queue)
     rates = np.zeros(len(infrastructure.station_ids))
@@ -172,8 +177,8 @@ def apply_minimum_charging_rate(
             session_queue[j] = reconcile_max_and_min(session)
             # Keep this session as active
         else:
-            # If an EV cannot be charged at the minimum rate, it should be
-            # removed from the problem. So it is not appended to new_sessions.
+            # If an EV cannot be charged at the minimum rate, it should not be charged
+            # in a solution to this problem. So, its max and min rates are set to 0.
             rates[i] = 0
             session.min_rates[0] = 0
             session.max_rates[0] = 0

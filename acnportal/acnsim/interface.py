@@ -6,6 +6,8 @@ from datetime import timedelta
 from collections import namedtuple
 from warnings import warn
 
+from .network import ChargingNetwork
+
 
 class SessionInfo:
     """ Class to store information relevant to a charging session.
@@ -238,8 +240,38 @@ class InfrastructureInfo:
 class Interface:
     """ Interface between algorithms and the ACN Simulation Environment."""
 
-    def __init__(self, simulator):
+    _simulator: "Simulator"
+
+    def __init__(self, simulator: "Simulator"):
         self._simulator = simulator
+
+    # TODO: How do we handle default tolerances in a layer-agnostic way?
+    #  Below is a proposed solution. Alternatively, InfrastructureInfo could
+    #  be passed with tolerances.
+    @property
+    def _violation_tolerance(self) -> float:
+        """ Returns the intrinsic absolute constraint violation tolerance of
+        this network, for internal use by Interface.is_feasible if the algorithm does
+        not provide tolerances in its call to is_feasible.
+
+        Returns:
+            float: Absolute constraint violation tolerance of the network. Submitted
+                schedules may exceed constraint limits by no more than this number.
+        """
+        return self._simulator.network.violation_tolerance
+
+    @property
+    def _relative_tolerance(self) -> float:
+        """ Returns the intrinsic relative constraint violation tolerance of
+        this network, for internal use by Interface.is_feasible if the algorithm does
+        not provide tolerances in its call to is_feasible.
+
+        Returns:
+            float: Relative constraint violation tolerance of the network. Submitted
+                schedules may exceed constraint limits by no more than this number
+                times the constraint limits.
+        """
+        return self._simulator.network.relative_tolerance
 
     @property
     def active_evs(self):
@@ -537,6 +569,8 @@ class Interface:
         relative_tolerance=None,
     ):
         # TODO: Should Interface.is_feasible replace network is_feasible?
+        # TODO: ACN-Live should not accept violation_tolerance, relative_tolerance
+        #  args that are less than the built-in network tols.
         """ Return if a set of current magnitudes for each load are feasible.
 
         Wraps Network's is_feasible method.
@@ -560,6 +594,13 @@ class Interface:
         Returns:
             bool: If load_currents is feasible at time t according to this set of constraints.
         """
+        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+
+        if violation_tolerance is None:
+            violation_tolerance = self._violation_tolerance
+        if relative_tolerance is None:
+            relative_tolerance = self._relative_tolerance
+
         if len(load_currents) == 0:
             return True
 
@@ -575,12 +616,33 @@ class Interface:
                 load_currents[evse_id]
                 if evse_id in load_currents
                 else [0] * schedule_length
-                for evse_id in self._simulator.network.station_ids
+                for evse_id in infrastructure_info.station_ids
             ]
         )
-        return self._simulator.network.is_feasible(
-            schedule_matrix, linear, violation_tolerance, relative_tolerance
+
+        # Build a stub ChargingNetwork with the necessary network fields and functions.
+        # We do this instead of using self._simulator.network so that Interface
+        # may evaluate this function using only information given by
+        # infrastructure_info. Then, an ACN-Live version of this interface will not
+        # need to re-implement is_feasible, instead using the is_feasible function of
+        # this stub ChargingNetwork.
+        stub_network: ChargingNetwork = ChargingNetwork()
+        stub_network.violation_tolerance = violation_tolerance
+        stub_network.relative_tolerance = relative_tolerance
+        stub_network.magnitudes = infrastructure_info.constraint_limits
+        stub_network.constraint_index = infrastructure_info.constraint_ids
+        stub_network.constraint_matrix = infrastructure_info.constraint_matrix
+        stub_network._phase_angles = infrastructure_info.phases
+
+        return stub_network.is_feasible(
+            schedule_matrix,
+            linear=linear,
+            violation_tolerance=violation_tolerance,
+            relative_tolerance=relative_tolerance,
         )
+        # return self._simulator.network.is_feasible(
+        #     schedule_matrix, linear=linear, violation_tolerance=violation_tolerance, relative_tolerance=relative_tolerance
+        # )
 
     # TODO: Pricing Interface functions should be re-implemented once we determine how
     #  to handle them in the Live setting, or moved to an Interface subclass.

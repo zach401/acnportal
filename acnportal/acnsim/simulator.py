@@ -9,7 +9,6 @@ import json
 from pydoc import locate
 
 from .events import *
-from .models import EV
 from .events import UnplugEvent
 from .interface import Interface
 from .interface import InvalidScheduleError

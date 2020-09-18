@@ -204,6 +204,18 @@ class TestInterface(TestCase):
     def test_init(self):
         self.assertIs(self.interface._simulator, self.simulator)
 
+    def test_violation_tolerance(self) -> None:
+        self.assertEqual(
+            self.interface._violation_tolerance,
+            self.interface._simulator.network.violation_tolerance,
+        )
+
+    def test_relative_tolerance(self) -> None:
+        self.assertEqual(
+            self.interface._relative_tolerance,
+            self.interface._simulator.network.relative_tolerance,
+        )
+
     def test_active_evs(self):
         with self.assertWarns(UserWarning):
             _ = self.interface.active_evs

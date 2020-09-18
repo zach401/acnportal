@@ -16,9 +16,9 @@ class ChargingNetwork(BaseSimObj):
 
     Args:
         violation_tolerance (float): Absolute amount by which an input
-            charging schedule may violate network constrants (A).
+            charging schedule may violate network constraints (A).
         relative_tolerance (float): Relative amount by which an input
-            charging schedule may violate network constrants (A).
+            charging schedule may violate network constraints (A).
     """
 
     def __init__(self, violation_tolerance=1e-5, relative_tolerance=1e-7):

@@ -1,4 +1,12 @@
+# coding=utf-8
+"""
+Classes implementing different methods of estimating upper bounds on charging rate.
+"""
+from typing import Optional, Dict, List
+
 import numpy as np
+
+from acnportal.acnsim.interface import SessionInfo
 
 
 class UpperBoundEstimatorBase:
@@ -9,15 +17,17 @@ class UpperBoundEstimatorBase:
         Subclassed must implement the get_maximum_rates method.
     """
 
-    def __init__(self):
+    # _interface: Optional[Interface]
+
+    def __init__(self) -> None:
         self._interface = None
 
     @property
-    def interface(self):
+    def interface(self):  # -> Interface:
         """ Return the algorithm's interface with the environment.
 
         Returns:
-            Interface: An interface to the enviroment.
+            Interface: An interface to the environment.
 
         Raises:
             ValueError: Exception raised if interface is accessed prior to an
@@ -31,7 +41,7 @@ class UpperBoundEstimatorBase:
                 "register_interface prior to using the algorithm."
             )
 
-    def register_interface(self, interface):
+    def register_interface(self, interface) -> None:
         """ Register interface to the _simulator/physical system.
             This interface is the only connection between the algorithm and
             what it is controlling. Its purpose is to abstract the
@@ -46,9 +56,12 @@ class UpperBoundEstimatorBase:
         """
         self._interface = interface
 
-    def get_maximum_rates(self, sessions):
-        """ Return the maximum rate allowed for these EVs under the
-            rampdown algorithm.
+    def get_maximum_rates(self, sessions: List[SessionInfo]) -> Dict[str, float]:
+        """ Return the maximum rate allowed for these EVs under an upper bound
+        estimation algorithm.
+
+        NOT IMPLEMENTED IN UpperBoundEstimatorBase. This method MUST be implemented in
+        all subclasses.
 
         Args:
             sessions list(SessionInfo): List of sessions
@@ -57,7 +70,7 @@ class UpperBoundEstimatorBase:
             dict(str, float): Dictionary mapping session_ids to maximum
                 charging rates.
         """
-        raise NotImplementedError("Rampdown is an abstract class.")
+        raise NotImplementedError("UpperBoundEstimatorBase is an abstract class.")
 
 
 class SimpleRampdown(UpperBoundEstimatorBase):
@@ -68,17 +81,27 @@ class SimpleRampdown(UpperBoundEstimatorBase):
         The maximum pilot is reduced whenever the actual charging rate is
         more than down_threshold lower than the pilot signal. The maximum
         pilot is increased by up_increment, whenever the actual charging rate
-        is within up_threshold of the pilot signal.
+        is within up_threshold of the current maximum pilot signal.
     """
 
-    def __init__(self, up_threshold=1, down_threshold=1, up_increment=1):
+    up_threshold: float
+    down_threshold: float
+    up_increment: float
+    upper_bounds: Dict[str, float]
+
+    def __init__(
+        self,
+        up_threshold: float = 1,
+        down_threshold: float = 1,
+        up_increment: float = 1,
+    ) -> None:
         super().__init__()
         self.up_threshold = up_threshold
         self.down_threshold = down_threshold
         self.up_increment = up_increment
         self.upper_bounds = {}
 
-    def get_maximum_rates(self, sessions):
+    def get_maximum_rates(self, sessions: List[SessionInfo]) -> Dict[str, float]:
         """ Return the maximum rate allowed for these EVs by lowering according
             to the simple rampdown algorithm.
 
@@ -98,7 +121,7 @@ class SimpleRampdown(UpperBoundEstimatorBase):
                 ub = self.interface.max_pilot_signal(session.station_id)
                 self.upper_bounds[session.session_id] = ub
 
-            # The we can only apply the rampdown algorithm if we have
+            # We can only apply the rampdown algorithm if we have
             # data from from the last time period of pilot signal and
             # observed charging current.
             if session.session_id in prev_pilot:
@@ -110,6 +133,8 @@ class SimpleRampdown(UpperBoundEstimatorBase):
                 elif ub - previous_rate < self.up_threshold:
                     ub += self.up_increment
                 max_pilot = self.interface.max_pilot_signal(session.station_id)
-                ub = np.clip(ub, a_min=0, a_max=max_pilot)
+                # ub is a float, so np.clip should return a float. The casting is to
+                # satisfy the type checker.
+                ub = float(np.clip(ub, a_min=0, a_max=max_pilot))
                 self.upper_bounds[session.session_id] = ub
         return self.upper_bounds

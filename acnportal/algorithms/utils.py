@@ -1,13 +1,15 @@
 import numpy as np
 
+from acnportal.acnsim.interface import InfrastructureInfo, SessionInfo
+
 
 def infrastructure_constraints_feasible(
-    rates,
-    infrastructure,
-    linear=False,
-    violation_tolerance=1e-5,
-    relative_tolerance=1e-7,
-):
+    rates: np.ndarray,
+    infrastructure: InfrastructureInfo,
+    linear: bool = False,
+    violation_tolerance: float = 1e-5,
+    relative_tolerance: float = 1e-7,
+) -> bool:
     tol = np.maximum(
         violation_tolerance, relative_tolerance * infrastructure.constraint_limits
     )
@@ -30,7 +32,9 @@ def infrastructure_constraints_feasible(
     return True
 
 
-def remaining_amp_periods(session, infrastructure, period):
+def remaining_amp_periods(
+    session: SessionInfo, infrastructure: InfrastructureInfo, period: float
+) -> float:
     i = infrastructure.get_station_index(session.station_id)
     amp_hours = session.remaining_demand * 1000 / infrastructure.voltages[i]
     return amp_hours * 60 / period
