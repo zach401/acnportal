@@ -1,3 +1,5 @@
+# coding=utf-8
+""" Tests for objects of the interface module. """
 from typing import List
 from unittest import TestCase
 from unittest.mock import create_autospec
@@ -17,7 +19,7 @@ from acnportal.acnsim.network import ChargingNetwork
 
 
 class TestSessionInfo(TestCase):
-    def test_valid_inputs_w_defaults(self):
+    def test_valid_inputs_w_defaults(self) -> None:
         s = SessionInfo("PS-001", "01", 10, 4, 5, 60, 63)
         self.assertEqual(s.station_id, "PS-001")
         self.assertEqual(s.session_id, "01")
@@ -33,156 +35,145 @@ class TestSessionInfo(TestCase):
         self.assertEqual(s.arrival_offset, 5)
         self.assertEqual(s.remaining_time, 55)
 
-    def test_valid_inputs_nonzero_current_time_greater_than_arrival(self):
+    def test_valid_inputs_nonzero_current_time_greater_than_arrival(self) -> None:
         s = SessionInfo("PS-001", "01", 10, 4, 5, 60, 63, 6)
         self.assertEqual(s.current_time, 6)
         self.assertEqual(s.arrival_offset, 0)
         self.assertEqual(s.remaining_time, 54)
 
-    def test_valid_inputs_nonzero_current_time_less_than_arrival(self):
+    def test_valid_inputs_nonzero_current_time_less_than_arrival(self) -> None:
         s = SessionInfo("PS-001", "01", 10, 4, 5, 60, 63, 4)
         self.assertEqual(s.current_time, 4)
         self.assertEqual(s.arrival_offset, 1)
         self.assertEqual(s.remaining_time, 55)
 
-    def test_proper_length_min_rates(self):
-        s = SessionInfo(
-            "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, min_rates=[8.0] * 5
-        )
+    def test_proper_length_min_rates(self) -> None:
+        s = SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, min_rates=[8.0] * 5)
         self.assertEqual(len(s.min_rates), 5)
         nptest.assert_array_equal(s.min_rates, 8.0)
 
-    def test_min_rates_too_short(self):
+    def test_min_rates_too_short(self) -> None:
         with self.assertRaises(ValueError):
-            SessionInfo(
-                "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, min_rates=[8.0] * 4
-            )
+            SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, min_rates=[8.0] * 4)
 
-    def test_min_rates_too_long(self):
+    def test_min_rates_too_long(self) -> None:
         with self.assertRaises(ValueError):
-            SessionInfo(
-                "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, min_rates=[8.0] * 6
-            )
+            SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, min_rates=[8.0] * 6)
 
-    def test_proper_length_max_rates(self):
-        s = SessionInfo(
-            "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, max_rates=[8.0] * 5
-        )
+    def test_proper_length_max_rates(self) -> None:
+        s = SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, max_rates=[8.0] * 5)
         self.assertEqual(len(s.max_rates), 5)
         nptest.assert_array_equal(s.max_rates, 8.0)
 
-    def test_max_rates_too_short(self):
+    def test_max_rates_too_short(self) -> None:
         with self.assertRaises(ValueError):
-            SessionInfo(
-                "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, max_rates=[8.0] * 4
-            )
+            SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, max_rates=[8.0] * 4)
 
-    def test_max_rates_too_long(self):
+    def test_max_rates_too_long(self) -> None:
         with self.assertRaises(ValueError):
-            SessionInfo(
-                "PS-001", "01", 10, 4, 5, 10, 12, current_time=0, max_rates=[8.0] * 6
-            )
+            SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, max_rates=[8.0] * 6)
 
 
 class TestInfrastructureInfo(TestCase):
-    def test_inputs_consistent(self):
-        M, N = 6, 5
+    def test_inputs_consistent(self) -> None:
+        m, n = 6, 5
         infra = InfrastructureInfo(
-            np.ones((M, N)),
-            np.ones((M,)),
-            np.ones((N,)),
-            np.ones((N,)),
-            [f"C-{i}" for i in range(M)],
-            [f"S-{i}" for i in range(N)],
-            np.ones((N,)),
-            np.zeros((N,)),
-            [np.array([1, 2, 3, 4])] * N,
-            np.zeros((N,)),
+            np.ones((m, n)),
+            np.ones((m,)),
+            np.ones((n,)),
+            np.ones((n,)),
+            [f"C-{i}" for i in range(m)],
+            [f"S-{i}" for i in range(n)],
+            np.ones((n,)),
+            np.zeros((n,)),
+            [np.array([1, 2, 3, 4])] * n,
+            np.zeros((n,)),
         )
-        self.assertEqual(infra.constraint_matrix.shape, (M, N))
-        self.assertEqual(len(infra.constraint_limits), M)
-        self.assertEqual(len(infra.phases), N)
-        self.assertEqual(len(infra.voltages), N)
-        self.assertEqual(len(infra.constraint_ids), M)
-        self.assertEqual(len(infra.station_ids), N)
-        self.assertEqual(len(infra.max_pilot), N)
-        self.assertEqual(len(infra.min_pilot), N)
-        self.assertEqual(len(infra.allowable_pilots), N)
-        self.assertEqual(len(infra.is_continuous), N)
+        self.assertEqual(infra.constraint_matrix.shape, (m, n))
+        self.assertEqual(len(infra.constraint_limits), m)
+        self.assertEqual(len(infra.phases), n)
+        self.assertEqual(len(infra.voltages), n)
+        self.assertEqual(len(infra.constraint_ids), m)
+        self.assertEqual(len(infra.station_ids), n)
+        self.assertEqual(len(infra.max_pilot), n)
+        self.assertEqual(len(infra.min_pilot), n)
+        self.assertEqual(len(infra.allowable_pilots), n)
+        self.assertEqual(len(infra.is_continuous), n)
 
-    def test_inputs_allowable_pilot_defaults(self):
-        M, N = 6, 5
+    def test_inputs_allowable_pilot_defaults(self) -> None:
+        m, n = 6, 5
         infra = InfrastructureInfo(
-            np.ones((M, N)),
-            np.ones((M,)),
-            np.ones((N,)),
-            np.ones((N,)),
-            [f"C-{i}" for i in range(M)],
-            [f"S-{i}" for i in range(N)],
-            np.ones((N,)),
-            np.zeros((N,)),
-            is_continuous=np.zeros((N,)),
+            np.ones((m, n)),
+            np.ones((m,)),
+            np.ones((n,)),
+            np.ones((n,)),
+            [f"C-{i}" for i in range(m)],
+            [f"S-{i}" for i in range(n)],
+            np.ones((n,)),
+            np.zeros((n,)),
+            is_continuous=np.zeros((n,)),
         )
-        self.assertEqual(len(infra.allowable_pilots), N)
+        self.assertEqual(len(infra.allowable_pilots), n)
 
-    def test_inputs_is_continuous_default(self):
-        M, N = 6, 5
+    def test_inputs_is_continuous_default(self) -> None:
+        m, n = 6, 5
         infra = InfrastructureInfo(
-            np.ones((M, N)),
-            np.ones((M,)),
-            np.ones((N,)),
-            np.ones((N,)),
-            [f"C-{i}" for i in range(M)],
-            [f"S-{i}" for i in range(N)],
-            np.ones((N,)),
-            np.zeros((N,)),
-            [np.array([1, 2, 3, 4])] * N,
+            np.ones((m, n)),
+            np.ones((m,)),
+            np.ones((n,)),
+            np.ones((n,)),
+            [f"C-{i}" for i in range(m)],
+            [f"S-{i}" for i in range(n)],
+            np.ones((n,)),
+            np.zeros((n,)),
+            [np.array([1, 2, 3, 4])] * n,
         )
-        self.assertEqual(len(infra.is_continuous), N)
+        self.assertEqual(len(infra.is_continuous), n)
 
-    def test_num_stations_mismatch(self):
-        M, N = 5, 6
+    def test_num_stations_mismatch(self) -> None:
+        m, n = 5, 6
         for i in range(8):
             for error in [-1, 1]:
                 errors = [0] * 8
                 errors[i] = error
                 with self.assertRaises(ValueError):
                     InfrastructureInfo(
-                        np.ones((M, N + errors[0])),
-                        np.ones((M,)),
-                        np.ones((N + errors[1],)),
-                        np.ones((N + errors[2],)),
-                        [f"C-{i}" for i in range(M)],
-                        [f"S-{i}" for i in range(N + errors[3])],
-                        np.ones((N + errors[4],)),
-                        np.zeros((N + errors[5],)),
-                        [np.array([1, 2, 3, 4])] * (N + errors[6]),
-                        np.zeros((N + errors[7],)),
+                        np.ones((m, n + errors[0])),
+                        np.ones((m,)),
+                        np.ones((n + errors[1],)),
+                        np.ones((n + errors[2],)),
+                        [f"C-{i}" for i in range(m)],
+                        [f"S-{i}" for i in range(n + errors[3])],
+                        np.ones((n + errors[4],)),
+                        np.zeros((n + errors[5],)),
+                        [np.array([1, 2, 3, 4])] * (n + errors[6]),
+                        np.zeros((n + errors[7],)),
                     )
 
-    def test_num_constraints_mismatch(self):
-        M, N = 5, 6
+    def test_num_constraints_mismatch(self) -> None:
+        m, n = 5, 6
         for i in range(3):
             for error in [-1, 1]:
                 errors = [0] * 3
                 errors[i] = error
                 with self.assertRaises(ValueError):
                     InfrastructureInfo(
-                        np.ones((M + errors[0], N)),
-                        np.ones((M + errors[1],)),
-                        np.ones((N,)),
-                        np.ones((N,)),
-                        [f"C-{i}" for i in range(M + errors[2])],
-                        [f"S-{i}" for i in range(N)],
-                        np.ones((N,)),
-                        np.zeros((N,)),
-                        [np.array([1, 2, 3, 4])] * (N),
-                        np.zeros((N,)),
+                        np.ones((m + errors[0], n)),
+                        np.ones((m + errors[1],)),
+                        np.ones((n,)),
+                        np.ones((n,)),
+                        [f"C-{i}" for i in range(m + errors[2])],
+                        [f"S-{i}" for i in range(n)],
+                        np.ones((n,)),
+                        np.zeros((n,)),
+                        [np.array([1, 2, 3, 4])] * n,
+                        np.zeros((n,)),
                     )
 
 
 class TestInterface(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
+        """ Run this setup function once before each test. """
         self.simulator = create_autospec(Simulator)
         self.network = ChargingNetwork()
         self.simulator.network = self.network
@@ -201,7 +192,7 @@ class TestInterface(TestCase):
         self.network.magnitudes = np.ones((4, 1))
         self.network.constraint_index = ["C1", "C2", "C3", "C4"]
 
-    def test_init(self):
+    def test_init(self) -> None:
         self.assertIs(self.interface._simulator, self.simulator)
 
     def test_violation_tolerance(self) -> None:
@@ -216,16 +207,16 @@ class TestInterface(TestCase):
             self.interface._simulator.network.relative_tolerance,
         )
 
-    def test_active_evs(self):
+    def test_active_evs(self) -> None:
         with self.assertWarns(UserWarning):
             _ = self.interface.active_evs
         self.simulator.get_active_evs.assert_called_once()
 
-    def test_last_applied_pilot_signals_low_iteration(self):
+    def test_last_applied_pilot_signals_low_iteration(self) -> None:
         self.simulator.iteration = 1
         self.assertEqual(self.interface.last_applied_pilot_signals, {})
 
-    def test_allowable_pilot_signals(self):
+    def test_allowable_pilot_signals(self) -> None:
         self.assertEqual(
             self.interface.allowable_pilot_signals("PS-001"), (True, [0, float("inf")])
         )
@@ -259,7 +250,7 @@ class TestInterface(TestCase):
     def test_min_pilot_signal_finite_rates(self) -> None:
         self.assertEqual(self.interface.min_pilot_signal("PS-004"), 8)
 
-    def test_evse_voltage(self):
+    def test_evse_voltage(self) -> None:
         self.assertEqual(self.interface.evse_voltage("PS-002"), 240)
 
     def test_evse_phase(self) -> None:
@@ -276,16 +267,16 @@ class TestInterface(TestCase):
         )
         self.assertEqual(constraint_info.evse_index, self.network.station_ids)
 
-    def test_is_feasible_empty_schedule(self):
+    def test_is_feasible_empty_schedule(self) -> None:
         self.assertTrue(self.interface.is_feasible({}))
 
-    def test_is_feasible_unequal_schedules(self):
+    def test_is_feasible_unequal_schedules(self) -> None:
         with self.assertRaises(InvalidScheduleError):
             self.interface.is_feasible(
                 {"PS-001": [1, 2], "PS-002": [3, 4, 5], "PS-003": [4, 5]}
             )
 
-    def test_is_feasible(self):
+    def test_is_feasible(self) -> None:
         # Mock network's is_feasible function to check its call signature later
         self.network.is_feasible = create_autospec(self.network.is_feasible)
         self.interface.is_feasible({"PS-001": [1, 2], "PS-002": [4, 5]})
@@ -303,7 +294,7 @@ class TestInterface(TestCase):
         self.assertIsNone(network_is_feasible_args[0][2])
         self.assertIsNone(network_is_feasible_args[0][3])
 
-    def test_is_feasible_with_options(self):
+    def test_is_feasible_with_options(self) -> None:
         # Mock network's is_feasible function to check its call signature later
         self.network.is_feasible = create_autospec(self.network.is_feasible)
         self.interface.is_feasible(
