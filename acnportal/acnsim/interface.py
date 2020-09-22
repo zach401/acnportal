@@ -1,6 +1,8 @@
 """
 This module contains methods for directly interacting with the _simulator.
 """
+from typing import List, Union, Optional
+
 import numpy as np
 from datetime import timedelta
 from collections import namedtuple
@@ -35,18 +37,29 @@ class SessionInfo:
                 corresponding time period.
     """
 
+    station_id: str
+    session_id: str
+    requested_energy: float
+    energy_delivered: float
+    arrival: int
+    departure: int
+    estimated_departure: int
+    current_time: int
+    min_rates: np.ndarray
+    max_rates: np.ndarray
+
     def __init__(
         self,
-        station_id,
-        session_id,
-        requested_energy,
-        energy_delivered,
-        arrival,
-        departure,
-        estimated_departure=None,
-        current_time=0,
-        min_rates=0,
-        max_rates=float("inf"),
+        station_id: str,
+        session_id: str,
+        requested_energy: float,
+        energy_delivered: float,
+        arrival: int,
+        departure: int,
+        estimated_departure: Optional[int] = None,
+        current_time: int = 0,
+        min_rates: Union[float, List[float]] = 0,
+        max_rates: Union[float, List[float]] = float("inf"),
     ):
         self.station_id = station_id
         self.session_id = session_id
@@ -100,15 +113,15 @@ class SessionInfo:
             )
 
     @property
-    def remaining_demand(self):
+    def remaining_demand(self) -> float:
         return self.requested_energy - self.energy_delivered
 
     @property
-    def arrival_offset(self):
+    def arrival_offset(self) -> int:
         return max(self.arrival - self.current_time, 0)
 
     @property
-    def remaining_time(self):
+    def remaining_time(self) -> int:
         remaining = min(
             self.departure - self.arrival, self.departure - self.current_time
         )
@@ -149,18 +162,29 @@ class InfrastructureInfo:
             pilot signals, False otherwise.
     """
 
+    constraint_matrix: np.ndarray
+    constraint_limits: np.ndarray
+    phases: np.ndarray
+    voltages: np.ndarray
+    constraint_ids: List[str]
+    station_ids: List[str]
+    max_pilot: np.ndarray
+    min_pilot: np.ndarray
+    allowable_pilots: Union[List[np.ndarray], List[None]]
+    is_continuous: np.ndarray
+
     def __init__(
         self,
-        constraint_matrix,
-        constraint_limits,
-        phases,
-        voltages,
-        constraint_ids,
-        station_ids,
-        max_pilot,
-        min_pilot,
-        allowable_pilots=None,
-        is_continuous=None,
+        constraint_matrix: np.ndarray,
+        constraint_limits: np.ndarray,
+        phases: np.ndarray,
+        voltages: np.ndarray,
+        constraint_ids: List[str],
+        station_ids: List[str],
+        max_pilot: np.ndarray,
+        min_pilot: np.ndarray,
+        allowable_pilots: Optional[List[np.ndarray]] = None,
+        is_continuous: Optional[np.ndarray] = None,
     ):
         self.constraint_matrix = constraint_matrix
         self.constraint_limits = constraint_limits
@@ -186,13 +210,13 @@ class InfrastructureInfo:
         self._validate()
 
     @property
-    def num_stations(self):
+    def num_stations(self) -> int:
         return len(self.station_ids)
 
-    def get_station_index(self, station_id):
+    def get_station_index(self, station_id) -> int:
         return self._station_ids_dict[station_id]
 
-    def _validate(self):
+    def _validate(self) -> None:
         """ Raise error if attributes do not have consistent shapes."""
         # Check number of stations
         num_stations_set = {
