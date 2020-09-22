@@ -5,10 +5,6 @@ Abstract base algorithm for scheduled charging.
 import time
 from typing import Optional, List, Dict, Union
 
-from acnportal.acnsim.interface import SessionInfo
-
-# from acnportal.acnsim import Interface
-
 
 class BaseAlgorithm:
     """ Abstract base class meant to be inherited from to implement new algorithms.
@@ -21,7 +17,7 @@ class BaseAlgorithm:
             only called when an event occurs. Default: None.
     """
 
-    # _interface: Optional[Interface]
+    _interface: Optional["Interface"]
     max_recompute: Optional[int]
     solve_stats: List[Dict[str, Union[float, int]]]
 
@@ -35,7 +31,7 @@ class BaseAlgorithm:
         return f"{self.__class__.__name__}({arg_str})"
 
     @property
-    def interface(self):  # -> Interface:
+    def interface(self) -> "Interface":
         """ Return the algorithm's interface with the environment.
 
         Returns:
@@ -53,7 +49,7 @@ class BaseAlgorithm:
                 "prior to using the algorithm."
             )
 
-    def register_interface(self, interface) -> None:
+    def register_interface(self, interface: "Interface") -> None:
         """ Register interface to the _simulator/physical system.
 
         This interface is the only connection between the algorithm and what it is
@@ -69,7 +65,7 @@ class BaseAlgorithm:
         """
         self._interface = interface
 
-    def schedule(self, active_sessions) -> Dict[str, List[float]]:
+    def schedule(self, active_sessions: List["SessionInfo"]) -> Dict[str, List[float]]:
         """ Creates a schedule of charging rates for each ev in the active_evs list.
 
         NOT IMPLEMENTED IN BaseAlgorithm. This method MUST be implemented in all

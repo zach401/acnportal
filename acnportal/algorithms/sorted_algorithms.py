@@ -19,9 +19,6 @@ from .preprocessing import (
 )
 from warnings import warn
 
-# from acnportal import acnsim
-# acnsim.Simulator
-# from acnportal.acnsim import Interface
 from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo, Interface
 
 
@@ -45,7 +42,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             same SessionInfo objects but sorted according to some metric.
     """
 
-    # _sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]]
+    _sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]]
     estimate_max_rate: bool
     max_rate_estimator: Optional[UpperBoundEstimatorBase]
     uninterrupted_charging: bool

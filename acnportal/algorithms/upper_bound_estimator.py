@@ -6,7 +6,7 @@ from typing import Optional, Dict, List
 
 import numpy as np
 
-from acnportal.acnsim.interface import SessionInfo
+from acnportal.acnsim.interface import SessionInfo, Interface
 
 
 class UpperBoundEstimatorBase:
@@ -17,13 +17,13 @@ class UpperBoundEstimatorBase:
         Subclassed must implement the get_maximum_rates method.
     """
 
-    # _interface: Optional[Interface]
+    _interface: Optional[Interface]
 
     def __init__(self) -> None:
         self._interface = None
 
     @property
-    def interface(self):  # -> Interface:
+    def interface(self) -> Interface:
         """ Return the algorithm's interface with the environment.
 
         Returns:
@@ -41,7 +41,7 @@ class UpperBoundEstimatorBase:
                 "register_interface prior to using the algorithm."
             )
 
-    def register_interface(self, interface) -> None:
+    def register_interface(self, interface: Interface) -> None:
         """ Register interface to the _simulator/physical system.
             This interface is the only connection between the algorithm and
             what it is controlling. Its purpose is to abstract the
