@@ -1,7 +1,7 @@
 """
 This module contains methods for directly interacting with the _simulator.
 """
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Dict, Set
 
 import numpy as np
 from datetime import timedelta
@@ -114,14 +114,22 @@ class SessionInfo:
 
     @property
     def remaining_demand(self) -> float:
+        """ Return the Session's remaining demand in kWh."""
         return self.requested_energy - self.energy_delivered
 
     @property
     def arrival_offset(self) -> int:
+        """ Return the time (in periods) until the arrival of the EV represented by
+        this Session, or 0 if the EV has already arrived.
+        """
         return max(self.arrival - self.current_time, 0)
 
     @property
     def remaining_time(self) -> int:
+        """ Return the time remaining until the EV represented by this Session departs,
+        or the time between the EV's departure and arrival if the EV has not arrived
+        yet. If the EV has already departed, return 0.
+        """
         remaining = min(
             self.departure - self.arrival, self.departure - self.current_time
         )
@@ -172,6 +180,7 @@ class InfrastructureInfo:
     min_pilot: np.ndarray
     allowable_pilots: Union[List[np.ndarray], List[None]]
     is_continuous: np.ndarray
+    _station_ids_dict: Dict[str, int]
 
     def __init__(
         self,
@@ -211,15 +220,17 @@ class InfrastructureInfo:
 
     @property
     def num_stations(self) -> int:
+        """ Return total number of stations in this network."""
         return len(self.station_ids)
 
-    def get_station_index(self, station_id) -> int:
+    def get_station_index(self, station_id: str) -> int:
+        """ Get the numerical index of a given station_id in the network."""
         return self._station_ids_dict[station_id]
 
     def _validate(self) -> None:
         """ Raise error if attributes do not have consistent shapes."""
         # Check number of stations
-        num_stations_set = {
+        num_stations_set: Set[int] = {
             self.constraint_matrix.shape[1],
             len(self.phases),
             len(self.voltages),
@@ -229,13 +240,13 @@ class InfrastructureInfo:
             len(self.allowable_pilots),
             len(self.is_continuous),
         }
-        num_constraints_set = {
+        num_constraints_set: Set[int] = {
             self.constraint_matrix.shape[0],
             len(self.constraint_limits),
             len(self.constraint_ids),
         }
 
-        errors = []
+        errors: List[str] = []
         if len(num_stations_set) > 1:
             errors.append(
                 "Number of stations should be consistent between inputs.\n"
