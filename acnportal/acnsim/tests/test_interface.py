@@ -2,7 +2,7 @@
 """ Tests for objects of the interface module. """
 from typing import List
 from unittest import TestCase
-from unittest.mock import create_autospec
+from unittest.mock import create_autospec, patch, Mock
 import numpy.testing as nptest
 import numpy as np
 
@@ -276,25 +276,28 @@ class TestInterface(TestCase):
                 {"PS-001": [1, 2], "PS-002": [3, 4, 5], "PS-003": [4, 5]}
             )
 
-    def test_is_feasible(self) -> None:
+    @patch("acnportal.acnsim.network.ChargingNetwork.is_feasible")
+    def test_is_feasible(self, mocked_is_feasible: Mock) -> None:
         # Mock network's is_feasible function to check its call signature later
         self.network.is_feasible = create_autospec(self.network.is_feasible)
         self.interface.is_feasible({"PS-001": [1, 2], "PS-002": [4, 5]})
-        network_is_feasible_args = self.network.is_feasible.call_args
+        network_is_feasible_args = mocked_is_feasible.call_args
         # Check that the call to the network's is_feasible method has the correct
-        # arguments.
+        # arguments and keyword arguments.
         np.testing.assert_allclose(
             network_is_feasible_args[0][0], np.array([[1, 2], [0, 0], [4, 5], [0, 0]])
         )
         # Network's is_feasible method has its second argument (linear) defaulting to
-        # False. Check this is the case.
-        self.assertEqual(network_is_feasible_args[0][1], False)
-        # Network's is_feasible method has its third argument (violation_tolerance)
-        # defaulting to None. Check this is the case.
-        self.assertIsNone(network_is_feasible_args[0][2])
-        self.assertIsNone(network_is_feasible_args[0][3])
+        # False. Check this is the case. And, network's is_feasible method has its
+        # third and fourth arguments (violation_tolerance and relative tolerance)
+        # defaulting to 1e-5, 1e-7 respectively. Check this is the case.
+        self.assertEqual(
+            network_is_feasible_args[1],
+            {"linear": False, "violation_tolerance": 1e-5, "relative_tolerance": 1e-7},
+        )
 
-    def test_is_feasible_with_options(self) -> None:
+    @patch("acnportal.acnsim.network.ChargingNetwork.is_feasible")
+    def test_is_feasible_with_options(self, mocked_is_feasible: Mock) -> None:
         # Mock network's is_feasible function to check its call signature later
         self.network.is_feasible = create_autospec(self.network.is_feasible)
         self.interface.is_feasible(
@@ -303,12 +306,13 @@ class TestInterface(TestCase):
             violation_tolerance=1e-3,
             relative_tolerance=1e-5,
         )
-        network_is_feasible_args = self.network.is_feasible.call_args
+        network_is_feasible_args = mocked_is_feasible.call_args
         # Check that the call to the network's is_feasible method has the correct
         # arguments.
         np.testing.assert_allclose(
             network_is_feasible_args[0][0], np.array([[1, 2], [0, 0], [4, 5], [0, 0]])
         )
-        self.assertEqual(network_is_feasible_args[0][1], True)
-        self.assertEqual(network_is_feasible_args[0][2], 1e-3)
-        self.assertEqual(network_is_feasible_args[0][3], 1e-5)
+        self.assertEqual(
+            network_is_feasible_args[1],
+            {"linear": True, "violation_tolerance": 1e-3, "relative_tolerance": 1e-5},
+        )

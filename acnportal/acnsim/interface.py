@@ -640,9 +640,6 @@ class Interface:
             violation_tolerance=violation_tolerance,
             relative_tolerance=relative_tolerance,
         )
-        # return self._simulator.network.is_feasible(
-        #     schedule_matrix, linear=linear, violation_tolerance=violation_tolerance, relative_tolerance=relative_tolerance
-        # )
 
     # TODO: Pricing Interface functions should be re-implemented once we determine how
     #  to handle them in the Live setting, or moved to an Interface subclass.

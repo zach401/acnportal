@@ -85,7 +85,14 @@ class TestIntegration(TestCase):
             verbose=False,
         )
         self.sim.run()
-        print(sum([self.sch.solve_stats[i]["solve_time"] for i in range(len(self.sch.solve_stats))]))
+        print(
+            sum(
+                [
+                    self.sch.solve_stats[i]["solve_time"]
+                    for i in range(len(self.sch.solve_stats))
+                ]
+            )
+        )
         with open(
             os.path.join(
                 os.path.dirname(__file__), "edf_algo_true_analysis_fields.json"

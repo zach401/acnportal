@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from .current import Current
 import pandas as pd
@@ -51,7 +51,7 @@ class ChargingNetwork(BaseSimObj):
         )
 
     @property
-    def station_ids(self):
+    def station_ids(self) -> List[str]:
         """ Return the IDs of all registered EVSEs.
 
         Returns:
