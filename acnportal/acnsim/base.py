@@ -4,6 +4,7 @@ This module contains a base class shared by all ACN-Sim objects.
 import json
 import operator
 import os
+import numpy as np
 
 # noinspection PyProtectedMember
 from pydoc import locate
@@ -69,6 +70,18 @@ class ErrorAllWrapper:
     @property
     def data(self):
         return self._data
+
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, o):  # pylint: disable=E0202
+        if isinstance(o, np.integer):
+            return int(o)
+        elif isinstance(o, np.floating):
+            return float(o)
+        elif isinstance(o, np.ndarray):
+            return o.tolist()
+        else:
+            json.JSONEncoder.default(self, o)
 
 
 class BaseSimObj:
@@ -146,15 +159,15 @@ class BaseSimObj:
         if isinstance(path_or_buf, str):
             fh, _ = get_handle(path_or_buf, "w")
             try:
-                json.dump(json_serializable_data, fh)
+                json.dump(json_serializable_data, fh, cls=NpEncoder)
                 # Add a newline to the EOF.
                 fh.write("\n")
             finally:
                 fh.close()
         elif path_or_buf is None:
-            return json.dumps(json_serializable_data)
+            return json.dumps(json_serializable_data, cls=NpEncoder)
         else:
-            json.dump(json_serializable_data, path_or_buf)
+            json.dump(json_serializable_data, path_or_buf, cls=NpEncoder)
             # Add a newline to the EOF.
             path_or_buf.write("\n")
 
