@@ -279,6 +279,7 @@ class TestTwoStationsBase(BaseAlgorithmTest):
 class TestThirtyStationsBase(BaseAlgorithmTest):
     def setUp(self):
         self.algo = None
+        self.max_rate_estimation = {}  # Don't use max_rate_estimation for this test.
 
     @staticmethod
     def get_scenarios():
@@ -287,7 +288,8 @@ class TestThirtyStationsBase(BaseAlgorithmTest):
             assert_at_max = limit > 3200
             interface = big_three_phase_network(limit=limit)
             scenario_name = f"capacity: {limit} "
-            scenarios.append(Scenario(scenario_name, interface, assert_at_max, False))
+            scenarios.append(Scenario(scenario_name, interface, assert_at_max,
+                                      False, False))
         return scenarios
 
 
@@ -334,51 +336,61 @@ class TestThirtyStationsFCFS(TestThirtyStationsBase):
 
 class TestTwoStationsEDF(TestTwoStationsBase):
     def setUp(self):
+        super().setUp()
         self.algo = SortedSchedulingAlgo(earliest_deadline_first)
 
 
 class TestThirtyStationsEDF(TestThirtyStationsBase):
     def setUp(self):
+        super().setUp()
         self.algo = SortedSchedulingAlgo(earliest_deadline_first)
 
 
 class TestTwoStationsLLF(TestTwoStationsBase):
     def setUp(self):
+        super().setUp()
         self.algo = SortedSchedulingAlgo(least_laxity_first)
 
 
 class TestThirtyStationsLLF(TestThirtyStationsBase):
     def setUp(self):
+        super().setUp()
         self.algo = SortedSchedulingAlgo(least_laxity_first)
 
 
 class TestTwoStationsLCFS(TestTwoStationsBase):
     def setUp(self):
+        super().setUp()
         self.algo = SortedSchedulingAlgo(last_come_first_served)
 
 
 class TestThirtyStationsLCFS(TestThirtyStationsBase):
     def setUp(self):
+        super().setUp()
         self.algo = SortedSchedulingAlgo(last_come_first_served)
 
 
 class TestTwoStationsLRPT(TestTwoStationsBase):
     def setUp(self):
+        super().setUp()
         self.algo = SortedSchedulingAlgo(largest_remaining_processing_time)
 
 
 class TestThirtyStationsLRPT(TestThirtyStationsBase):
     def setUp(self):
+        super().setUp()
         self.algo = SortedSchedulingAlgo(largest_remaining_processing_time)
 
 
 class TestTwoStationsRR(TestTwoStationsBase):
     def setUp(self):
+        super().setUp()
         self.algo = RoundRobin(first_come_first_served)
 
 
 class TestThirtyStationsRR(TestThirtyStationsBase):
     def setUp(self):
+        super().setUp()
         self.algo = RoundRobin(first_come_first_served)
 
 
