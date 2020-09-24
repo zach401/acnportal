@@ -130,7 +130,9 @@ class ChargingNetwork(BaseSimObj):
 
     def register_evse(self, evse: EVSE, voltage: float, phase_angle: float) -> None:
         """ Register an EVSE with the network so it will be accessible to the rest of
-        the simulation.
+        the simulation. This can only be called before any constraints have been
+        registered in order to prevent dimensionality mismatch between the EVSE list
+        and the
 
         Args:
             evse (EVSE): An EVSE object.
@@ -141,6 +143,12 @@ class ChargingNetwork(BaseSimObj):
         Returns:
             None
         """
+        # Only allow registering of EVSEs before any constraints have been added.
+        if self.constraint_matrix is not None:
+            raise EVSERegistrationError(
+                "Attempting to register an EVSE after constraints have been added. "
+                "Please register all EVSEs with the network before adding constraints."
+            )
         self._EVSEs[evse.station_id] = evse
         self._voltages = np.append(self._voltages, voltage)
         self._phase_angles = np.append(self._phase_angles, phase_angle)
@@ -215,7 +223,7 @@ class ChargingNetwork(BaseSimObj):
         """
         if name not in self.constraint_index:
             raise KeyError(
-                "Cannot remove constraint {0}: not found in network.".format(name)
+                f"Cannot remove constraint {name}: not found in network."
             )
         del_index: int = self.constraint_index.index(name)
         self.constraint_matrix = np.delete(self.constraint_matrix, del_index, axis=0)
@@ -240,7 +248,7 @@ class ChargingNetwork(BaseSimObj):
             new_name: str = name
         if name not in self.constraint_index:
             raise KeyError(
-                "Cannot update constraint {0}: not found in network.".format(name)
+                f"Cannot update constraint {name}: not found in network."
             )
         self.remove_constraint(name)
         self.add_constraint(current, limit, name=new_name)
@@ -307,7 +315,7 @@ class ChargingNetwork(BaseSimObj):
         Args:
             pilots (np.Array): numpy array with a row for each station_id
                 and a column for each time. Each entry in the Array corresponds to
-                a charging rate (in A) at the staion given by the row at a time given
+                a charging rate (in A) at the station given by the row at a time given
                 by the column.
             i (int): Current time index of the simulation.
             period (float): Length of the charging period. [minutes]
@@ -326,7 +334,7 @@ class ChargingNetwork(BaseSimObj):
         self,
         input_schedule: np.ndarray,
         constraints: Optional[List[str]] = None,
-        time_indices: Optional[List[str]] = None,
+        time_indices: Optional[List[int]] = None,
         linear: bool = False,
     ):
         """ Return the aggregate currents subject to the given constraints. If
@@ -500,3 +508,8 @@ class ChargingNetwork(BaseSimObj):
 class StationOccupiedError(Exception):
     """ Exception which is raised when trying to add an EV to an EVSE which is
     already occupied. """
+
+
+class EVSERegistrationError(Exception):
+    """ Exception which is raised when trying to add an EVSE to the network after
+    constraints have already been added. """
