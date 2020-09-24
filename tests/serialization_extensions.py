@@ -1,4 +1,6 @@
 """ This file contains extensions of ACN-Sim for testing purposes. """
+from typing import Optional, Dict, Any, Tuple
+
 from acnportal import acnsim
 from acnportal.acnsim.base import BaseSimObj
 
@@ -37,7 +39,9 @@ class BatteryListEvent(acnsim.Event):
         super().__init__(timestamp)
         self.battery_list = battery_list
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         attribute_dict, context_dict = super()._to_dict(context_dict)
         battery_list = []
         for ev in self.battery_list:
@@ -48,7 +52,12 @@ class BatteryListEvent(acnsim.Event):
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict=None, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         battery_list = []
         for ev in attribute_dict["battery_list"]:
             # noinspection PyProtectedMember

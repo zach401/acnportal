@@ -1,5 +1,7 @@
 import copy
 from datetime import datetime
+from typing import Optional, Dict, Any, Tuple
+
 import pandas as pd
 import numpy as np
 import warnings
@@ -284,7 +286,9 @@ class Simulator(BaseSimObj):
             raise KeyError("EVSE {0} not found in network.".format(station_id))
         return self.network.station_ids.index(station_id)
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
         Implements BaseSimObj._to_dict. Certain simulator attributes are
         not serialized completely as they are not ACN-Sim objects
@@ -361,7 +365,12 @@ class Simulator(BaseSimObj):
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """
         Implements BaseSimObj._from_dict. Certain simulator attributes
         are not loaded completely as they are not ACN-Sim objects
