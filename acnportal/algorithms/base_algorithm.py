@@ -1,3 +1,6 @@
+import time
+
+
 class BaseAlgorithm:
     """ Abstract base class meant to be inherited from to implement new algorithms.
 
@@ -11,6 +14,7 @@ class BaseAlgorithm:
     def __init__(self):
         self._interface = None
         self.max_recompute = None
+        self.solve_stats = []
 
     def __repr__(self):
         arg_str = ", ".join([f"{key}={value}" for key, value in self.__dict__.items()])
@@ -49,14 +53,16 @@ class BaseAlgorithm:
         """
         self._interface = interface
 
-    def schedule(self, active_evs):
+    def schedule(self, active_sessions):
         """ Creates a schedule of charging rates for each ev in the active_evs list.
 
         NOT IMPLEMENTED IN BaseAlgorithm. This method MUST be implemented in all subclasses.
 
         This method returns a schedule of charging rates for each
         Args:
-            active_evs (List[EV]): List of EV objects which are currently ready to be charged and not finished charging.
+            active_sessions (List[SessionInfo]): List of SessionInfo objects
+                which are currently ready to be charged and not finished
+                charging.
 
         Returns:
             Dict[str, List[float]]: Dictionary mapping a station_id to a list of charging rates. Each charging rate is
@@ -75,5 +81,11 @@ class BaseAlgorithm:
         Returns:
             See schedule.
         """
-        schedules = self.schedule(self.interface.active_evs)
+        active_sessions = self.interface.active_sessions()
+        start_time = time.perf_counter()
+        schedules = self.schedule(active_sessions)
+        solve_time = time.perf_counter() - start_time
+        self.solve_stats.append(
+            {"solve_time": solve_time, "active_sessions": len(active_sessions)}
+        )
         return schedules
