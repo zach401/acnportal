@@ -5,7 +5,6 @@ import pandas as pd
 from acnportal.acnsim import Current
 
 
-
 class TestCurrent(TestCase):
     def setUp(self):
         pass

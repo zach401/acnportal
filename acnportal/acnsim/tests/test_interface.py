@@ -8,7 +8,6 @@ from acnportal.acnsim.models import EVSE
 from acnportal.acnsim.network import ChargingNetwork
 
 
-
 class TestInterface(TestCase):
     def setUp(self):
         self.simulator = create_autospec(Simulator)
