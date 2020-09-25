@@ -8,7 +8,7 @@ import numpy as np
 from collections import OrderedDict
 import warnings
 
-from ..models import EV, EVSE
+from ..models import EV, BaseEVSE
 from ..base import BaseSimObj
 
 
@@ -169,7 +169,7 @@ class ChargingNetwork(BaseSimObj):
             for i in range(len(self._phase_angles))
         }
 
-    def register_evse(self, evse: EVSE, voltage: float, phase_angle: float) -> None:
+    def register_evse(self, evse: BaseEVSE, voltage: float, phase_angle: float) -> None:
         """ Register an EVSE with the network so it will be accessible to the rest of
         the simulation. This can only be called before any constraints have been
         registered in order to prevent dimensionality mismatch between the EVSE list

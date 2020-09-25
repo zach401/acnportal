@@ -149,7 +149,7 @@ class TestApplyUpperBoundEstimate(TestCase):
 
     def test_vector_lower_existing_max_scalar_rampdown(
         self,
-    ):  # pylint: disable=no-self-use
+    ) -> None:  # pylint: disable=no-self-use
         self._session_generation_helper(
             max_rate_list=[np.repeat(12, SESSION_DUR)],
             upper_bound_estimate={f"{i}": 16 for i in range(N)},
@@ -198,28 +198,38 @@ class TestApplyUpperBoundEstimate(TestCase):
         )
         modified_sessions = apply_upper_bound_estimate(rd, sessions)
         for i, session in enumerate(modified_sessions):
-            nptest.assert_almost_equal(
-                session.max_rates, (16 if i != 1 else 32)
-            )
+            nptest.assert_almost_equal(session.max_rates, (16 if i != 1 else 32))
             nptest.assert_almost_equal(session.min_rates, 0)
 
 
 class TestApplyMinimumChargingRate(TestCase):
-    def test_evse_less_than_session_max(self) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
+    @staticmethod
+    def _session_generation_helper(
+        max_rate_list: List[Union[float, np.ndarray]],
+        min_rate_list: Optional[List[Union[float, np.ndarray]]] = None,
+        remaining_energy: float = 3.3,
+    ) -> List[SessionInfo]:
+        if min_rate_list is not None:
+            min_rate_list *= N
+        sessions: List[SessionDict] = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
             departures=[ARRIVAL_TIME + SESSION_DUR] * N,
             requested_energy=[3.3] * N,
-            remaining_energy=[3.3] * N,
-            max_rates=[np.repeat(32, SESSION_DUR)] * N,
+            remaining_energy=[remaining_energy] * N,
+            max_rates=max_rate_list * N,
+            min_rates=min_rate_list,
         )
-        sessions = [SessionInfo(**s) for s in sessions]
-        infrastructure = InfrastructureInfo(
-            **single_phase_single_constraint(N, 32, 32, 8)
-        )
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions]
+        infrastructure = InfrastructureInfo(**single_phase_single_constraint(N, 32))
         modified_sessions = apply_minimum_charging_rate(
             sessions, infrastructure, PERIOD
+        )
+        return modified_sessions
+
+    def test_evse_less_than_session_max(self) -> None:  # pylint: disable=no-self-use
+        modified_sessions: List[SessionInfo] = self._session_generation_helper(
+            max_rate_list=[np.repeat(32, SESSION_DUR)]
         )
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates, 32)
@@ -227,21 +237,9 @@ class TestApplyMinimumChargingRate(TestCase):
             nptest.assert_almost_equal(session.min_rates[1:], 0)
 
     def test_evse_less_than_existing_min(self) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[ARRIVAL_TIME] * N,
-            departures=[ARRIVAL_TIME + SESSION_DUR] * N,
-            requested_energy=[3.3] * N,
-            remaining_energy=[3.3] * N,
-            max_rates=[np.repeat(32, SESSION_DUR)] * N,
-            min_rates=[np.repeat(16, SESSION_DUR)] * N,
-        )
-        sessions = [SessionInfo(**s) for s in sessions]
-        infrastructure = InfrastructureInfo(
-            **single_phase_single_constraint(N, 32, 32, 8)
-        )
-        modified_sessions = apply_minimum_charging_rate(
-            sessions, infrastructure, PERIOD
+        modified_sessions: List[SessionInfo] = self._session_generation_helper(
+            max_rate_list=[np.repeat(32, SESSION_DUR)],
+            min_rate_list=[np.repeat(16, SESSION_DUR)],
         )
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates, 32)
@@ -249,21 +247,9 @@ class TestApplyMinimumChargingRate(TestCase):
 
     def test_evse_min_greater_than_remaining_energy(
         self,
-    ):  # pylint: disable=no-self-use
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[ARRIVAL_TIME] * N,
-            departures=[ARRIVAL_TIME + SESSION_DUR] * N,
-            requested_energy=[3.3] * N,
-            remaining_energy=[0.05] * N,
-            max_rates=[np.repeat(32, SESSION_DUR)] * N,
-        )
-        sessions = [SessionInfo(**s) for s in sessions]
-        infrastructure = InfrastructureInfo(
-            **single_phase_single_constraint(N, 32, 32, 8)
-        )
-        modified_sessions = apply_minimum_charging_rate(
-            sessions, infrastructure, PERIOD
+    ) -> None:  # pylint: disable=no-self-use
+        modified_sessions: List[SessionInfo] = self._session_generation_helper(
+            max_rate_list=[np.repeat(32, SESSION_DUR)], remaining_energy=0.05,
         )
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates[0], 0)
@@ -274,20 +260,8 @@ class TestApplyMinimumChargingRate(TestCase):
     def test_evse_min_greater_than_session_max(
         self,
     ) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[ARRIVAL_TIME] * N,
-            departures=[ARRIVAL_TIME + SESSION_DUR] * N,
-            requested_energy=[3.3] * N,
-            remaining_energy=[3.3] * N,
-            max_rates=[np.repeat(6, SESSION_DUR)] * N,
-        )
-        sessions = [SessionInfo(**s) for s in sessions]
-        infrastructure = InfrastructureInfo(
-            **single_phase_single_constraint(N, 32, 32, 8)
-        )
-        modified_sessions = apply_minimum_charging_rate(
-            sessions, infrastructure, PERIOD
+        modified_sessions: List[SessionInfo] = self._session_generation_helper(
+            max_rate_list=[np.repeat(6, SESSION_DUR)],
         )
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates[0], 8)
@@ -296,19 +270,17 @@ class TestApplyMinimumChargingRate(TestCase):
             nptest.assert_almost_equal(session.min_rates[1:], 0)
 
     def test_apply_min_infeasible(self) -> None:  # pylint: disable=no-self-use
-        N = 3
+        n = 3
         sessions = session_generator(
-            num_sessions=N,
+            num_sessions=n,
             arrivals=[1, 2, 3],
             departures=[1 + SESSION_DUR, 2 + SESSION_DUR, 3 + SESSION_DUR],
-            requested_energy=[3.3] * N,
-            remaining_energy=[3.3] * N,
-            max_rates=[np.repeat(32, SESSION_DUR)] * N,
+            requested_energy=[3.3] * n,
+            remaining_energy=[3.3] * n,
+            max_rates=[np.repeat(32, SESSION_DUR)] * n,
         )
         sessions = [SessionInfo(**s) for s in sessions]
-        infrastructure = InfrastructureInfo(
-            **single_phase_single_constraint(N, 16, 32, 8)
-        )
+        infrastructure = InfrastructureInfo(**single_phase_single_constraint(n, 16))
         modified_sessions = apply_minimum_charging_rate(
             sessions, infrastructure, PERIOD
         )
