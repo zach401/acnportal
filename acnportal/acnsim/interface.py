@@ -1,13 +1,15 @@
+# coding=utf-8
 """
 This module contains methods for directly interacting with the _simulator.
 """
-from typing import List, Union, Optional, Dict, Set
+from typing import List, Union, Optional, Dict, Set, Tuple
 
 import numpy as np
-from datetime import timedelta
+from datetime import timedelta, datetime
 from collections import namedtuple
 from warnings import warn
 
+from .models import EV
 from .network import ChargingNetwork
 
 
@@ -272,11 +274,18 @@ class InfrastructureInfo:
             raise ValueError("\n---\n".join(errors))
 
 
+Constraint = namedtuple(
+    "Constraint", ["constraint_matrix", "magnitudes", "constraint_index", "evse_index"],
+)
+
+
 class Interface:
     """ Interface between algorithms and the ACN Simulation Environment."""
 
+    # noinspection PyUnresolvedReferences
     _simulator: "Simulator"
 
+    # noinspection PyUnresolvedReferences
     def __init__(self, simulator: "Simulator"):
         self._simulator = simulator
 
@@ -309,7 +318,7 @@ class Interface:
         return self._simulator.network.relative_tolerance
 
     @property
-    def active_evs(self):
+    def active_evs(self) -> List[EV]:
         """ Returns a list of active EVs for use by the algorithm.
 
         Returns:
@@ -324,7 +333,7 @@ class Interface:
         return self._active_evs
 
     @property
-    def _active_evs(self):
+    def _active_evs(self) -> List[EV]:
         """ Returns a list of active EVs for use by the algorithm.
 
         Returns:
@@ -333,16 +342,14 @@ class Interface:
         return self._simulator.get_active_evs()
 
     @property
-    def last_applied_pilot_signals(self):
-        # TODO: last_applied_pilot_signals should be obtained from a new SystemInfo
-        #  object in a future release.
+    def last_applied_pilot_signals(self) -> Dict[str, float]:
         """ Return the pilot signals that were applied in the last _iteration
             of the simulation for all active EVs.
 
         Does not include EVs that arrived in the current _iteration.
 
         Returns:
-            Dict[str, number]: A dictionary with the session ID as key and the
+            Dict[str, float]: A dictionary with the session ID as key and the
                 pilot signal as value.
         """
         i = self._simulator.iteration - 1
@@ -358,21 +365,18 @@ class Interface:
             return {}
 
     @property
-    def last_actual_charging_rate(self):
-        # TODO: last_actual_charging_rate should be obtained from a new SystemInfo
-        #  object in a future release.
+    def last_actual_charging_rate(self) -> Dict[str, float]:
         """ Return the actual charging rates in the last period for all
             active sessions.
 
         Returns:
-            Dict[str, number]:  A dictionary with the session ID as key and actual charging rate as value.
+            Dict[str, number]:  A dictionary with the session ID as key and actual
+                charging rate as value.
         """
         return {ev.session_id: ev.current_charging_rate for ev in self._active_evs}
 
     @property
-    def current_time(self):
-        # TODO: current_time should be obtained from a new SystemInfo
-        #  object in a future release.
+    def current_time(self) -> int:
         """ Get the current time (the current _iteration) of the simulator.
 
         Returns:
@@ -381,9 +385,7 @@ class Interface:
         return self._simulator.iteration
 
     @property
-    def current_datetime(self):
-        # TODO: current_datetime should be obtained from a new SystemInfo
-        #  object in a future release.
+    def current_datetime(self) -> datetime:
         """ Get the simulated wall time of the simulator.
 
         Returns:
@@ -395,18 +397,16 @@ class Interface:
         )
 
     @property
-    def period(self):
-        # TODO: period should be obtained from a new SystemInfo
-        #  object in a future release.
+    def period(self) -> float:
         """ Return the length of each timestep in the simulation.
 
         Returns:
-            int: Length of each time interval in the simulation. [minutes]
+            float: Length of each time interval in the simulation. [minutes]
         """
         return self._simulator.period
 
     @property
-    def max_recompute_time(self):
+    def max_recompute_time(self) -> int:
         """ Return the maximum recompute time of the simulator.
 
         Returns:
@@ -415,7 +415,7 @@ class Interface:
         """
         return self._simulator.max_recompute
 
-    def active_sessions(self):
+    def active_sessions(self) -> List[SessionInfo]:
         """ Return a list of SessionInfo objects describing the currently
             charging EVs.
 
@@ -436,7 +436,7 @@ class Interface:
             for ev in self._active_evs
         ]
 
-    def infrastructure_info(self):
+    def infrastructure_info(self) -> InfrastructureInfo:
         """ Returns an InfrastructureInfo object generated from interface.
 
         Returns:
@@ -478,30 +478,32 @@ class Interface:
             is_continuous,
         )
 
-    def allowable_pilot_signals(self, station_id):
+    def allowable_pilot_signals(self, station_id) -> Tuple[bool, List[float]]:
         """ Returns the allowable pilot signal levels for the specified EVSE.
         One may assume an EVSE pilot signal of 0 is allowed regardless
         of this function's return values.
 
         Args:
-            station_id (str): The ID of the station for which the allowable rates should be returned.
+            station_id (str): The ID of the station for which the allowable rates
+                should be returned.
 
         Returns:
             bool: If the range is continuous or not
-            list[float]: The sorted set of acceptable pilot signals. If continuous this range will have 2 values
-                the min and the max acceptable values. [A]
+            list[float]: The sorted set of acceptable pilot signals. If continuous this
+                range will have 2 values the min and the max acceptable values. [A]
         """
         infrastructure_info: InfrastructureInfo = self.infrastructure_info()
-        return (
-            infrastructure_info.is_continuous[
-                infrastructure_info.get_station_index(station_id)
-            ].tolist(),
-            infrastructure_info.allowable_pilots[
-                infrastructure_info.get_station_index(station_id)
-            ].tolist(),
-        )
+        continuity: bool = infrastructure_info.is_continuous[
+            infrastructure_info.get_station_index(station_id)
+        ].tolist()
+        # Numpy tolist method returns "object", so type checking will fail here.
+        # noinspection PyTypeChecker
+        allowable_pilots: List[float] = infrastructure_info.allowable_pilots[
+            infrastructure_info.get_station_index(station_id)
+        ].tolist()
+        return continuity, allowable_pilots
 
-    def max_pilot_signal(self, station_id):
+    def max_pilot_signal(self, station_id: str) -> float:
         """ Returns the maximum allowable pilot signal level for the specified EVSE.
 
         Args:
@@ -515,7 +517,7 @@ class Interface:
             infrastructure_info.get_station_index(station_id)
         ]
 
-    def min_pilot_signal(self, station_id):
+    def min_pilot_signal(self, station_id: str) -> float:
         """ Returns the minimum allowable pilot signal level for the EVSE.
         A zero pilot signal is always assumed to be allowed; the minimum allowable pilot
         signal returned here is the minimum nonzero pilot signal allowed by the EVSE if
@@ -532,7 +534,7 @@ class Interface:
             infrastructure_info.get_station_index(station_id)
         ]
 
-    def evse_voltage(self, station_id):
+    def evse_voltage(self, station_id: str) -> float:
         """ Returns the voltage of the EVSE.
 
         Args:
@@ -546,7 +548,7 @@ class Interface:
             infrastructure_info.get_station_index(station_id)
         ]
 
-    def evse_phase(self, station_id):
+    def evse_phase(self, station_id: str) -> float:
         """ Returns the phase angle of the EVSE.
 
         Args:
@@ -560,7 +562,7 @@ class Interface:
             infrastructure_info.get_station_index(station_id)
         ]
 
-    def remaining_amp_periods(self, ev: SessionInfo):
+    def remaining_amp_periods(self, ev: SessionInfo) -> float:
         """ Return the EV's remaining demand in A*periods.
 
         Args:
@@ -571,7 +573,7 @@ class Interface:
         """
         return self._convert_to_amp_periods(ev.remaining_demand, ev.station_id)
 
-    def _convert_to_amp_periods(self, kwh, station_id):
+    def _convert_to_amp_periods(self, kwh: float, station_id: str) -> float:
         """ Convert the given energy in kWh to A*periods based on the voltage
             at EVSE station_id.
 
@@ -581,7 +583,7 @@ class Interface:
         """
         return kwh * 1000 / self.evse_voltage(station_id) * 60 / self.period
 
-    def get_constraints(self):
+    def get_constraints(self) -> Constraint:
         """ Get the constraint matrix and EVSE ids for the network.
 
         Returns:
@@ -598,11 +600,11 @@ class Interface:
 
     def is_feasible(
         self,
-        load_currents,
-        linear=False,
-        violation_tolerance=None,
-        relative_tolerance=None,
-    ):
+        load_currents: Dict[str, List[float]],
+        linear: bool = False,
+        violation_tolerance: Optional[float] = None,
+        relative_tolerance: Optional[float] = None,
+    ) -> bool:
         # TODO: Should Interface.is_feasible replace network is_feasible?
         # TODO: ACN-Live should not accept violation_tolerance, relative_tolerance
         #  args that are less than the built-in network tols.
@@ -614,9 +616,11 @@ class Interface:
         and relative_tolerance is used to evaluate feasibility.
 
         Args:
-            load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to schedules of charging rates.
-            linear (bool): If True, linearize all constraints to a more conservative but easier to compute constraint by
-                ignoring the phase angle and taking the absolute value of all load coefficients. Default False.
+            load_currents (Dict[str, List[number]]): Dictionary mapping load_ids to
+                schedules of charging rates.
+            linear (bool): If True, linearize all constraints to a more conservative
+                but easier to compute constraint by ignoring the phase angle and taking
+                the absolute value of all load coefficients. Default False.
             violation_tolerance (float): Absolute amount by which
                 schedule may violate network constraints. Default
                 None, in which case the network's violation_tolerance
@@ -627,7 +631,8 @@ class Interface:
                 attribute is used.
 
         Returns:
-            bool: If load_currents is feasible at time t according to this set of constraints.
+            bool: If load_currents is feasible at time t according to this set of
+                constraints.
         """
         infrastructure_info: InfrastructureInfo = self.infrastructure_info()
 
@@ -676,19 +681,18 @@ class Interface:
             relative_tolerance=relative_tolerance,
         )
 
-    # TODO: Pricing Interface functions should be re-implemented once we determine how
-    #  to handle them in the Live setting, or moved to an Interface subclass.
-
-    def get_prices(self, length, start=None):
-        """ Get a vector of prices beginning at time start and continuing for length periods. ($/kWh)
+    def get_prices(self, length: int, start: Optional[int] = None) -> np.ndarray:
+        """ Get a vector of prices beginning at time start and continuing for length
+        periods. ($/kWh)
 
         Args:
             length (int): Number of elements in the prices vector. One entry per period.
-            start (int): Time step of the simulation where price vector should begin. If None, uses the current timestep
-                of the simulation. Default None.
+            start (int): Time step of the simulation where price vector should begin.
+                If None, uses the current timestep of the simulation. Default None.
 
         Returns:
-            np.ndarray[float]: Array of floats where each entry is the price for the corresponding period. ($/kWh)
+            np.ndarray[float]: Array of floats where each entry is the price for the
+                corresponding period. ($/kWh)
         """
         if "tariff" in self._simulator.signals:
             if start is None:
@@ -702,12 +706,12 @@ class Interface:
         else:
             raise ValueError("No pricing method is specified.")
 
-    def get_demand_charge(self, start=None):
+    def get_demand_charge(self, start: Optional[int] = None) -> float:
         """ Get the demand charge for the given period. ($/kW)
 
         Args:
-            start (int): Time step of the simulation where price vector should begin. If None, uses the current timestep
-                of the simulation. Default None.
+            start (int): Time step of the simulation where price vector should begin.
+                If None, uses the current timestep of the simulation. Default None.
 
         Returns:
             float: Demand charge for the given period. ($/kW)
@@ -720,18 +724,13 @@ class Interface:
         else:
             raise ValueError("No pricing method is specified.")
 
-    def get_prev_peak(self):
+    def get_prev_peak(self) -> float:
         """ Get the highest aggregate peak demand so far in the simulation.
 
         Returns:
             float: Peak demand so far in the simulation. (A)
         """
         return self._simulator.peak
-
-
-Constraint = namedtuple(
-    "Constraint", ["constraint_matrix", "magnitudes", "constraint_index", "evse_index"],
-)
 
 
 class InvalidScheduleError(Exception):

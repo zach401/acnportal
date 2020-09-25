@@ -49,6 +49,47 @@ class ChargingNetwork(BaseSimObj):
         self.violation_tolerance = violation_tolerance
         self.relative_tolerance = relative_tolerance
 
+        # Cached information-storing objects for use by Interface.
+        (
+            self._station_ids_dict,
+            self.max_pilot_signals,
+            self.min_pilot_signals,
+            self.allowable_rates,
+            self.is_continuous,
+        ) = self._update_info_store()
+
+    def _update_info_store(
+        self,
+    ) -> Tuple[Dict[str, int], np.ndarray, np.ndarray, List[np.ndarray], np.ndarray]:
+        station_ids: List[str] = self.station_ids
+        self.station_ids_dict = {
+            station_id: i for i, station_id in enumerate(station_ids)
+        }
+        self.max_pilot_signals = np.array(
+            [self._EVSEs[station_id].max_rate for station_id in station_ids]
+        )
+        self.min_pilot_signals = np.array(
+            [self._EVSEs[station_id].min_rate for station_id in station_ids]
+        )
+        allowable_rates = []
+        is_continuous = []
+        for station_id in station_ids:
+            # Get allowable pilot signals and continuity for this EVSE.
+            evse = self._EVSEs[station_id]
+            continuous, allowable = evse.is_continuous, evse.allowable_pilot_signals
+            allowable_rates.append(np.array(allowable))
+            is_continuous.append(continuous)
+        is_continuous = np.array(is_continuous)
+        self.allowable_rates = allowable_rates
+        self.is_continuous = is_continuous
+        return (
+            self.station_ids_dict,
+            self.max_pilot_signals,
+            self.min_pilot_signals,
+            self.allowable_rates,
+            self.is_continuous,
+        )
+
     @property
     def current_charging_rates(self) -> np.ndarray:
         """ Return the current actual charging rate of all EVSEs in the network. If
@@ -152,6 +193,14 @@ class ChargingNetwork(BaseSimObj):
         self._EVSEs[evse.station_id] = evse
         self._voltages = np.append(self._voltages, voltage)
         self._phase_angles = np.append(self._phase_angles, phase_angle)
+        # Cached information-storing objects for use by Interface.
+        (
+            self._station_ids_dict,
+            self.max_pilot_signals,
+            self.min_pilot_signals,
+            self.allowable_rates,
+            self.is_continuous,
+        ) = self._update_info_store()
 
     def constraints_as_df(self) -> pd.DataFrame:
         """ Returns the network constraints in a pandas DataFrame.
@@ -211,6 +260,14 @@ class ChargingNetwork(BaseSimObj):
         self.constraint_matrix = constraint_frame.reindex(
             columns=self.station_ids
         ).to_numpy()
+        # Cached information-storing objects for use by Interface.
+        (
+            self._station_ids_dict,
+            self.max_pilot_signals,
+            self.min_pilot_signals,
+            self.allowable_rates,
+            self.is_continuous,
+        ) = self._update_info_store()
 
     def remove_constraint(self, name: str) -> None:
         """ Remove a network constraint.
@@ -222,13 +279,19 @@ class ChargingNetwork(BaseSimObj):
             None
         """
         if name not in self.constraint_index:
-            raise KeyError(
-                f"Cannot remove constraint {name}: not found in network."
-            )
+            raise KeyError(f"Cannot remove constraint {name}: not found in network.")
         del_index: int = self.constraint_index.index(name)
         self.constraint_matrix = np.delete(self.constraint_matrix, del_index, axis=0)
         self.magnitudes = np.delete(self.magnitudes, del_index, axis=0)
         self.constraint_index.remove(name)
+        # Cached information-storing objects for use by Interface.
+        (
+            self._station_ids_dict,
+            self.max_pilot_signals,
+            self.min_pilot_signals,
+            self.allowable_rates,
+            self.is_continuous,
+        ) = self._update_info_store()
 
     def update_constraint(
         self, name: str, current: Current, limit: float, new_name: Optional[str] = None
@@ -247,11 +310,17 @@ class ChargingNetwork(BaseSimObj):
         if new_name is None:
             new_name: str = name
         if name not in self.constraint_index:
-            raise KeyError(
-                f"Cannot update constraint {name}: not found in network."
-            )
+            raise KeyError(f"Cannot update constraint {name}: not found in network.")
         self.remove_constraint(name)
         self.add_constraint(current, limit, name=new_name)
+        # Cached information-storing objects for use by Interface.
+        (
+            self._station_ids_dict,
+            self.max_pilot_signals,
+            self.min_pilot_signals,
+            self.allowable_rates,
+            self.is_continuous,
+        ) = self._update_info_store()
 
     def plugin(self, ev: EV, station_id: str) -> None:
         """ Attach EV to a specific EVSE.

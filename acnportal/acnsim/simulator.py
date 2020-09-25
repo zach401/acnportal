@@ -30,11 +30,13 @@ class Simulator(BaseSimObj):
         scheduler (BaseAlgorithm): The scheduling algorithm used in the simulation.
         events (EventQueue): Queue of events which will occur in the simulation.
         start (datetime): Date and time of the first period of the simulation.
-        period (int): Length of each time interval in the simulation in minutes. Default: 1
+        period (float): Length of each time interval in the simulation in minutes. Default: 1
         signals (Dict[str, ...]):
         store_schedule_history (bool): If True, store the scheduler output each time it is run. Note this can use lots
             of memory for long simulations.
     """
+
+    period: float
 
     def __init__(
         self,
@@ -42,7 +44,7 @@ class Simulator(BaseSimObj):
         scheduler,
         events,
         start,
-        period=1,
+        period: float = 1,
         signals=None,
         store_schedule_history=False,
         verbose=True,
