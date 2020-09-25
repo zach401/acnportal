@@ -179,8 +179,29 @@ class TestApplyUpperBoundEstimate(TestCase):
             upper_bound_estimate={f"{i}": 6 for i in range(N)},
             expected_max=8,
             expected_min=8,
-            min_rate_list=[np.repeat(8, SESSION_DUR)]
+            min_rate_list=[np.repeat(8, SESSION_DUR)],
         )
+
+    def test_partial_estimator(self) -> None:  # pylint: disable=no-self-use
+        sessions: List[SessionDict] = session_generator(
+            num_sessions=N,
+            arrivals=[ARRIVAL_TIME] * N,
+            departures=[ARRIVAL_TIME + SESSION_DUR] * N,
+            requested_energy=[3.3] * N,
+            remaining_energy=[3.3] * N,
+            max_rates=[32] * N,
+        )
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions]
+        rd = Mock()
+        rd.get_maximum_rates = Mock(
+            return_value={f"{i}": [16] * 5 for i in range(N) if i != 1}
+        )
+        modified_sessions = apply_upper_bound_estimate(rd, sessions)
+        for i, session in enumerate(modified_sessions):
+            nptest.assert_almost_equal(
+                session.max_rates, (16 if i != 1 else 32)
+            )
+            nptest.assert_almost_equal(session.min_rates, 0)
 
 
 class TestApplyMinimumChargingRate(TestCase):
