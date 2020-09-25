@@ -54,9 +54,10 @@ class TestEnforcePilotLimit(TestCase):
 
 
 class TestReconcileMaxMin(TestCase):
+    @staticmethod
     def _session_generation_helper(
-        self, max_rates: int, choose_min: bool = True
-    ) -> SessionInfo:  # pylint: disable=no-self-use
+        max_rates: int, choose_min: bool = True
+    ) -> SessionInfo:
         session = SessionInfo(
             station_id="1",
             session_id="1",
@@ -93,129 +94,93 @@ class TestReconcileMaxMin(TestCase):
 
 
 class TestApplyUpperBoundEstimate(TestCase):
-    def test_default_max_rates_scalars(self) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
+    @staticmethod
+    def _session_generation_helper(
+        max_rate_list: List[Union[float, np.ndarray]],
+        upper_bound_estimate: Dict[str, float],
+        expected_max: float,
+        expected_min: float,
+        min_rate_list: Optional[List[Union[float, np.ndarray]]] = None,
+    ) -> None:
+        if min_rate_list is not None:
+            min_rate_list *= N
+        sessions: List[SessionDict] = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
             departures=[ARRIVAL_TIME + SESSION_DUR] * N,
             requested_energy=[3.3] * N,
             remaining_energy=[3.3] * N,
-            max_rates=[32] * N,
+            max_rates=max_rate_list * N,
+            min_rates=min_rate_list,
         )
-        sessions = [SessionInfo(**s) for s in sessions]
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions]
         rd = Mock()
-        rd.get_maximum_rates = Mock(return_value={f"{i}": 16 for i in range(N)})
+        rd.get_maximum_rates = Mock(return_value=upper_bound_estimate)
         modified_sessions = apply_upper_bound_estimate(rd, sessions)
         for session in modified_sessions:
-            nptest.assert_almost_equal(session.max_rates, 16)
-            nptest.assert_almost_equal(session.min_rates, 0)
+            nptest.assert_almost_equal(session.max_rates, expected_max)
+            nptest.assert_almost_equal(session.min_rates, expected_min)
+
+    def test_default_max_rates_scalars(self) -> None:  # pylint: disable=no-self-use
+        self._session_generation_helper(
+            max_rate_list=[32],
+            upper_bound_estimate={f"{i}": 16 for i in range(N)},
+            expected_max=16,
+            expected_min=0,
+        )
 
     def test_lower_existing_max_scalars(self) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[ARRIVAL_TIME] * N,
-            departures=[ARRIVAL_TIME + SESSION_DUR] * N,
-            requested_energy=[3.3] * N,
-            remaining_energy=[3.3] * N,
-            max_rates=[12] * N,
+        self._session_generation_helper(
+            max_rate_list=[12],
+            upper_bound_estimate={f"{i}": 16 for i in range(N)},
+            expected_max=12,
+            expected_min=0,
         )
-        sessions = [SessionInfo(**s) for s in sessions]
-        rd = Mock()
-        rd.get_maximum_rates = Mock(return_value={f"{i}": 16 for i in range(N)})
-        modified_sessions = apply_upper_bound_estimate(rd, sessions)
-        for session in modified_sessions:
-            nptest.assert_almost_equal(session.max_rates, 12)
-            nptest.assert_almost_equal(session.min_rates, 0)
 
     def test_vector_existing_max_scalar_rampdown(
         self,
     ) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[ARRIVAL_TIME] * N,
-            departures=[ARRIVAL_TIME + SESSION_DUR] * N,
-            requested_energy=[3.3] * N,
-            remaining_energy=[3.3] * N,
-            max_rates=[np.repeat(32, SESSION_DUR)] * N,
+        self._session_generation_helper(
+            max_rate_list=[np.repeat(32, SESSION_DUR)],
+            upper_bound_estimate={f"{i}": 16 for i in range(N)},
+            expected_max=16,
+            expected_min=0,
         )
-        sessions = [SessionInfo(**s) for s in sessions]
-        rd = Mock()
-        rd.get_maximum_rates = Mock(return_value={f"{i}": 16 for i in range(N)})
-        modified_sessions = apply_upper_bound_estimate(rd, sessions)
-        for session in modified_sessions:
-            nptest.assert_almost_equal(session.max_rates, 16)
-            nptest.assert_almost_equal(session.min_rates, 0)
 
     def test_vector_lower_existing_max_scalar_rampdown(
         self,
     ):  # pylint: disable=no-self-use
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[ARRIVAL_TIME] * N,
-            departures=[ARRIVAL_TIME + SESSION_DUR] * N,
-            requested_energy=[3.3] * N,
-            remaining_energy=[3.3] * N,
-            max_rates=[np.repeat(12, SESSION_DUR)] * N,
+        self._session_generation_helper(
+            max_rate_list=[np.repeat(12, SESSION_DUR)],
+            upper_bound_estimate={f"{i}": 16 for i in range(N)},
+            expected_max=12,
+            expected_min=0,
         )
-        sessions = [SessionInfo(**s) for s in sessions]
-        rd = Mock()
-        rd.get_maximum_rates = Mock(return_value={f"{i}": 16 for i in range(N)})
-        modified_sessions = apply_upper_bound_estimate(rd, sessions)
-        for session in modified_sessions:
-            nptest.assert_almost_equal(session.max_rates, 12)
-            nptest.assert_almost_equal(session.min_rates, 0)
 
     def test_all_vectors_rampdown_lower(self) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[ARRIVAL_TIME] * N,
-            departures=[ARRIVAL_TIME + SESSION_DUR] * N,
-            requested_energy=[3.3] * N,
-            remaining_energy=[3.3] * N,
-            max_rates=[np.repeat(32, SESSION_DUR)] * N,
+        self._session_generation_helper(
+            max_rate_list=[np.repeat(32, SESSION_DUR)],
+            upper_bound_estimate={f"{i}": [16] * 5 for i in range(N)},
+            expected_max=16,
+            expected_min=0,
         )
-        sessions = [SessionInfo(**s) for s in sessions]
-        rd = Mock()
-        rd.get_maximum_rates = Mock(return_value={f"{i}": [16] * 5 for i in range(N)})
-        modified_sessions = apply_upper_bound_estimate(rd, sessions)
-        for session in modified_sessions:
-            nptest.assert_almost_equal(session.max_rates, 16)
-            nptest.assert_almost_equal(session.min_rates, 0)
 
     def test_all_vectors_existing_lower(self) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[ARRIVAL_TIME] * N,
-            departures=[ARRIVAL_TIME + SESSION_DUR] * N,
-            requested_energy=[3.3] * N,
-            remaining_energy=[3.3] * N,
-            max_rates=[np.repeat(12, SESSION_DUR)] * N,
+        self._session_generation_helper(
+            max_rate_list=[np.repeat(12, SESSION_DUR)],
+            upper_bound_estimate={f"{i}": [16] * 5 for i in range(N)},
+            expected_max=12,
+            expected_min=0,
         )
-        sessions = [SessionInfo(**s) for s in sessions]
-        rd = Mock()
-        rd.get_maximum_rates = Mock(return_value={f"{i}": [16] * 5 for i in range(N)})
-        modified_sessions = apply_upper_bound_estimate(rd, sessions)
-        for session in modified_sessions:
-            nptest.assert_almost_equal(session.max_rates, 12)
-            nptest.assert_almost_equal(session.min_rates, 0)
 
     def test_minimum_rates_binding(self) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
-            num_sessions=N,
-            arrivals=[ARRIVAL_TIME] * N,
-            departures=[ARRIVAL_TIME + SESSION_DUR] * N,
-            requested_energy=[3.3] * N,
-            remaining_energy=[3.3] * N,
-            max_rates=[np.repeat(12, SESSION_DUR)] * N,
-            min_rates=[np.repeat(8, SESSION_DUR)] * N,
+        self._session_generation_helper(
+            max_rate_list=[np.repeat(12, SESSION_DUR)],
+            upper_bound_estimate={f"{i}": 6 for i in range(N)},
+            expected_max=8,
+            expected_min=8,
+            min_rate_list=[np.repeat(8, SESSION_DUR)]
         )
-        sessions = [SessionInfo(**s) for s in sessions]
-        rd = Mock()
-        rd.get_maximum_rates = Mock(return_value={f"{i}": 6 for i in range(N)})
-        modified_sessions = apply_upper_bound_estimate(rd, sessions)
-        for session in modified_sessions:
-            nptest.assert_almost_equal(session.max_rates, 8)
-            nptest.assert_almost_equal(session.min_rates, 8)
 
 
 class TestApplyMinimumChargingRate(TestCase):

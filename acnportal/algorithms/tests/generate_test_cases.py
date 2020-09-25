@@ -13,8 +13,8 @@ def session_generator(
     departures: List[int],
     requested_energy: List[float],
     remaining_energy: List[float],
-    max_rates: List[Iterable[float]],
-    min_rates: Optional[List[Iterable[float]]] = None,
+    max_rates: List[Union[float, Iterable[float], np.ndarray]],
+    min_rates: Optional[List[Union[float, Iterable[float], np.ndarray]]] = None,
     station_ids: Optional[List[str]] = None,
 ) -> List[SessionDict]:
     """ Generate Sessions with the input info in dict format. """
