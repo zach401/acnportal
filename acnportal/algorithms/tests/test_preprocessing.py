@@ -1,3 +1,5 @@
+# coding=utf-8
+""" Tests for Pre-processing algorithms. """
 from unittest import TestCase
 from unittest.mock import Mock
 from numpy import testing as nptest
@@ -14,7 +16,9 @@ PERIOD = 5
 
 
 class TestEnforcePilotLimit(TestCase):
-    def test_pilot_greater_than_existing_max(self):  # pylint: disable=no-self-use
+    def test_pilot_greater_than_existing_max(
+        self,
+    ) -> None:  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -25,13 +29,13 @@ class TestEnforcePilotLimit(TestCase):
         )
         sessions = [SessionInfo(**s) for s in sessions]
         infrastructure = InfrastructureInfo(
-            **single_phase_single_constraint(num_evses=N, limit=32, max_pilot=32)
+            **single_phase_single_constraint(num_evses=N, limit=32)
         )
         modified_sessions = enforce_pilot_limit(sessions, infrastructure)
         for session in modified_sessions:
             nptest.assert_almost_equal(session.max_rates, 16)
 
-    def test_pilot_less_than_existing_max(self):  # pylint: disable=no-self-use
+    def test_pilot_less_than_existing_max(self) -> None:  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -42,7 +46,7 @@ class TestEnforcePilotLimit(TestCase):
         )
         sessions = [SessionInfo(**s) for s in sessions]
         infrastructure = InfrastructureInfo(
-            **single_phase_single_constraint(num_evses=N, limit=32, max_pilot=32)
+            **single_phase_single_constraint(num_evses=N, limit=32)
         )
         modified_sessions = enforce_pilot_limit(sessions, infrastructure)
         for session in modified_sessions:
@@ -50,7 +54,9 @@ class TestEnforcePilotLimit(TestCase):
 
 
 class TestReconcileMaxMin(TestCase):
-    def test_max_greater_than_min(self):  # pylint: disable=no-self-use
+    def _session_generation_helper(
+        self, max_rates: int, choose_min: bool = True
+    ) -> SessionInfo:  # pylint: disable=no-self-use
         session = SessionInfo(
             station_id="1",
             session_id="1",
@@ -58,46 +64,36 @@ class TestReconcileMaxMin(TestCase):
             energy_delivered=0,
             arrival=0,
             departure=5,
-            max_rates=32,
+            max_rates=max_rates,
             min_rates=8,
         )
-        modified_session = reconcile_max_and_min(session)
+        return reconcile_max_and_min(session, choose_min=choose_min)
+
+    def test_max_greater_than_min(self) -> None:  # pylint: disable=no-self-use
+        modified_session: SessionInfo = self._session_generation_helper(32)
         nptest.assert_almost_equal(modified_session.max_rates, 32)
         nptest.assert_almost_equal(modified_session.min_rates, 8)
 
-    def test_max_equal_min(self):  # pylint: disable=no-self-use
-        session = SessionInfo(
-            station_id="1",
-            session_id="1",
-            requested_energy=3.3,
-            energy_delivered=0,
-            arrival=0,
-            departure=5,
-            max_rates=8,
-            min_rates=8,
-        )
-        modified_session = reconcile_max_and_min(session)
+    def test_max_equal_min(self) -> None:  # pylint: disable=no-self-use
+        modified_session: SessionInfo = self._session_generation_helper(8)
         nptest.assert_almost_equal(modified_session.max_rates, 8)
         nptest.assert_almost_equal(modified_session.min_rates, 8)
 
-    def test_max_less_than_min(self):  # pylint: disable=no-self-use
-        session = SessionInfo(
-            station_id="1",
-            session_id="1",
-            requested_energy=3.3,
-            energy_delivered=0,
-            arrival=0,
-            departure=5,
-            max_rates=6,
-            min_rates=8,
-        )
-        modified_session = reconcile_max_and_min(session)
+    def test_max_less_than_min(self) -> None:  # pylint: disable=no-self-use
+        modified_session: SessionInfo = self._session_generation_helper(6)
         nptest.assert_almost_equal(modified_session.max_rates, 8)
         nptest.assert_almost_equal(modified_session.min_rates, 8)
+
+    def test_max_less_than_min_use_max(self) -> None:  # pylint: disable=no-self-use
+        modified_session: SessionInfo = self._session_generation_helper(
+            6, choose_min=False
+        )
+        nptest.assert_almost_equal(modified_session.max_rates, 6)
+        nptest.assert_almost_equal(modified_session.min_rates, 6)
 
 
 class TestApplyUpperBoundEstimate(TestCase):
-    def test_default_max_rates_scalars(self):  # pylint: disable=no-self-use
+    def test_default_max_rates_scalars(self) -> None:  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -114,7 +110,7 @@ class TestApplyUpperBoundEstimate(TestCase):
             nptest.assert_almost_equal(session.max_rates, 16)
             nptest.assert_almost_equal(session.min_rates, 0)
 
-    def test_lower_existing_max_scalars(self):  # pylint: disable=no-self-use
+    def test_lower_existing_max_scalars(self) -> None:  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -131,7 +127,9 @@ class TestApplyUpperBoundEstimate(TestCase):
             nptest.assert_almost_equal(session.max_rates, 12)
             nptest.assert_almost_equal(session.min_rates, 0)
 
-    def test_vector_existing_max_scalar_rampdown(self):  # pylint: disable=no-self-use
+    def test_vector_existing_max_scalar_rampdown(
+        self,
+    ) -> None:  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -167,7 +165,7 @@ class TestApplyUpperBoundEstimate(TestCase):
             nptest.assert_almost_equal(session.max_rates, 12)
             nptest.assert_almost_equal(session.min_rates, 0)
 
-    def test_all_vectors_rampdown_lower(self):  # pylint: disable=no-self-use
+    def test_all_vectors_rampdown_lower(self) -> None:  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -184,7 +182,7 @@ class TestApplyUpperBoundEstimate(TestCase):
             nptest.assert_almost_equal(session.max_rates, 16)
             nptest.assert_almost_equal(session.min_rates, 0)
 
-    def test_all_vectors_existing_lower(self):  # pylint: disable=no-self-use
+    def test_all_vectors_existing_lower(self) -> None:  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -201,7 +199,7 @@ class TestApplyUpperBoundEstimate(TestCase):
             nptest.assert_almost_equal(session.max_rates, 12)
             nptest.assert_almost_equal(session.min_rates, 0)
 
-    def test_minimum_rates_binding(self):  # pylint: disable=no-self-use
+    def test_minimum_rates_binding(self) -> None:  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -221,7 +219,7 @@ class TestApplyUpperBoundEstimate(TestCase):
 
 
 class TestApplyMinimumChargingRate(TestCase):
-    def test_evse_less_than_session_max(self):  # pylint: disable=no-self-use
+    def test_evse_less_than_session_max(self) -> None:  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -242,7 +240,7 @@ class TestApplyMinimumChargingRate(TestCase):
             nptest.assert_almost_equal(session.min_rates[0], 8)
             nptest.assert_almost_equal(session.min_rates[1:], 0)
 
-    def test_evse_less_than_existing_min(self):  # pylint: disable=no-self-use
+    def test_evse_less_than_existing_min(self) -> None:  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -287,7 +285,9 @@ class TestApplyMinimumChargingRate(TestCase):
             nptest.assert_almost_equal(session.min_rates[0], 0)
             nptest.assert_almost_equal(session.min_rates[1:], 0)
 
-    def test_evse_min_greater_than_session_max(self):  # pylint: disable=no-self-use
+    def test_evse_min_greater_than_session_max(
+        self,
+    ) -> None:  # pylint: disable=no-self-use
         sessions = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
@@ -309,7 +309,7 @@ class TestApplyMinimumChargingRate(TestCase):
             nptest.assert_almost_equal(session.min_rates[0], 8)
             nptest.assert_almost_equal(session.min_rates[1:], 0)
 
-    def test_apply_min_infeasible(self):  # pylint: disable=no-self-use
+    def test_apply_min_infeasible(self) -> None:  # pylint: disable=no-self-use
         N = 3
         sessions = session_generator(
             num_sessions=N,

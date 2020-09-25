@@ -11,7 +11,6 @@ from .upper_bound_estimator import UpperBoundEstimatorBase
 from .utils import infrastructure_constraints_feasible, remaining_amp_periods
 
 
-# TODO: This should now take session info objects, correct?
 def least_laxity_first(evs: List[SessionInfo], iface) -> List[SessionInfo]:
     """ Sort EVs by laxity in increasing order.
 
