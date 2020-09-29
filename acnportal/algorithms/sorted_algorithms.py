@@ -4,7 +4,7 @@ Sorting-based scheduling algorithms.
 """
 from collections import deque
 from copy import copy
-from typing import Callable, List, Optional, Dict
+from typing import Callable, List, Optional, Dict, Iterable
 
 import numpy as np
 
@@ -84,6 +84,36 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         self._interface = interface
         if self.max_rate_estimator is not None:
             self.max_rate_estimator.register_interface(interface)
+
+    def run_preprocessing(
+        self, active_sessions: List[SessionInfo], infrastructure: InfrastructureInfo
+    ) -> List[SessionInfo]:
+        """ Run a set of preprocessing functions on the active_sessions given to the
+        algorithm.
+
+        Args:
+            active_sessions (List[SessionInfo]): see BaseAlgorithm
+            infrastructure (InfrastructureInfo): Description of the electrical
+                infrastructure.
+
+        Returns:
+            List[SessionInfo]: A list of processed SessionInfo objects.
+
+        """
+        active_sessions: List[SessionInfo] = enforce_pilot_limit(
+            active_sessions, infrastructure
+        )
+        if self.estimate_max_rate:
+            active_sessions: List[SessionInfo] = apply_upper_bound_estimate(
+                self.max_rate_estimator, active_sessions
+            )
+        if self.uninterrupted_charging:
+            active_sessions: List[SessionInfo] = apply_minimum_charging_rate(
+                active_sessions, infrastructure, self.interface.period
+            )
+        if self.allow_overcharging:
+            warn("allow_overcharging is currently not supported.")
+        return active_sessions
 
     def sorting_algorithm(
         self, active_sessions: List[SessionInfo], infrastructure: InfrastructureInfo
@@ -244,6 +274,26 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 new_schedule[station_index] = allowable_pilots[feasible_idx]
         return new_schedule[station_index]
 
+    # noinspection PyMethodMayBeStatic
+    def run_postprocessing(
+        self, raw_schedule: Iterable, infrastructure: InfrastructureInfo
+    ) -> Dict[str, List[float]]:
+        """ Run a set of postprocessing functions on the schedule returned by the
+        algorithm
+
+        Args:
+            raw_schedule (Iterable): An unprocessed schedule returned by a step of the
+                algorithm.
+            infrastructure (InfrastructureInfo): Description of the electrical
+                infrastructure.
+
+        Returns:
+            Dict[str, List[float]]: Output schedule in a Simulator-accepted form (see
+                BaseAlgorithm.schedule).
+
+        """
+        return format_array_schedule(raw_schedule, infrastructure)
+
     def schedule(self, active_sessions: List[SessionInfo]) -> Dict[str, List[float]]:
         """ Schedule EVs by first sorting them by sort_fn, then allocating them their
         maximum feasible rate.
@@ -259,21 +309,9 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         infrastructure = self.interface.infrastructure_info()
-        active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
-        if self.estimate_max_rate:
-            active_sessions = apply_upper_bound_estimate(
-                self.max_rate_estimator, active_sessions
-            )
-        if self.uninterrupted_charging:
-            active_sessions = apply_minimum_charging_rate(
-                active_sessions, infrastructure, self.interface.period
-            )
-        if self.allow_overcharging:
-            warn("allow_overcharging is currently not supported.")
-            # active_sessions = inc_remaining_energy_to_min_allowable(
-            #     active_sessions, infrastructure, self.interface.period)
+        active_sessions = self.run_preprocessing(active_sessions, infrastructure)
         array_schedule = self.sorting_algorithm(active_sessions, infrastructure)
-        return format_array_schedule(array_schedule, infrastructure)
+        return self.run_postprocessing(array_schedule, infrastructure)
 
 
 class RoundRobin(SortedSchedulingAlgo):
@@ -397,24 +435,13 @@ class RoundRobin(SortedSchedulingAlgo):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         infrastructure = self.interface.infrastructure_info()
-        active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
-        if self.estimate_max_rate:
-            active_sessions = apply_upper_bound_estimate(
-                self.max_rate_estimator, active_sessions
-            )
-        if self.uninterrupted_charging:
-            active_sessions = apply_minimum_charging_rate(
-                active_sessions, infrastructure, self.interface.period
-            )
-        if self.allow_overcharging:
-            warn("allow_overcharging is currently not supported.")
-            # active_sessions = inc_remaining_energy_to_min_allowable(
-            #     active_sessions, infrastructure, self.interface.period)
+        active_sessions = self.run_preprocessing(active_sessions, infrastructure)
         array_schedule = self.round_robin(active_sessions, infrastructure)
-        return format_array_schedule(array_schedule, infrastructure)
+        return self.run_postprocessing(array_schedule, infrastructure)
 
 
 # -------------------- Sorting Functions --------------------------
+# noinspection PyUnusedLocal
 def first_come_first_served(
     evs: List[SessionInfo], iface: Interface
 ) -> List[SessionInfo]:
@@ -430,6 +457,7 @@ def first_come_first_served(
     return sorted(evs, key=lambda x: x.arrival)
 
 
+# noinspection PyUnusedLocal
 def last_come_first_served(
     evs: List[SessionInfo], iface: Interface
 ) -> List[SessionInfo]:
@@ -443,6 +471,7 @@ def last_come_first_served(
     return sorted(evs, key=lambda x: x.arrival, reverse=True)
 
 
+# noinspection PyUnusedLocal
 def earliest_deadline_first(
     evs: List[SessionInfo], iface: Interface
 ) -> List[SessionInfo]:
