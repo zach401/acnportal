@@ -46,13 +46,15 @@ def single_phase_single_constraint(
     limit: float,
     max_pilot: float = 32,
     min_pilot: float = 8,
-    allowable_pilots: Optional[List[Iterable[float]]] = None,
+    allowable_pilots: Optional[List[np.ndarray]] = None,
     is_continuous: Optional[np.ndarray] = None,
 ) -> InfrastructureDict:
     """ Generates a single-phase one-constraint network; returns the corresponding
     infrastructure info in a dict. """
     if allowable_pilots is None:
-        allowable_pilots: List[List[float]] = [[min_pilot, max_pilot]] * num_evses
+        allowable_pilots: List[np.ndarray] = [
+            np.array([min_pilot, max_pilot])
+        ] * num_evses
     if is_continuous is None:
         is_continuous: np.ndarray = np.ones(num_evses, dtype=bool)
     infrastructure: InfrastructureDict = {

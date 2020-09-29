@@ -478,7 +478,7 @@ class Interface:
             is_continuous,
         )
 
-    def allowable_pilot_signals(self, station_id) -> Tuple[bool, List[float]]:
+    def allowable_pilot_signals(self, station_id: str) -> Tuple[bool, List[float]]:
         """ Returns the allowable pilot signal levels for the specified EVSE.
         One may assume an EVSE pilot signal of 0 is allowed regardless
         of this function's return values.
