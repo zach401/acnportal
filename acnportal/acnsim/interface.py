@@ -2,6 +2,7 @@
 """
 This module contains methods for directly interacting with the _simulator.
 """
+from copy import deepcopy
 from typing import List, Union, Optional, Dict, Set, Tuple
 
 import numpy as np
@@ -415,7 +416,7 @@ class Interface:
         """
         return self._simulator.max_recompute
 
-    def active_sessions(self) -> List[SessionInfo]:
+    def _active_sessions(self) -> List[SessionInfo]:
         """ Return a list of SessionInfo objects describing the currently
             charging EVs.
 
@@ -436,35 +437,27 @@ class Interface:
             for ev in self._active_evs
         ]
 
-    def infrastructure_info(self) -> InfrastructureInfo:
+    def active_sessions(self) -> List[SessionInfo]:
+        """ Return a copy of the list of SessionInfo objects describing the currently
+            charging EVs.
+
+        Returns:
+            List[SessionInfo]: List of currently active charging sessions.
+        """
+        return deepcopy(self._active_sessions())
+
+    def _infrastructure_info(self) -> InfrastructureInfo:
         """ Returns an InfrastructureInfo object generated from interface.
 
         Returns:
             InfrastructureInfo: A description of the charging infrastructure.
         """
-        network = self._simulator.network
+        network: ChargingNetwork = self._simulator.network
         station_ids = network.station_ids
-        max_pilot_signals = np.array(
-            [
-                self._simulator.network._EVSEs[station_id].max_rate
-                for station_id in station_ids
-            ]
-        )
-        min_pilot_signals = np.array(
-            [
-                self._simulator.network._EVSEs[station_id].min_rate
-                for station_id in station_ids
-            ]
-        )
-        allowable_rates = []
-        is_continuous = []
-        for station_id in station_ids:
-            # Get allowable pilot signals and continuity for this EVSE.
-            evse = self._simulator.network._EVSEs[station_id]
-            continuous, allowable = evse.is_continuous, evse.allowable_pilot_signals
-            allowable_rates.append(np.array(allowable))
-            is_continuous.append(continuous)
-        is_continuous = np.array(is_continuous)
+        max_pilot_signals = network.max_pilot_signals
+        min_pilot_signals = network.min_pilot_signals
+        allowable_rates = network.allowable_rates
+        is_continuous = network.is_continuous
         return InfrastructureInfo(
             network.constraint_matrix,
             network.magnitudes,
@@ -477,6 +470,14 @@ class Interface:
             allowable_rates,
             is_continuous,
         )
+
+    def infrastructure_info(self) -> InfrastructureInfo:
+        """ Returns a copy of the InfrastructureInfo object generated from interface.
+
+        Returns:
+            InfrastructureInfo: A description of the charging infrastructure.
+        """
+        return deepcopy(self._infrastructure_info())
 
     def allowable_pilot_signals(self, station_id: str) -> Tuple[bool, List[float]]:
         """ Returns the allowable pilot signal levels for the specified EVSE.
@@ -492,7 +493,7 @@ class Interface:
             list[float]: The sorted set of acceptable pilot signals. If continuous this
                 range will have 2 values the min and the max acceptable values. [A]
         """
-        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        infrastructure_info: InfrastructureInfo = self._infrastructure_info()
         continuity: bool = infrastructure_info.is_continuous[
             infrastructure_info.get_station_index(station_id)
         ].tolist()
@@ -512,7 +513,7 @@ class Interface:
         Returns:
             float: the maximum pilot signal supported by this EVSE. [A]
         """
-        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        infrastructure_info: InfrastructureInfo = self._infrastructure_info()
         return infrastructure_info.max_pilot[
             infrastructure_info.get_station_index(station_id)
         ]
@@ -529,7 +530,7 @@ class Interface:
         Returns:
             float: the minimum pilot signal supported by this EVSE. [A]
         """
-        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        infrastructure_info: InfrastructureInfo = self._infrastructure_info()
         return infrastructure_info.min_pilot[
             infrastructure_info.get_station_index(station_id)
         ]
@@ -543,7 +544,7 @@ class Interface:
         Returns:
             float: voltage of the EVSE. [V]
         """
-        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        infrastructure_info: InfrastructureInfo = self._infrastructure_info()
         return infrastructure_info.voltages[
             infrastructure_info.get_station_index(station_id)
         ]
@@ -557,7 +558,7 @@ class Interface:
         Returns:
             float: phase angle of the EVSE. [degrees]
         """
-        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        infrastructure_info: InfrastructureInfo = self._infrastructure_info()
         return infrastructure_info.phases[
             infrastructure_info.get_station_index(station_id)
         ]
@@ -590,7 +591,7 @@ class Interface:
             Constraint: Matrix representing the constraints of the network.
                 Each row is a constraint and each
         """
-        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        infrastructure_info: InfrastructureInfo = self._infrastructure_info()
         return Constraint(
             infrastructure_info.constraint_matrix,
             infrastructure_info.constraint_limits,
@@ -634,7 +635,7 @@ class Interface:
             bool: If load_currents is feasible at time t according to this set of
                 constraints.
         """
-        infrastructure_info: InfrastructureInfo = self.infrastructure_info()
+        infrastructure_info: InfrastructureInfo = self._infrastructure_info()
 
         if violation_tolerance is None:
             violation_tolerance = self._violation_tolerance
