@@ -214,6 +214,9 @@ class InfrastructureInfo:
             if allowable_pilots is not None
             else [None] * self.num_stations
         )
+        # Cast an input is_continuous array to dtype bool
+        if is_continuous is not None and is_continuous.dtype != "bool":
+            is_continuous = is_continuous.astype("bool")
         self.is_continuous = (
             is_continuous
             if is_continuous is not None

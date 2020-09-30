@@ -73,7 +73,7 @@ class TestSessionInfo(TestCase):
         s = SessionInfo(
             "PS-001", "01", 10, 4, 5, 10, estimated_departure=12, min_rates=[8.0] * 5
         )
-        self.assertEqual(len(s.min_rates), 5)
+        self.assertEqual(s.min_rates.shape, (5,))
         nptest.assert_array_equal(s.min_rates, 8.0)
 
     def test_min_rates_too_short(self) -> None:
@@ -106,7 +106,7 @@ class TestSessionInfo(TestCase):
         s = SessionInfo(
             "PS-001", "01", 10, 4, 5, 10, estimated_departure=12, max_rates=[8.0] * 5
         )
-        self.assertEqual(len(s.max_rates), 5)
+        self.assertEqual(s.max_rates.shape, (5,))
         nptest.assert_array_equal(s.max_rates, 8.0)
 
     def test_max_rates_too_short(self) -> None:
@@ -139,6 +139,8 @@ class TestSessionInfo(TestCase):
 class TestInfrastructureInfo(TestCase):
     def test_inputs_consistent(self) -> None:
         m, n = 6, 5
+        # Here, the last two arguments are kwargs, left unspecified to test that the
+        # order of overflow is unchanged.
         infra = InfrastructureInfo(
             np.ones((m, n)),
             np.ones((m,)),
@@ -148,19 +150,20 @@ class TestInfrastructureInfo(TestCase):
             [f"S-{i}" for i in range(n)],
             np.ones((n,)),
             np.zeros((n,)),
-            [np.array([1, 2, 3, 4])] * n,
-            np.zeros((n,)),
+            [np.array([1, 2, 3, 4])] * n,  # allowable_pilots
+            np.zeros((n,)),                # is_continuous
         )
         self.assertEqual(infra.constraint_matrix.shape, (m, n))
-        self.assertEqual(len(infra.constraint_limits), m)
-        self.assertEqual(len(infra.phases), n)
-        self.assertEqual(len(infra.voltages), n)
+        self.assertEqual(infra.constraint_limits.shape, (m,))
+        self.assertEqual(infra.phases.shape, (n,))
+        self.assertEqual(infra.voltages.shape, (n,))
         self.assertEqual(len(infra.constraint_ids), m)
         self.assertEqual(len(infra.station_ids), n)
-        self.assertEqual(len(infra.max_pilot), n)
-        self.assertEqual(len(infra.min_pilot), n)
+        self.assertEqual(infra.max_pilot.shape, (n,))
+        self.assertEqual(infra.min_pilot.shape, (n,))
         self.assertEqual(len(infra.allowable_pilots), n)
-        self.assertEqual(len(infra.is_continuous), n)
+        self.assertEqual(infra.is_continuous.shape, (n,))
+        self.assertEqual(infra.is_continuous.dtype, "bool")
 
     def test_inputs_allowable_pilot_defaults(self) -> None:
         m, n = 6, 5
@@ -188,9 +191,10 @@ class TestInfrastructureInfo(TestCase):
             [f"S-{i}" for i in range(n)],
             np.ones((n,)),
             np.zeros((n,)),
-            [np.array([1, 2, 3, 4])] * n,
+            allowable_pilots=[np.array([1, 2, 3, 4])] * n,
         )
-        self.assertEqual(len(infra.is_continuous), n)
+        self.assertEqual(infra.is_continuous.shape, (n,))
+        self.assertEqual(infra.is_continuous.dtype, "bool")
 
     def test_num_stations_mismatch(self) -> None:
         m, n = 5, 6
@@ -208,8 +212,8 @@ class TestInfrastructureInfo(TestCase):
                         [f"S-{i}" for i in range(n + errors[3])],
                         np.ones((n + errors[4],)),
                         np.zeros((n + errors[5],)),
-                        [np.array([1, 2, 3, 4])] * (n + errors[6]),
-                        np.zeros((n + errors[7],)),
+                        allowable_pilots=[np.array([1, 2, 3, 4])] * (n + errors[6]),
+                        is_continuous=np.zeros((n + errors[7],)),
                     )
 
     def test_num_constraints_mismatch(self) -> None:
@@ -228,8 +232,8 @@ class TestInfrastructureInfo(TestCase):
                         [f"S-{i}" for i in range(n)],
                         np.ones((n,)),
                         np.zeros((n,)),
-                        [np.array([1, 2, 3, 4])] * n,
-                        np.zeros((n,)),
+                        allowable_pilots=[np.array([1, 2, 3, 4])] * n,
+                        is_continuous=np.zeros((n,)),
                     )
 
 
