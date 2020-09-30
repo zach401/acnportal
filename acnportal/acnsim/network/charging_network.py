@@ -33,6 +33,11 @@ class ChargingNetwork(BaseSimObj):
     _phase_angles: np.ndarray
     violation_tolerance: float
     relative_tolerance: float
+    _station_ids_dict: Dict[str, int]
+    max_pilot_signals: np.ndarray
+    min_pilot_signals: np.ndarray
+    allowable_rates: List[np.ndarray]
+    is_continuous: np.ndarray
 
     def __init__(
         self, violation_tolerance: float = 1e-5, relative_tolerance: float = 1e-7
@@ -62,7 +67,7 @@ class ChargingNetwork(BaseSimObj):
         self,
     ) -> Tuple[Dict[str, int], np.ndarray, np.ndarray, List[np.ndarray], np.ndarray]:
         station_ids: List[str] = self.station_ids
-        self.station_ids_dict = {
+        self._station_ids_dict = {
             station_id: i for i, station_id in enumerate(station_ids)
         }
         self.max_pilot_signals = np.array(
@@ -79,11 +84,11 @@ class ChargingNetwork(BaseSimObj):
             continuous, allowable = evse.is_continuous, evse.allowable_pilot_signals
             allowable_rates.append(np.array(allowable))
             is_continuous.append(continuous)
-        is_continuous = np.array(is_continuous)
+        is_continuous = np.array(is_continuous, dtype="bool")
         self.allowable_rates = allowable_rates
         self.is_continuous = is_continuous
         return (
-            self.station_ids_dict,
+            self._station_ids_dict,
             self.max_pilot_signals,
             self.min_pilot_signals,
             self.allowable_rates,
@@ -194,13 +199,7 @@ class ChargingNetwork(BaseSimObj):
         self._voltages = np.append(self._voltages, voltage)
         self._phase_angles = np.append(self._phase_angles, phase_angle)
         # Cached information-storing objects for use by Interface.
-        (
-            self._station_ids_dict,
-            self.max_pilot_signals,
-            self.min_pilot_signals,
-            self.allowable_rates,
-            self.is_continuous,
-        ) = self._update_info_store()
+        _ = self._update_info_store()
 
     def constraints_as_df(self) -> pd.DataFrame:
         """ Returns the network constraints in a pandas DataFrame.
@@ -261,13 +260,7 @@ class ChargingNetwork(BaseSimObj):
             columns=self.station_ids
         ).to_numpy()
         # Cached information-storing objects for use by Interface.
-        (
-            self._station_ids_dict,
-            self.max_pilot_signals,
-            self.min_pilot_signals,
-            self.allowable_rates,
-            self.is_continuous,
-        ) = self._update_info_store()
+        _ = self._update_info_store()
 
     def remove_constraint(self, name: str) -> None:
         """ Remove a network constraint.
@@ -285,13 +278,7 @@ class ChargingNetwork(BaseSimObj):
         self.magnitudes = np.delete(self.magnitudes, del_index, axis=0)
         self.constraint_index.remove(name)
         # Cached information-storing objects for use by Interface.
-        (
-            self._station_ids_dict,
-            self.max_pilot_signals,
-            self.min_pilot_signals,
-            self.allowable_rates,
-            self.is_continuous,
-        ) = self._update_info_store()
+        _ = self._update_info_store()
 
     def update_constraint(
         self, name: str, current: Current, limit: float, new_name: Optional[str] = None
@@ -314,13 +301,7 @@ class ChargingNetwork(BaseSimObj):
         self.remove_constraint(name)
         self.add_constraint(current, limit, name=new_name)
         # Cached information-storing objects for use by Interface.
-        (
-            self._station_ids_dict,
-            self.max_pilot_signals,
-            self.min_pilot_signals,
-            self.allowable_rates,
-            self.is_continuous,
-        ) = self._update_info_store()
+        _ = self._update_info_store()
 
     def plugin(self, ev: EV, station_id: str) -> None:
         """ Attach EV to a specific EVSE.
@@ -527,6 +508,10 @@ class ChargingNetwork(BaseSimObj):
             "_voltages",
             "_phase_angles",
             "constraint_index",
+            "_station_ids_dict",
+            "max_pilot_signals",
+            "min_pilot_signals",
+            "is_continuous",
         ]
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
@@ -537,6 +522,11 @@ class ChargingNetwork(BaseSimObj):
             registry, context_dict = evse._to_registry(context_dict=context_dict)
             evses[station_id] = registry["id"]
         attribute_dict["_EVSEs"] = evses
+
+        allowable_rates_list: List = []
+        for allowable_rates_array in self.allowable_rates:
+            allowable_rates_list.append(allowable_rates_array.tolist())
+        attribute_dict["allowable_rates"] = allowable_rates_list
 
         return attribute_dict, context_dict
 
@@ -570,6 +560,34 @@ class ChargingNetwork(BaseSimObj):
         out_obj._voltages = np.array(attribute_dict["_voltages"])
         out_obj._phase_angles = np.array(attribute_dict["_phase_angles"])
         out_obj.constraint_index = attribute_dict["constraint_index"]
+
+        # If the original ChargingNetwork had info stores encoded, overwrite defaults
+        # with these.
+        try:
+            (
+                _station_ids_dict,
+                max_rates_list,
+                min_rates_list,
+                allowable_rates_list,
+                is_continuous_list,
+            ) = (
+                attribute_dict["_station_ids_dict"],
+                attribute_dict["max_pilot_signals"],
+                attribute_dict["min_pilot_signals"],
+                attribute_dict["allowable_rates"],
+                attribute_dict["is_continuous"],
+            )
+        except KeyError:
+            _ = out_obj._update_info_store()
+        else:
+            out_obj._station_ids_dict = _station_ids_dict
+            out_obj.max_pilot_signals = np.array(max_rates_list)
+            out_obj.min_pilot_signals = np.array(min_rates_list)
+            out_obj.is_continuous = np.array(is_continuous_list, dtype="bool")
+            allowable_rates_arrays: List[np.ndarray] = []
+            for allowable_rates in allowable_rates_list:
+                allowable_rates_arrays.append(np.array(allowable_rates))
+            out_obj.allowable_rates = allowable_rates_arrays
 
         return out_obj, loaded_dict
 
