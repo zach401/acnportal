@@ -179,6 +179,7 @@ class TestInfrastructureInfo(TestCase):
             is_continuous=np.zeros((n,)),
         )
         self.assertEqual(len(infra.allowable_pilots), n)
+        self.assertEqual(infra.allowable_pilots, [None] * n)
 
     def test_inputs_is_continuous_default(self) -> None:
         m, n = 6, 5
@@ -193,6 +194,7 @@ class TestInfrastructureInfo(TestCase):
             np.zeros((n,)),
             allowable_pilots=[np.array([1, 2, 3, 4])] * n,
         )
+        nptest.assert_array_equal(infra.is_continuous, True)
         self.assertEqual(infra.is_continuous.shape, (n,))
         self.assertEqual(infra.is_continuous.dtype, "bool")
 
@@ -235,6 +237,22 @@ class TestInfrastructureInfo(TestCase):
                         allowable_pilots=[np.array([1, 2, 3, 4])] * n,
                         is_continuous=np.zeros((n,)),
                     )
+
+    def test_num_stations_num_constraints_mismatch(self) -> None:
+        m, n = 5, 6
+        with self.assertRaises(ValueError):
+            InfrastructureInfo(
+                np.ones((m + 1, n)),
+                np.ones((m,)),
+                np.ones((n,)),
+                np.ones((n,)),
+                [f"C-{i}" for i in range(m - 1)],
+                [f"S-{i}" for i in range(n)],
+                np.ones((n,)),
+                np.zeros((n + 1,)),
+                allowable_pilots=[np.array([1, 2, 3, 4])] * n,
+                is_continuous=np.zeros((n - 1,)),
+            )
 
 
 class TestInterface(TestCase):
