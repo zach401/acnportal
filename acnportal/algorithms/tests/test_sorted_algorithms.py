@@ -79,7 +79,9 @@ class BaseAlgorithmTest(unittest.TestCase):
         with self.subTest(msg=f"test_all_rates_less_than_session_max_rates - {name}"):
             self._test_all_rates_less_than_session_max_rates(sessions, schedule)
 
-        with self.subTest(msg=f"test_all_rates_greater_than_session_min_rates - {name}"):
+        with self.subTest(
+            msg=f"test_all_rates_greater_than_session_min_rates - {name}"
+        ):
             self._test_all_rates_greater_than_session_min_rates(sessions, schedule)
 
         with self.subTest(f"test_in_allowable_rates - {name}"):
