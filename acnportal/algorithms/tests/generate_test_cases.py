@@ -85,7 +85,9 @@ def three_phase_balanced_network(
     n: int = evses_per_phase
     num_evses: int = 3 * evses_per_phase
     if allowable_pilots is None:
-        allowable_pilots: List[List[float]] = [[min_pilot, max_pilot]] * num_evses
+        allowable_pilots: List[np.ndarray] = [
+            np.array([min_pilot, max_pilot])
+        ] * num_evses
     if is_continuous is None:
         is_continuous: np.ndarray = np.ones(num_evses, dtype=bool)
     infrastructure: InfrastructureDict = {
