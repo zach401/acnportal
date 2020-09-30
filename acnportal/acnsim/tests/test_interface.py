@@ -20,58 +20,120 @@ from acnportal.acnsim.network import ChargingNetwork
 
 class TestSessionInfo(TestCase):
     def test_valid_inputs_w_defaults(self) -> None:
-        s = SessionInfo("PS-001", "01", 10, 4, 5, 60, 63)
+        s = SessionInfo("PS-001", "01", 10, 4, 5, 60)
         self.assertEqual(s.station_id, "PS-001")
         self.assertEqual(s.session_id, "01")
         self.assertEqual(s.requested_energy, 10)
         self.assertEqual(s.energy_delivered, 4)
         self.assertEqual(s.arrival, 5)
         self.assertEqual(s.departure, 60)
-        self.assertEqual(s.estimated_departure, 63)
+        self.assertEqual(s.estimated_departure, 60)
         self.assertEqual(s.current_time, 0)
         nptest.assert_array_equal(s.min_rates, 0)
+        self.assertEqual(s.min_rates.shape, (55,))
         nptest.assert_array_equal(s.max_rates, float("inf"))
+        self.assertEqual(s.max_rates.shape, (55,))
         self.assertEqual(s.remaining_demand, 6)
         self.assertEqual(s.arrival_offset, 5)
         self.assertEqual(s.remaining_time, 55)
 
+    def test_kwarg_order(self) -> None:
+        """ Tests that the order of overflow of kwargs for SessionInfo is maintained.
+        """
+        s = SessionInfo("PS-001", "01", 10, 4, 5, 60, 63, 6, [8.0] * 54, [32.0] * 54)
+        self.assertEqual(s.estimated_departure, 63)
+        self.assertEqual(s.current_time, 6)
+        nptest.assert_array_equal(s.min_rates, 8.0)
+        self.assertEqual(s.min_rates.shape, (54,))
+        nptest.assert_array_equal(s.max_rates, 32.0)
+        self.assertEqual(s.max_rates.shape, (54,))
+
+    def test_valid_inputs_distinct_estimated_departure(self) -> None:
+        s = SessionInfo("PS-001", "01", 10, 4, 5, 60, estimated_departure=63)
+        self.assertEqual(s.departure, 60)
+        self.assertEqual(s.estimated_departure, 63)
+
     def test_valid_inputs_nonzero_current_time_greater_than_arrival(self) -> None:
-        s = SessionInfo("PS-001", "01", 10, 4, 5, 60, 63, 6)
+        s = SessionInfo(
+            "PS-001", "01", 10, 4, 5, 60, estimated_departure=63, current_time=6
+        )
         self.assertEqual(s.current_time, 6)
         self.assertEqual(s.arrival_offset, 0)
         self.assertEqual(s.remaining_time, 54)
 
     def test_valid_inputs_nonzero_current_time_less_than_arrival(self) -> None:
-        s = SessionInfo("PS-001", "01", 10, 4, 5, 60, 63, 4)
+        s = SessionInfo(
+            "PS-001", "01", 10, 4, 5, 60, estimated_departure=63, current_time=4
+        )
         self.assertEqual(s.current_time, 4)
         self.assertEqual(s.arrival_offset, 1)
         self.assertEqual(s.remaining_time, 55)
 
     def test_proper_length_min_rates(self) -> None:
-        s = SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, min_rates=[8.0] * 5)
+        s = SessionInfo(
+            "PS-001", "01", 10, 4, 5, 10, estimated_departure=12, min_rates=[8.0] * 5
+        )
         self.assertEqual(len(s.min_rates), 5)
         nptest.assert_array_equal(s.min_rates, 8.0)
 
     def test_min_rates_too_short(self) -> None:
         with self.assertRaises(ValueError):
-            SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, min_rates=[8.0] * 4)
+            SessionInfo(
+                "PS-001",
+                "01",
+                10,
+                4,
+                5,
+                10,
+                estimated_departure=12,
+                min_rates=[8.0] * 4,
+            )
 
     def test_min_rates_too_long(self) -> None:
         with self.assertRaises(ValueError):
-            SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, min_rates=[8.0] * 6)
+            SessionInfo(
+                "PS-001",
+                "01",
+                10,
+                4,
+                5,
+                10,
+                estimated_departure=12,
+                min_rates=[8.0] * 6,
+            )
 
     def test_proper_length_max_rates(self) -> None:
-        s = SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, max_rates=[8.0] * 5)
+        s = SessionInfo(
+            "PS-001", "01", 10, 4, 5, 10, estimated_departure=12, max_rates=[8.0] * 5
+        )
         self.assertEqual(len(s.max_rates), 5)
         nptest.assert_array_equal(s.max_rates, 8.0)
 
     def test_max_rates_too_short(self) -> None:
         with self.assertRaises(ValueError):
-            SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, max_rates=[8.0] * 4)
+            SessionInfo(
+                "PS-001",
+                "01",
+                10,
+                4,
+                5,
+                10,
+                estimated_departure=12,
+                max_rates=[8.0] * 4,
+            )
 
     def test_max_rates_too_long(self) -> None:
         with self.assertRaises(ValueError):
-            SessionInfo("PS-001", "01", 10, 4, 5, 10, 12, max_rates=[8.0] * 6)
+            SessionInfo(
+                "PS-001",
+                "01",
+                10,
+                4,
+                5,
+                10,
+                estimated_departure=12,
+                max_rates=[8.0] * 6,
+            )
 
 
 class TestInfrastructureInfo(TestCase):
