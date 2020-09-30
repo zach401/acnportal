@@ -201,8 +201,8 @@ class TestingInterface(Interface):
         self,
         load_currents: Dict[str, List[float]],
         linear: bool = False,
-        violation_tolerance: Optional[float] = None,
-        relative_tolerance: Optional[float] = None,
+        violation_tolerance: float = 1e-5,
+        relative_tolerance: float = 1e-7,
     ) -> bool:
         """ Return if a set of current magnitudes for each load are feasible.
 

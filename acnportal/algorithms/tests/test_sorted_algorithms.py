@@ -359,6 +359,13 @@ class TestThirtyStationsBase(BaseAlgorithmTest):
         return scenarios
 
 
+# --------------------------------------------------------------------------------------
+# Tests
+#
+# As the functionality tested in each class is evident from the class names,
+# the setUp methods are left without docstrings (hence the noinspection
+# comments).
+# --------------------------------------------------------------------------------------
 class TestTwoStationsMinRatesInfeasible(unittest.TestCase):
     """ Check that error is thrown when minimum rates are not feasible. """
 
@@ -387,13 +394,6 @@ class TestTwoStationsMinRatesInfeasible(unittest.TestCase):
                         algo.run()
 
 
-# --------------------------------------------------------------------------------------
-# Tests
-#
-# As the functionality tested in each class is evident from the class names,
-# the setUp methods are left without docstrings (hence the noinspection
-# comments).
-# --------------------------------------------------------------------------------------
 class TestTwoStationsFCFS(TestTwoStationsBase):
     # noinspection PyMissingOrEmptyDocstring
     def setUp(self) -> None:
