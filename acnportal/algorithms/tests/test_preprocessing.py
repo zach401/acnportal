@@ -1,5 +1,5 @@
 # coding=utf-8
-""" Tests for Pre-processing algorithms. """
+""" Tests for Preprocessing algorithms. """
 from unittest import TestCase
 from unittest.mock import Mock
 from numpy import testing as nptest

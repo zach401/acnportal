@@ -151,7 +151,7 @@ class TestInfrastructureInfo(TestCase):
             np.ones((n,)),
             np.zeros((n,)),
             [np.array([1, 2, 3, 4])] * n,  # allowable_pilots
-            np.zeros((n,)),                # is_continuous
+            np.zeros((n,)),  # is_continuous
         )
         self.assertEqual(infra.constraint_matrix.shape, (m, n))
         self.assertEqual(infra.constraint_limits.shape, (m,))
