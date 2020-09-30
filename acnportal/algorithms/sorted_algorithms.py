@@ -4,7 +4,7 @@ Sorting-based scheduling algorithms.
 """
 from collections import deque
 from copy import copy
-from typing import Callable, List, Optional, Dict, Iterable
+from typing import Callable, List, Optional, Dict
 
 import numpy as np
 
@@ -276,13 +276,13 @@ class SortedSchedulingAlgo(BaseAlgorithm):
 
     # noinspection PyMethodMayBeStatic
     def run_postprocessing(
-        self, raw_schedule: Iterable, infrastructure: InfrastructureInfo
+        self, raw_schedule: np.ndarray, infrastructure: InfrastructureInfo
     ) -> Dict[str, List[float]]:
         """ Run a set of postprocessing functions on the schedule returned by the
         algorithm
 
         Args:
-            raw_schedule (Iterable): An unprocessed schedule returned by a step of the
+            raw_schedule (np.ndarray): An unprocessed schedule returned by a step of the
                 algorithm.
             infrastructure (InfrastructureInfo): Description of the electrical
                 infrastructure.

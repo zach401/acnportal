@@ -1,3 +1,7 @@
+# coding=utf-8
+"""
+Postprocessing functions for scheduling algorithms.
+"""
 import numpy as np
 
 from acnportal.acnsim.interface import InfrastructureInfo

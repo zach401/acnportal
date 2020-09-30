@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-Pre-processing functions for scheduling algorithms.
+Preprocessing functions for scheduling algorithms.
 """
 from typing import List
 from copy import deepcopy
