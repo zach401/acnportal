@@ -233,6 +233,8 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Returns:
             Dict[str, List[float]]: see BaseAlgorithm
         """
+        if self.allow_overcharging:
+            warn("allow_overcharging is currently not supported. It will be added in a future release.")
         infrastructure = self.interface.infrastructure_info()
         active_sessions = remove_finished_sessions(active_sessions, infrastructure, self.interface.period)
         active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
@@ -244,10 +246,6 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             active_sessions = apply_minimum_charging_rate(
                 active_sessions, infrastructure, self.interface.period
             )
-        if self.allow_overcharging:
-            warn("allow_overcharging is currently not supported.")
-            # active_sessions = inc_remaining_energy_to_min_allowable(
-            #     active_sessions, infrastructure, self.interface.period)
         array_schedule = self.sorting_algorithm(active_sessions, infrastructure)
         return format_array_schedule(array_schedule, infrastructure)
 
