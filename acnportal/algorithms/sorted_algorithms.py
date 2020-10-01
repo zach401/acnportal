@@ -348,36 +348,6 @@ class RoundRobin(SortedSchedulingAlgo):
                     schedule[i] = allowable_pilots[i][rate_idx[i]]
         return schedule
 
-    def schedule(self, active_sessions):
-        """ Schedule EVs using a round robin based equal sharing scheme.
-
-        Implements abstract method schedule from BaseAlgorithm.
-
-        See class documentation for description of the algorithm.
-
-        Args:
-            active_sessions (List[EV]): see BaseAlgorithm
-
-        Returns:
-            Dict[str, List[float]]: see BaseAlgorithm
-        """
-        infrastructure = self.interface.infrastructure_info()
-        active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
-        if self.estimate_max_rate:
-            active_sessions = apply_upper_bound_estimate(
-                self.max_rate_estimator, active_sessions
-            )
-        if self.uninterrupted_charging:
-            active_sessions = apply_minimum_charging_rate(
-                active_sessions, infrastructure, self.interface.period
-            )
-        if self.allow_overcharging:
-            warn("allow_overcharging is currently not supported.")
-            # active_sessions = inc_remaining_energy_to_min_allowable(
-            #     active_sessions, infrastructure, self.interface.period)
-        array_schedule = self.round_robin(active_sessions, infrastructure)
-        return format_array_schedule(array_schedule, infrastructure)
-
 
 # -------------------- Sorting Functions --------------------------
 def first_come_first_served(evs, iface):
