@@ -3,7 +3,6 @@
 Preprocessing functions for scheduling algorithms.
 """
 from typing import List
-from copy import deepcopy
 import numpy as np
 
 from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo
@@ -59,11 +58,10 @@ def enforce_pilot_limit(
         List[SessionInfo]: Active sessions with max_rates updated to be at
             most the max_pilot of the corresponding EVSE.
     """
-    new_sessions = deepcopy(active_sessions)
-    for session in new_sessions:
+    for session in active_sessions:
         i = infrastructure.get_station_index(session.station_id)
         session.max_rates = np.minimum(session.max_rates, infrastructure.max_pilot[i])
-    return new_sessions
+    return active_sessions
 
 
 def reconcile_max_and_min(session: SessionInfo, choose_min: bool = True) -> SessionInfo:
@@ -79,13 +77,12 @@ def reconcile_max_and_min(session: SessionInfo, choose_min: bool = True) -> Sess
         SessionInfo: session modified such that max_rates[t] is never less
             than min_rates[t]
     """
-    new_sess = deepcopy(session)
-    mask = new_sess.max_rates < new_sess.min_rates
+    mask = session.max_rates < session.min_rates
     if choose_min:
-        new_sess.max_rates[mask] = new_sess.min_rates[mask]
+        session.max_rates[mask] = session.min_rates[mask]
     else:
-        new_sess.min_rates[mask] = new_sess.max_rates[mask]
-    return new_sess
+        session.min_rates[mask] = session.max_rates[mask]
+    return session
 
 
 def expand_max_min_rates(active_sessions: List[SessionInfo]) -> List[SessionInfo]:
@@ -101,13 +98,12 @@ def expand_max_min_rates(active_sessions: List[SessionInfo]) -> List[SessionInfo
         List[SessionInfo]: Active sessions with max_rates and min_rates
             expanded into vectors of length remaining_time.
     """
-    new_sessions = deepcopy(active_sessions)
-    for session in new_sessions:
+    for session in active_sessions:
         if np.isscalar(session.max_rates):
             session.max_rates = np.full(session.max_rates, session.remaining_time)
         if np.isscalar(session.min_rates):
             session.min_rates = np.full(session.min_rates, session.remaining_time)
-    return new_sessions
+    return active_sessions
 
 
 def apply_upper_bound_estimate(
