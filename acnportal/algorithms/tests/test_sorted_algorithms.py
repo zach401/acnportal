@@ -123,7 +123,9 @@ class BaseAlgorithmTest(unittest.TestCase):
         with self.subTest(
             msg=f"test_all_rates_greater_than_session_min_rates - {name}"
         ):
-            self._test_all_rates_greater_than_session_min_rates(sessions, interface, schedule)
+            self._test_all_rates_greater_than_session_min_rates(
+                sessions, interface, schedule
+            )
 
         with self.subTest(f"test_in_allowable_rates - {name}"):
             self._test_in_allowable_rates(sessions, schedule, interface)
@@ -155,14 +157,19 @@ class BaseAlgorithmTest(unittest.TestCase):
             station_id = session.station_id
             self.assertLessEqual(schedule[station_id][0], session.max_rates[0])
 
-    def _test_all_rates_greater_than_session_min_rates(self, sessions, interface, schedule) -> None:
+    def _test_all_rates_greater_than_session_min_rates(
+        self, sessions, interface, schedule
+    ) -> None:
         infrastructure = interface.infrastructure_info()
         for session in sessions:
             station_id = session.station_id
             station_index = infrastructure.get_station_index(session.station_id)
-            threshold = (infrastructure.min_pilot[station_index] *
-                         infrastructure.voltages[station_index] /
-                         (60 / interface.period) / 1000)
+            threshold = (
+                infrastructure.min_pilot[station_index]
+                * infrastructure.voltages[station_index]
+                / (60 / interface.period)
+                / 1000
+            )
             if session.remaining_demand > threshold:
                 self.assertGreaterEqual(schedule[station_id][0], session.min_rates[0])
             else:
@@ -361,9 +368,7 @@ class TestThirtyStationsBase(BaseAlgorithmTest):
         for limit in [1500, 3200]:
             interface: TestingInterface = big_three_phase_network(limit=limit)
             scenario_name = f"capacity: {limit} "
-            scenarios.append(
-                Scenario(scenario_name, interface, False, False, False)
-            )
+            scenarios.append(Scenario(scenario_name, interface, False, False, False))
         return scenarios
 
 

@@ -93,6 +93,55 @@ class TestReconcileMaxMin(TestCase):
         nptest.assert_almost_equal(modified_session.min_rates, 6)
 
 
+class TestExpandMaxMinRates(TestCase):
+    @staticmethod
+    def _session_generation_helper(
+        max_rates: List[Union[float, List[float]]],
+        min_rates: List[Union[float, List[float]]],
+    ) -> List[SessionInfo]:
+        sessions: List[SessionDict] = session_generator(
+            num_sessions=N,
+            arrivals=[ARRIVAL_TIME] * N,
+            departures=[ARRIVAL_TIME + SESSION_DUR] * N,
+            requested_energy=[3.3] * N,
+            remaining_energy=[3.3] * N,
+            max_rates=max_rates,
+            min_rates=min_rates,
+        )
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions]
+        return expand_max_min_rates(sessions)
+
+    def _verify_rate_array(
+        self,
+        modified_sessions: List[SessionInfo],
+        sess_idx: int,
+        max_rate: float,
+        min_rate: float,
+        shape: int = 5,
+    ):
+        nptest.assert_almost_equal(modified_sessions[sess_idx].max_rates, max_rate)
+        self.assertEqual(modified_sessions[sess_idx].max_rates.shape, (shape,))
+        nptest.assert_almost_equal(modified_sessions[sess_idx].min_rates, min_rate)
+        self.assertEqual(modified_sessions[sess_idx].min_rates.shape, (shape,))
+
+    def test_expand_rates_arrays(self) -> None:
+        modified_sessions = self._session_generation_helper(
+            max_rates=[[16] * 5, [24] * 5, [32] * 5],
+            min_rates=[[0] * 5, [4] * 5, [8] * 5],
+        )
+        self._verify_rate_array(modified_sessions, 0, 16, 0)
+        self._verify_rate_array(modified_sessions, 1, 24, 4)
+        self._verify_rate_array(modified_sessions, 2, 32, 8)
+
+    def test_lower_existing_max_scalars(self) -> None:
+        modified_sessions = self._session_generation_helper(
+            max_rates=[16, 24, 32], min_rates=[0, 4, 8]
+        )
+        self._verify_rate_array(modified_sessions, 0, 16, 0)
+        self._verify_rate_array(modified_sessions, 1, 24, 4)
+        self._verify_rate_array(modified_sessions, 2, 32, 8)
+
+
 class TestApplyUpperBoundEstimate(TestCase):
     @staticmethod
     def _session_generation_helper(
@@ -294,33 +343,36 @@ class TestApplyMinimumChargingRate(TestCase):
 
 
 class TestRemoveFinishedSessions(TestCase):
-    def test_remove_sessions_zero_remaining(self):
-        N = 3
+    def test_remove_sessions_zero_remaining(self) -> None:
+        n = 3
         sessions = session_generator(
-            num_sessions=N,
+            num_sessions=n,
             arrivals=[1, 2, 3],
             departures=[1 + SESSION_DUR, 2 + SESSION_DUR, 3 + SESSION_DUR],
-            requested_energy=[3.3] * N,
+            requested_energy=[3.3] * n,
             remaining_energy=[0, 3.3, 2],
-            max_rates=[np.repeat(32, SESSION_DUR)] * N,
+            max_rates=[np.repeat(32, SESSION_DUR)] * n,
         )
-        infrastructure = InfrastructureInfo(**three_phase_balanced_network(1, limit=100, min_pilot=8))
+        infrastructure = InfrastructureInfo(
+            **three_phase_balanced_network(1, limit=100)
+        )
         sessions = [SessionInfo(**s) for s in sessions]
         modified_sessions = remove_finished_sessions(sessions, infrastructure, 5)
         self.assertEqual(len(modified_sessions), 2)
 
-
-    def test_remove_sessions_remaining_within_threshold(self):
-        N = 3
+    def test_remove_sessions_remaining_within_threshold(self) -> None:
+        n = 3
         sessions = session_generator(
-            num_sessions=N,
+            num_sessions=n,
             arrivals=[1, 2, 3],
             departures=[1 + SESSION_DUR, 2 + SESSION_DUR, 3 + SESSION_DUR],
-            requested_energy=[3.3] * N,
+            requested_energy=[3.3] * n,
             remaining_energy=[0.1, 3.3, 2],
-            max_rates=[np.repeat(32, SESSION_DUR)] * N,
+            max_rates=[np.repeat(32, SESSION_DUR)] * n,
         )
-        infrastructure = InfrastructureInfo(**three_phase_balanced_network(1, limit=100, min_pilot=8))
+        infrastructure = InfrastructureInfo(
+            **three_phase_balanced_network(1, limit=100)
+        )
         sessions = [SessionInfo(**s) for s in sessions]
         modified_sessions = remove_finished_sessions(sessions, infrastructure, 5)
         self.assertEqual(len(modified_sessions), 2)

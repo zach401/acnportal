@@ -68,9 +68,9 @@ def expand_max_min_rates(active_sessions: List[SessionInfo]) -> List[SessionInfo
     """
     for session in active_sessions:
         if np.isscalar(session.max_rates):
-            session.max_rates = np.full(session.max_rates, session.remaining_time)
+            session.max_rates = np.full(session.remaining_time, session.max_rates)
         if np.isscalar(session.min_rates):
-            session.min_rates = np.full(session.min_rates, session.remaining_time)
+            session.min_rates = np.full(session.remaining_time, session.min_rates)
     return active_sessions
 
 
@@ -166,9 +166,12 @@ def remove_finished_sessions(active_sessions, infrastructure, period):
     modified_sessions = []
     for s in active_sessions:
         station_index = infrastructure.get_station_index(s.station_id)
-        threshold = (infrastructure.min_pilot[station_index] *
-                     infrastructure.voltages[station_index] /
-                     (60 / period) / 1000)  # kWh
+        threshold = (
+            infrastructure.min_pilot[station_index]
+            * infrastructure.voltages[station_index]
+            / (60 / period)
+            / 1000
+        )  # kWh
         if s.remaining_demand > threshold:
             modified_sessions.append(s)
     return modified_sessions

@@ -16,7 +16,7 @@ from .preprocessing import (
     enforce_pilot_limit,
     apply_upper_bound_estimate,
     apply_minimum_charging_rate,
-    remove_finished_sessions
+    remove_finished_sessions,
 )
 from warnings import warn
 
@@ -101,11 +101,10 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             List[SessionInfo]: A list of processed SessionInfo objects.
 
         """
-        active_sessions: List[SessionInfo] = remove_finished_sessions(active_sessions, infrastructure,
-                                                   self.interface.period)
-        active_sessions = enforce_pilot_limit(
-            active_sessions, infrastructure
+        active_sessions: List[SessionInfo] = remove_finished_sessions(
+            active_sessions, infrastructure, self.interface.period
         )
+        active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
         if self.estimate_max_rate:
             active_sessions: List[SessionInfo] = apply_upper_bound_estimate(
                 self.max_rate_estimator, active_sessions
@@ -310,7 +309,9 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         if self.allow_overcharging:
-            warn("allow_overcharging is currently not supported. It will be added in a future release.")
+            warn(
+                "allow_overcharging is currently not supported. It will be added in a future release."
+            )
         infrastructure = self.interface.infrastructure_info()
         active_sessions = self.run_preprocessing(active_sessions, infrastructure)
         array_schedule = self.sorting_algorithm(active_sessions, infrastructure)

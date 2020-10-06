@@ -19,10 +19,10 @@ def session_generator(
 ) -> List[SessionDict]:
     """ Generate Sessions with the input info in dict format. """
     sessions: List[SessionDict] = []
+    min_rates: List[float] = min_rates if min_rates is not None else [0] * num_sessions
     for i in range(num_sessions):
         station_id: str = station_ids[i] if station_ids is not None else f"{i}"
         session_id: str = f"{i}"
-        min_rate: float = min_rates[i] if min_rates is not None else 0
         s: SessionDict = {
             "station_id": station_id,
             "session_id": session_id,
@@ -31,7 +31,7 @@ def session_generator(
             "arrival": arrivals[i],
             "departure": departures[i],
             "estimated_departure": None,
-            "min_rates": min_rate,
+            "min_rates": min_rates[i],
             "max_rates": max_rates[i],
         }
         sessions.append(s)
