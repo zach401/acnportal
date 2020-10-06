@@ -94,10 +94,17 @@ class TestReconcileMaxMin(TestCase):
 
 
 class TestExpandMaxMinRates(TestCase):
+    def setUp(self) -> None:
+        """
+        Tests expand_max_min_rates in both the scalar and array max/min rate cases.
+        """
+        self.max_rates = [16, 24, 32]
+        self.min_rates = [0, 4, 8]
+
     @staticmethod
     def _session_generation_helper(
-        max_rates: List[Union[float, List[float]]],
-        min_rates: List[Union[float, List[float]]],
+        max_rates: List[Union[float, np.ndarray]],
+        min_rates: List[Union[float, np.ndarray]],
     ) -> List[SessionInfo]:
         sessions: List[SessionDict] = session_generator(
             num_sessions=N,
@@ -109,6 +116,21 @@ class TestExpandMaxMinRates(TestCase):
             min_rates=min_rates,
         )
         sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions]
+        # Since we want to test the expand function but the SessionInfo constructor
+        # already expands the max/min rates, we manually set the max/min rates back to
+        # the input max_rates/min_rates (possibly scalars) after construction.
+
+        def _set_bounds(
+            session: SessionInfo, max_rate: float, min_rate: float
+        ) -> SessionInfo:
+            session.max_rates = max_rate
+            session.min_rates = min_rate
+            return session
+
+        sessions: List[SessionInfo] = [
+            _set_bounds(session, max_rates[i], min_rates[i])
+            for i, session in enumerate(sessions)
+        ]
         return expand_max_min_rates(sessions)
 
     def _verify_rate_array(
@@ -117,7 +139,7 @@ class TestExpandMaxMinRates(TestCase):
         sess_idx: int,
         max_rate: float,
         min_rate: float,
-        shape: int = 5,
+        shape: int = SESSION_DUR,
     ):
         nptest.assert_almost_equal(modified_sessions[sess_idx].max_rates, max_rate)
         self.assertEqual(modified_sessions[sess_idx].max_rates.shape, (shape,))
@@ -125,9 +147,14 @@ class TestExpandMaxMinRates(TestCase):
         self.assertEqual(modified_sessions[sess_idx].min_rates.shape, (shape,))
 
     def test_expand_rates_arrays(self) -> None:
+        max_rate_array: List[np.ndarray] = [
+            np.array([rate] * SESSION_DUR) for rate in self.max_rates
+        ]
+        min_rate_array: List[np.ndarray] = [
+            np.array([rate] * SESSION_DUR) for rate in self.min_rates
+        ]
         modified_sessions = self._session_generation_helper(
-            max_rates=[[16] * 5, [24] * 5, [32] * 5],
-            min_rates=[[0] * 5, [4] * 5, [8] * 5],
+            max_rates=max_rate_array, min_rates=min_rate_array,
         )
         self._verify_rate_array(modified_sessions, 0, 16, 0)
         self._verify_rate_array(modified_sessions, 1, 24, 4)
