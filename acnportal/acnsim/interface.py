@@ -588,11 +588,18 @@ class Interface:
         return kwh * 1000 / self.evse_voltage(station_id) * 60 / self.period
 
     def get_constraints(self) -> Constraint:
-        """ Get the constraint matrix and EVSE ids for the network.
+        """ Get the constraint matrix and corresponding EVSE ids for the network.
 
         Returns:
-            Constraint: Matrix representing the constraints of the network.
-                Each row is a constraint and each
+            Constraint: namedtuple including the following attributes:
+                constraint_matrix (np.ndarray): Matrix representing the constraints
+                    of the network. Each row is a constraint and each
+                    column is an index.
+                constraint_limits (np.ndarray): Vector of bounding limits for each
+                    constraint (1 for each constraint).
+                constraint_ids (List[str]): Names of each constraint.
+                station_ids (List[str]): Names of each station.
+
         """
         infrastructure_info: InfrastructureInfo = self._infrastructure_info()
         return Constraint(

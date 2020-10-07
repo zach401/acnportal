@@ -28,12 +28,14 @@ class Simulator(BaseSimObj):
     Args:
         network (ChargingNetwork): The charging network which the simulation will use.
         scheduler (BaseAlgorithm): The scheduling algorithm used in the simulation.
+            If scheduler = None, Simulator.run() cannot be called.
         events (EventQueue): Queue of events which will occur in the simulation.
         start (datetime): Date and time of the first period of the simulation.
         period (float): Length of each time interval in the simulation in minutes. Default: 1
         signals (Dict[str, ...]):
         store_schedule_history (bool): If True, store the scheduler output each time it is run. Note this can use lots
             of memory for long simulations.
+        interface_type (type): The class of interface to register with the scheduler.
     """
 
     period: float
@@ -48,14 +50,14 @@ class Simulator(BaseSimObj):
         signals=None,
         store_schedule_history=False,
         verbose=True,
+        interface_type=Interface,
     ):
         self.network = network
         self.scheduler = scheduler
-        self.scheduler.register_interface(Interface(self))
+        self.max_recompute = None
         self.event_queue = events
         self.start = start
         self.period = period
-        self.max_recompute = scheduler.max_recompute
         self.signals = signals
         self.verbose = verbose
 
@@ -78,12 +80,19 @@ class Simulator(BaseSimObj):
         self._resolve = False
         self._last_schedule_update = None
 
+        # Interface registration is moved here so that copies of this
+        # simulator have all attributes.
+        if scheduler is not None:
+            self.max_recompute = scheduler.max_recompute
+            self.scheduler.register_interface(interface_type(self))
+
     @property
     def iteration(self):
         return self._iteration
 
     def run(self):
-        """ Run the simulation until the event queue is empty.
+        """
+        If scheduler is not None, run the simulation until the event queue is empty.
 
         The run function is the heart of the simulator. It triggers all actions and keeps the simulator moving forward.
         Its actions are (in order):
@@ -94,7 +103,14 @@ class Simulator(BaseSimObj):
 
         Returns:
             None
+
+        Raises:
+            TypeError: If called when the scheduler attribute is None.
+                The run() method requires a BaseAlgorithm-like
+                scheduler to execute.
         """
+        if self.scheduler is None:
+            raise TypeError("Add a scheduler before attempting to call" " run().")
         while not self.event_queue.empty():
             current_events = self.event_queue.get_current_events(self._iteration)
             for e in current_events:
@@ -124,6 +140,53 @@ class Simulator(BaseSimObj):
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
             self._iteration = self._iteration + 1
+
+    def step(self, new_schedule):
+        """ Step the simulation until the next schedule recompute is
+        required.
+
+        The step function executes a single iteration of the run()
+        function. However, the step function updates the simulator with
+        an input schedule rather than query the scheduler for a new
+        schedule when one is required. Also, step will return a flag if
+        the simulation is done.
+
+        Args:
+            new_schedule (Dict[str, List[number]]): Dictionary mapping
+                station ids to a schedule of pilot signals.
+
+        Returns:
+            bool: True if the simulation is complete.
+        """
+        while (
+            not self.event_queue.empty()
+            and not self._resolve
+            and (
+                self.max_recompute is None
+                or (self._iteration - self._last_schedule_update < self.max_recompute)
+            )
+        ):
+            self._update_schedules(new_schedule)
+            if self.schedule_history is not None:
+                self.schedule_history[self._iteration] = new_schedule
+            self._last_schedule_update = self._iteration
+            self._resolve = False
+            if self.event_queue.get_last_timestamp() is not None:
+                width_increase = max(
+                    self.event_queue.get_last_timestamp() + 1, self._iteration + 1
+                )
+            else:
+                width_increase = self._iteration + 1
+            self.pilot_signals = _increase_width(self.pilot_signals, width_increase)
+            self.charging_rates = _increase_width(self.charging_rates, width_increase)
+            self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
+            self._store_actual_charging_rates()
+            self._iteration = self._iteration + 1
+            current_events = self.event_queue.get_current_events(self._iteration)
+            for e in current_events:
+                self.event_history.append(e)
+                self._process_event(e)
+        return self.event_queue.empty()
 
     def get_active_evs(self):
         """ Return all EVs which are plugged in and not fully charged at the current time.

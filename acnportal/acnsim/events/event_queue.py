@@ -80,7 +80,7 @@ class EventQueue(BaseSimObj):
         """
         self._timestep = timestep
         current_events = []
-        while len(self._queue) > 0 and self._queue[0][0] <= self._timestep:
+        while not self.empty() and self._queue[0][0] <= self._timestep:
             current_events.append(self.get_event())
         return current_events
 
