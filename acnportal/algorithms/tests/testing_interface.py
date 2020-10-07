@@ -13,6 +13,7 @@ from acnportal.acnsim.interface import (
     InfrastructureInfo,
     Constraint,
 )
+from acnportal.algorithms import infrastructure_constraints_feasible
 
 
 class TestingInterface(Interface):
@@ -261,26 +262,13 @@ class TestingInterface(Interface):
         relative_tolerance: float = 1e-7,
     ) -> bool:
         infrastructure = self.infrastructure_info()
-        tol = np.maximum(
-            violation_tolerance, relative_tolerance * infrastructure.constraint_limits
+        return infrastructure_constraints_feasible(
+            rates,
+            infrastructure,
+            linear=linear,
+            violation_tolerance=violation_tolerance,
+            relative_tolerance=relative_tolerance,
         )
-        if not linear:
-            phase_in_rad = np.deg2rad(infrastructure.phases)
-            for j, v in enumerate(infrastructure.constraint_matrix):
-                a = np.stack([v * np.cos(phase_in_rad), v * np.sin(phase_in_rad)])
-                line_currents = np.linalg.norm(a @ rates, axis=0)
-                if not np.all(
-                    line_currents <= infrastructure.constraint_limits[j] + tol[j]
-                ):
-                    return False
-        else:
-            for j, v in enumerate(infrastructure.constraint_matrix):
-                line_currents = np.linalg.norm(np.abs(v) @ rates, axis=0)
-                if not np.all(
-                    line_currents <= infrastructure.constraint_limits[j] + tol[j]
-                ):
-                    return False
-        return True
 
     def get_prices(self, length: int, start: Optional[int] = None) -> np.ndarray:
         """ Get a vector of prices beginning at time start and continuing for length

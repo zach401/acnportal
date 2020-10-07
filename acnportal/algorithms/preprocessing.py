@@ -110,7 +110,9 @@ def apply_minimum_charging_rate(
     override: float = float("inf"),
 ) -> List[SessionInfo]:
     """ Modify active_sessions so that min_rates[0] is equal to the greater of
-        the session minimum rate and the EVSE minimum pilot.
+        the session minimum rate and the EVSE minimum pilot. Sessions have their min
+        rates applied in order of remaining time; i.e., sessions with less time
+        remaining are allocated their min rates first.
 
     Args:
         active_sessions (List[SessionInfo]): List of SessionInfo objects for
