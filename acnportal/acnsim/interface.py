@@ -592,10 +592,14 @@ class Interface:
 
         Returns:
             Constraint: namedtuple including the following attributes:
-                constraint_matrix: Matrix representing the constraints
+                constraint_matrix (np.ndarray): Matrix representing the constraints
                     of the network. Each row is a constraint and each
                     column is an index.
-            TODO: The rest of these docs.
+                constraint_limits (np.ndarray): Vector of bounding limits for each
+                    constraint (1 for each constraint).
+                constraint_ids (List[str]): Names of each constraint.
+                station_ids (List[str]): Names of each station.
+
         """
         infrastructure_info: InfrastructureInfo = self._infrastructure_info()
         return Constraint(
