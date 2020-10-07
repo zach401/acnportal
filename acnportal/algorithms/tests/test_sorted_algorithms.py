@@ -82,7 +82,9 @@ class BaseAlgorithmTest(unittest.TestCase):
         with self.subTest(
             msg=f"test_all_rates_greater_than_session_min_rates - {name}"
         ):
-            self._test_all_rates_greater_than_session_min_rates(sessions, interface, schedule)
+            self._test_all_rates_greater_than_session_min_rates(
+                sessions, interface, schedule
+            )
 
         with self.subTest(f"test_in_allowable_rates - {name}"):
             self._test_in_allowable_rates(sessions, schedule, interface)
@@ -114,14 +116,19 @@ class BaseAlgorithmTest(unittest.TestCase):
             station_id = session.station_id
             self.assertLessEqual(schedule[station_id][0], session.max_rates[0])
 
-    def _test_all_rates_greater_than_session_min_rates(self, sessions, interface, schedule):
+    def _test_all_rates_greater_than_session_min_rates(
+        self, sessions, interface, schedule
+    ):
         infrastructure = interface.infrastructure_info()
         for session in sessions:
             station_id = session.station_id
             station_index = infrastructure.get_station_index(session.station_id)
-            threshold = (infrastructure.min_pilot[station_index] *
-                         infrastructure.voltages[station_index] /
-                         (60 / interface.period) / 1000)
+            threshold = (
+                infrastructure.min_pilot[station_index]
+                * infrastructure.voltages[station_index]
+                / (60 / interface.period)
+                / 1000
+            )
             if session.remaining_demand > threshold:
                 self.assertGreaterEqual(schedule[station_id][0], session.min_rates[0])
             else:
@@ -247,8 +254,8 @@ class TestTwoStationsBase(BaseAlgorithmTest):
             # At 40 A, session limit is greater than station limit.
             for session_max_rate in [16, 32, 40]:
                 # Consider both continuous and discrete pilot signals
-                for session_min_rate in [8]: #[0, 8]:
-                    for session_energy_demands in [[0.3, 0.05]]: # [3.3, 3.3],
+                for session_min_rate in [0, 8]:
+                    for session_energy_demands in [[3.3, 3.3], [0.3, 0.05]]:
                         # Consider continuous and discrete EVSEs
                         for continuous in [True, False]:
                             # Consider both interruptable and uninterrupted charging

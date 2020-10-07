@@ -149,15 +149,22 @@ def apply_minimum_charging_rate(
     return session_queue
 
 
-def remove_finished_sessions(active_sessions, infrastructure, period):
+def remove_finished_sessions(
+    active_sessions: List[SessionInfo],
+    infrastructure: InfrastructureInfo,
+    period: float,
+) -> List[SessionInfo]:
     """ Remove any sessions where the remaining demand is less than threshold.
+    Here, the threshold is defined as the amount of energy delivered by charging at
+    the min_pilot of a session's station, at the station's voltage, for one simulation
+    period.
 
     Args:
         active_sessions (List[SessionInfo]): List of SessionInfo objects for
             all active charging sessions.
         infrastructure (InfrastructureInfo): Description of the charging
             infrastructure.
-        period (int): Length of each time period in minutes.
+        period (float): Length of each time period in minutes.
 
 
     Returns:
@@ -167,9 +174,12 @@ def remove_finished_sessions(active_sessions, infrastructure, period):
     modified_sessions = []
     for s in active_sessions:
         station_index = infrastructure.get_station_index(s.station_id)
-        threshold = (infrastructure.min_pilot[station_index] *
-                     infrastructure.voltages[station_index] /
-                     (60 / period) / 1000)  # kWh
+        threshold = (
+            infrastructure.min_pilot[station_index]
+            * infrastructure.voltages[station_index]
+            / (60 / period)
+            / 1000
+        )  # kWh
         if s.remaining_demand > threshold:
             modified_sessions.append(s)
     return modified_sessions

@@ -9,7 +9,7 @@ from .preprocessing import (
     enforce_pilot_limit,
     apply_upper_bound_estimate,
     apply_minimum_charging_rate,
-    remove_finished_sessions
+    remove_finished_sessions,
 )
 from warnings import warn
 
@@ -234,9 +234,13 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             Dict[str, List[float]]: see BaseAlgorithm
         """
         if self.allow_overcharging:
-            warn("allow_overcharging is currently not supported. It will be added in a future release.")
+            warn(
+                "allow_overcharging is currently not supported. It will be added in a future release."
+            )
         infrastructure = self.interface.infrastructure_info()
-        active_sessions = remove_finished_sessions(active_sessions, infrastructure, self.interface.period)
+        active_sessions = remove_finished_sessions(
+            active_sessions, infrastructure, self.interface.period
+        )
         active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
         if self.estimate_max_rate:
             active_sessions = apply_upper_bound_estimate(
@@ -419,7 +423,7 @@ def least_laxity_first(evs, iface):
 def largest_remaining_processing_time(evs, iface):
     """ Sort EVs in decreasing order by the time taken to finish charging them at the EVSE's maximum rate.
 
-    # Args:
+    Args:
         evs (List[EV]): List of EVs to be sorted.
         iface (Interface): Interface object.
 
