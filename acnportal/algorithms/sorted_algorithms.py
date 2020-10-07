@@ -103,7 +103,8 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         """
         if self.allow_overcharging:
             warn(
-                "allow_overcharging is currently not supported. It will be added in a future release."
+                "allow_overcharging is currently not supported. It will be added in a "
+                "future release."
             )
         active_sessions: List[SessionInfo] = remove_finished_sessions(
             active_sessions, infrastructure, self.interface.period
