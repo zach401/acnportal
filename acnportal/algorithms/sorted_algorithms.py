@@ -143,7 +143,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
 
         if not infrastructure_constraints_feasible(schedule, infrastructure):
             raise ValueError(
-                "Charging all sessions at their lower bound " "is not feasible."
+                "Charging all sessions at their lower bound is not feasible."
             )
 
         for session in queue:
@@ -152,7 +152,6 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 session.max_rates[0], self.interface.remaining_amp_periods(session)
             )
             lb: float = max(0, session.min_rates[0])
-            # ub = max(lb, session.max_rates[0])
             if infrastructure.is_continuous[station_index]:
                 charging_rate: float = self.max_feasible_rate(
                     station_index, ub, schedule, infrastructure, eps=0.01, lb=lb
@@ -310,7 +309,8 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         """
         if self.allow_overcharging:
             warn(
-                "allow_overcharging is currently not supported. It will be added in a future release."
+                "Allow_overcharging is currently not supported. It will be added in a "
+                "future release."
             )
         infrastructure = self.interface.infrastructure_info()
         active_sessions = self.run_preprocessing(active_sessions, infrastructure)
@@ -392,7 +392,7 @@ class RoundRobin(SortedSchedulingAlgo):
             if infrastructure.is_continuous[i]:
                 allowable_pilots[i] = np.arange(
                     session.min_rates[0],
-                    session.max_rates[0] + 1e-7,
+                    session.max_rates[0] + self.continuous_inc / 2,
                     self.continuous_inc,
                 )
             ub = min(
@@ -402,7 +402,6 @@ class RoundRobin(SortedSchedulingAlgo):
             )
             lb = max(0, session.min_rates[0])
             # Remove any charging rates which are not feasible.
-            # allowable_pilots[i] = [a for a in allowable_pilots[i] if lb <= a <= ub]
             allowable_pilots[i] = allowable_pilots[i][lb <= allowable_pilots[i]]
             allowable_pilots[i] = allowable_pilots[i][allowable_pilots[i] <= ub]
             # All charging rates should start at their lower bound

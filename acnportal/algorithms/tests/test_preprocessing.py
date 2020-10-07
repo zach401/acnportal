@@ -346,17 +346,16 @@ class TestApplyMinimumChargingRate(TestCase):
             nptest.assert_almost_equal(session.min_rates[1:], 0)
 
     def test_apply_min_infeasible(self) -> None:  # pylint: disable=no-self-use
-        n = 3
         sessions = session_generator(
-            num_sessions=n,
+            num_sessions=N,
             arrivals=[1, 2, 3],
             departures=[1 + SESSION_DUR, 2 + SESSION_DUR, 3 + SESSION_DUR],
-            requested_energy=[3.3] * n,
-            remaining_energy=[3.3] * n,
-            max_rates=[np.repeat(32, SESSION_DUR)] * n,
+            requested_energy=[3.3] * N,
+            remaining_energy=[3.3] * N,
+            max_rates=[np.repeat(32, SESSION_DUR)] * N,
         )
         sessions = [SessionInfo(**s) for s in sessions]
-        infrastructure = InfrastructureInfo(**single_phase_single_constraint(n, 16))
+        infrastructure = InfrastructureInfo(**single_phase_single_constraint(N, 16))
         modified_sessions = apply_minimum_charging_rate(
             sessions, infrastructure, PERIOD
         )

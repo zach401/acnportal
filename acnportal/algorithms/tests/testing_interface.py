@@ -250,24 +250,13 @@ class TestingInterface(Interface):
                 for station_id in station_ids
             ]
         )
-        return self._infrastructure_constraints_feasible(
-            schedule_matrix, linear, violation_tolerance, relative_tolerance
-        )
-
-    def _infrastructure_constraints_feasible(
-        self,
-        rates: np.ndarray,
-        linear: bool,
-        violation_tolerance: float = 1e-5,
-        relative_tolerance: float = 1e-7,
-    ) -> bool:
         infrastructure = self.infrastructure_info()
         return infrastructure_constraints_feasible(
-            rates,
+            schedule_matrix,
             infrastructure,
-            linear=linear,
-            violation_tolerance=violation_tolerance,
-            relative_tolerance=relative_tolerance,
+            linear,
+            violation_tolerance,
+            relative_tolerance,
         )
 
     def get_prices(self, length: int, start: Optional[int] = None) -> np.ndarray:
