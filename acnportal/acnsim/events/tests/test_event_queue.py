@@ -44,11 +44,19 @@ class TestEventQueue(TestCase):
         self.assertTrue(self.events.empty())
         self.assertEqual(5, e.timestamp)
 
+    def test_get_current_events_empty(self):
+        events = []
+        self.events.add_events(events)
+        curr_events = self.events.get_current_events(3)
+        self.assertEqual(curr_events, [])
+
     def test_get_current_events(self):
         events = [Event(i) for i in range(1, 6)]
         self.events.add_events(events)
         curr_events = self.events.get_current_events(3)
         self.assertEqual(len(curr_events), 3)
+        for event, timestamp in zip(curr_events, [1, 2, 3]):
+            self.assertEqual(event.timestamp, timestamp)
 
     def test_get_last_timestamp(self):
         events = [Event(i) for i in range(1, 6)]

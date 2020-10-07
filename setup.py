@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
     name="acnportal",
-    version="0.2.1",
+    version="0.2.2",
     author="Zachary Lee, Sunash Sharma",
     author_email="ev-help@caltech.edu",
     url="https://github.com/zach401/acnportal",
@@ -26,5 +26,5 @@ setuptools.setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
     ],
-    install_requires=["numpy", "pandas", "matplotlib", "requests", "pytz"],
+    install_requires=["numpy", "pandas >= 1.1.0", "matplotlib", "requests", "pytz"],
 )
