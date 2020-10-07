@@ -645,8 +645,6 @@ class Interface:
             bool: If load_currents is feasible at time t according to this set of
                 constraints.
         """
-        infrastructure_info: InfrastructureInfo = self._infrastructure_info()
-
         if violation_tolerance is None:
             violation_tolerance = self._violation_tolerance
         if relative_tolerance is None:
@@ -667,29 +665,11 @@ class Interface:
                 load_currents[evse_id]
                 if evse_id in load_currents
                 else [0] * schedule_length
-                for evse_id in infrastructure_info.station_ids
+                for evse_id in self._simulator.network.station_ids
             ]
         )
-
-        # Build a stub ChargingNetwork with the necessary network fields and functions.
-        # We do this instead of using self._simulator.network so that Interface
-        # may evaluate this function using only information given by
-        # infrastructure_info. Then, an ACN-Live version of this interface will not
-        # need to re-implement is_feasible, instead using the is_feasible function of
-        # this stub ChargingNetwork.
-        stub_network: ChargingNetwork = ChargingNetwork()
-        stub_network.violation_tolerance = violation_tolerance
-        stub_network.relative_tolerance = relative_tolerance
-        stub_network.magnitudes = infrastructure_info.constraint_limits
-        stub_network.constraint_index = infrastructure_info.constraint_ids
-        stub_network.constraint_matrix = infrastructure_info.constraint_matrix
-        stub_network._phase_angles = infrastructure_info.phases
-
-        return stub_network.is_feasible(
-            schedule_matrix,
-            linear=linear,
-            violation_tolerance=violation_tolerance,
-            relative_tolerance=relative_tolerance,
+        return self._simulator.network.is_feasible(
+            schedule_matrix, linear, violation_tolerance, relative_tolerance
         )
 
     def get_prices(self, length: int, start: Optional[int] = None) -> np.ndarray:

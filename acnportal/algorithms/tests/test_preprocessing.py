@@ -373,7 +373,7 @@ class TestRemoveFinishedSessions(TestCase):
         self, remaining_energies: List[float]
     ) -> None:
         sessions = session_generator(
-            num_sessions=n,
+            num_sessions=N,
             arrivals=[1, 2, 3],
             departures=[1 + SESSION_DUR, 2 + SESSION_DUR, 3 + SESSION_DUR],
             requested_energy=[3.3] * N,
