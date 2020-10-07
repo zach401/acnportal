@@ -333,3 +333,29 @@ class TestApplyMinimumChargingRate(TestCase):
         # min should be 0 at time t=0.
         nptest.assert_almost_equal(modified_sessions[2].min_rates, 0)
         nptest.assert_almost_equal(modified_sessions[2].max_rates[0], 0)
+
+
+class TestRemoveFinishedSessions(TestCase):
+    def _test_remove_sessions_within_threshold(
+        self, remaining_energies: List[float]
+    ) -> None:
+        sessions = session_generator(
+            num_sessions=N,
+            arrivals=[1, 2, 3],
+            departures=[1 + SESSION_DUR, 2 + SESSION_DUR, 3 + SESSION_DUR],
+            requested_energy=[3.3] * N,
+            remaining_energy=remaining_energies,
+            max_rates=[np.repeat(32, SESSION_DUR)] * N,
+        )
+        infrastructure = InfrastructureInfo(
+            **three_phase_balanced_network(1, limit=100)
+        )
+        sessions = [SessionInfo(**s) for s in sessions]
+        modified_sessions = remove_finished_sessions(sessions, infrastructure, 5)
+        self.assertEqual(len(modified_sessions), 2)
+
+    def test_remove_sessions_zero_remaining(self) -> None:
+        self._test_remove_sessions_within_threshold([0, 3.3, 2])
+
+    def test_remove_sessions_remaining_within_threshold(self) -> None:
+        self._test_remove_sessions_within_threshold([0.1, 3.3, 2])

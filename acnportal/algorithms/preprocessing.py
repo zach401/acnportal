@@ -7,37 +7,6 @@ from .upper_bound_estimator import UpperBoundEstimatorBase
 from .utils import infrastructure_constraints_feasible, remaining_amp_periods
 
 
-def least_laxity_first(evs, iface):
-    """ Sort EVs by laxity in increasing order.
-
-    Laxity is a measure of the charging flexibility of an EV. Here we define laxity as:
-        LAX_i(t) = (departure_i - t) - (remaining_demand_i(t) / max_rate_i)
-
-    Args:
-        evs (List[EV]): List of EVs to be sorted.
-        iface (Interface): Interface object.
-
-    Returns:
-        List[EV]: List of EVs sorted by laxity in increasing order.
-    """
-
-    def laxity(ev):
-        """ Calculate laxity of the EV.
-
-        Args:
-            ev (EV): An EV object.
-
-        Returns:
-            float: The laxity of the EV.
-        """
-        lax = (ev.departure - iface.current_time) - (
-            iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id)
-        )
-        return lax
-
-    return sorted(evs, key=laxity)
-
-
 def enforce_pilot_limit(
     active_sessions: List[SessionInfo], infrastructure: InfrastructureInfo
 ):
@@ -178,3 +147,39 @@ def apply_minimum_charging_rate(
             session.min_rates[0] = 0
             session.max_rates[0] = 0
     return session_queue
+
+
+def remove_finished_sessions(
+    active_sessions: List[SessionInfo],
+    infrastructure: InfrastructureInfo,
+    period: float,
+) -> List[SessionInfo]:
+    """ Remove any sessions where the remaining demand is less than threshold.
+    Here, the threshold is defined as the amount of energy delivered by charging at
+    the min_pilot of a session's station, at the station's voltage, for one simulation
+    period.
+
+    Args:
+        active_sessions (List[SessionInfo]): List of SessionInfo objects for
+            all active charging sessions.
+        infrastructure (InfrastructureInfo): Description of the charging
+            infrastructure.
+        period (float): Length of each time period in minutes.
+
+
+    Returns:
+        List[SessionInfo]: Active sessions without any sessions that are finished.
+
+    """
+    modified_sessions = []
+    for s in active_sessions:
+        station_index = infrastructure.get_station_index(s.station_id)
+        threshold = (
+            infrastructure.min_pilot[station_index]
+            * infrastructure.voltages[station_index]
+            / (60 / period)
+            / 1000
+        )  # kWh
+        if s.remaining_demand > threshold:
+            modified_sessions.append(s)
+    return modified_sessions
