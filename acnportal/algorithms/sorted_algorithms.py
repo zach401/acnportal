@@ -101,6 +101,10 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             List[SessionInfo]: A list of processed SessionInfo objects.
 
         """
+        if self.allow_overcharging:
+            warn(
+                "allow_overcharging is currently not supported. It will be added in a future release."
+            )
         active_sessions: List[SessionInfo] = remove_finished_sessions(
             active_sessions, infrastructure, self.interface.period
         )
@@ -307,11 +311,6 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         Returns:
             Dict[str, List[float]]: see BaseAlgorithm
         """
-        if self.allow_overcharging:
-            warn(
-                "Allow_overcharging is currently not supported. It will be added in a "
-                "future release."
-            )
         infrastructure = self.interface.infrastructure_info()
         active_sessions = self.run_preprocessing(active_sessions, infrastructure)
         array_schedule = self.sorting_algorithm(active_sessions, infrastructure)
@@ -510,7 +509,7 @@ def largest_remaining_processing_time(
     EVSE's maximum rate.
 
     Args:
-        evs (List[SessionInfo]): List of EVs to be sorted.
+        evs (List[SessionInfo]): List of SessionInfo objects to be sorted.
         iface (Interface): Interface object.
 
     Returns:
