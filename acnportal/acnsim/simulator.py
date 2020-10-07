@@ -1,5 +1,7 @@
 import copy
 from datetime import datetime
+from typing import Optional, Dict, Any, Tuple
+
 import pandas as pd
 import numpy as np
 import warnings
@@ -9,7 +11,6 @@ import json
 from pydoc import locate
 
 from .events import *
-from .models import EV
 from .events import UnplugEvent
 from .interface import Interface
 from .interface import InvalidScheduleError
@@ -30,12 +31,14 @@ class Simulator(BaseSimObj):
             If scheduler = None, Simulator.run() cannot be called.
         events (EventQueue): Queue of events which will occur in the simulation.
         start (datetime): Date and time of the first period of the simulation.
-        period (int): Length of each time interval in the simulation in minutes. Default: 1
+        period (float): Length of each time interval in the simulation in minutes. Default: 1
         signals (Dict[str, ...]):
         store_schedule_history (bool): If True, store the scheduler output each time it is run. Note this can use lots
             of memory for long simulations.
         interface_type (type): The class of interface to register with the scheduler.
     """
+
+    period: float
 
     def __init__(
         self,
@@ -43,7 +46,7 @@ class Simulator(BaseSimObj):
         scheduler,
         events,
         start,
-        period=1,
+        period: float = 1,
         signals=None,
         store_schedule_history=False,
         verbose=True,
@@ -348,7 +351,9 @@ class Simulator(BaseSimObj):
             raise KeyError("EVSE {0} not found in network.".format(station_id))
         return self.network.station_ids.index(station_id)
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
         Implements BaseSimObj._to_dict. Certain simulator attributes are
         not serialized completely as they are not ACN-Sim objects
@@ -402,12 +407,11 @@ class Simulator(BaseSimObj):
             "_resolve",
             "_last_schedule_update",
             "schedule_history",
+            "pilot_signals",
+            "charging_rates",
         ]
         for attr in nn_attr_lst:
             attribute_dict[attr] = getattr(self, attr)
-
-        attribute_dict["pilot_signals"] = self.pilot_signals.tolist()
-        attribute_dict["charging_rates"] = self.charging_rates.tolist()
 
         ev_history = {}
         for session_id, ev in self.ev_history.items():
@@ -426,7 +430,12 @@ class Simulator(BaseSimObj):
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """
         Implements BaseSimObj._from_dict. Certain simulator attributes
         are not loaded completely as they are not ACN-Sim objects

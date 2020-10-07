@@ -118,6 +118,7 @@ class TestJSONIO(TestCase):
         cls.network.constraint_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         cls.network.magnitudes = np.array([32, 32, 32])
         cls.network.constraint_index = ["C1", "C2", "C3"]
+        _ = cls.network._update_info_store()
         cls.empty_network = acnsim.ChargingNetwork()
 
         # Simulator
@@ -212,6 +213,7 @@ class TestJSONIO(TestCase):
                 "constraint_index",
                 "violation_tolerance",
                 "relative_tolerance",
+                "_station_ids_dict",
             ],
             "Simulator": [
                 "period",
@@ -309,12 +311,19 @@ class TestJSONIO(TestCase):
         empty_network_loaded = self._obj_compare_helper(self.empty_network)
         self.assertIsInstance(empty_network_loaded, acnsim.ChargingNetwork)
 
-        network_np_fields = ["magnitudes", "_voltages", "_phase_angles"]
+        network_np_fields = [
+            "magnitudes",
+            "_voltages",
+            "_phase_angles",
+            "max_pilot_signals",
+            "min_pilot_signals",
+            "is_continuous",
+        ]
         for field in network_np_fields:
             np.testing.assert_equal(
                 getattr(self.empty_network, field), getattr(empty_network_loaded, field)
             )
-        extra_simple_attributes = ["constraint_matrix", "_EVSEs"]
+        extra_simple_attributes = ["constraint_matrix", "_EVSEs", "allowable_rates"]
         for attribute in extra_simple_attributes:
             self.assertEqual(
                 getattr(self.empty_network, attribute),
@@ -330,6 +339,9 @@ class TestJSONIO(TestCase):
             "magnitudes",
             "_voltages",
             "_phase_angles",
+            "max_pilot_signals",
+            "min_pilot_signals",
+            "is_continuous",
         ]
         for field in network_np_fields:
             np.testing.assert_equal(
@@ -341,6 +353,11 @@ class TestJSONIO(TestCase):
         ):
             self.assertEqual(station_id, station_id_l)
             self.assertEqual(evse.station_id, evse_l.station_id)
+
+        for allowable_rates_array, allowable_rates_array_loaded in zip(
+            self.network.allowable_rates, network_loaded.allowable_rates
+        ):
+            np.testing.assert_equal(allowable_rates_array, allowable_rates_array_loaded)
 
     def _sim_compare_helper(self, sim):
         simulator_loaded = self._obj_compare_helper(sim)

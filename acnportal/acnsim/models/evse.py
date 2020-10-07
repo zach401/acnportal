@@ -1,4 +1,5 @@
 import warnings
+from typing import Optional, Dict, Any, Tuple
 
 import numpy as np
 from ..base import BaseSimObj
@@ -183,7 +184,9 @@ class BaseEVSE(BaseSimObj):
         self._ev = None
         self._current_pilot = 0
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict = {}
         nn_attr_lst = ["_station_id", "_current_pilot", "is_continuous"]
@@ -215,13 +218,19 @@ class BaseEVSE(BaseSimObj):
         return out_obj, loaded_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(attribute_dict["_station_id"])
         return cls._from_dict_helper(out_obj, attribute_dict, context_dict, loaded_dict)
 
 
 class EVSE(BaseEVSE):
+    # TODO: For this class, is a 0 pilot assumed to be allowed?
     """ This class of EVSE allows for charging in a continuous range
     from min_rate to max_rate.
 
@@ -284,7 +293,9 @@ class EVSE(BaseEVSE):
         """
         return self.min_rate <= pilot + atol and pilot - atol <= self.max_rate
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
         attribute_dict["_max_rate"] = self._max_rate
@@ -293,7 +304,12 @@ class EVSE(BaseEVSE):
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             attribute_dict["_station_id"],
@@ -383,7 +399,9 @@ class DeadbandEVSE(BaseEVSE):
             self._deadband_end <= pilot + atol and pilot - atol <= self.max_rate
         )
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
         attribute_dict["_max_rate"] = self._max_rate
@@ -391,7 +409,12 @@ class DeadbandEVSE(BaseEVSE):
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             attribute_dict["_station_id"],
@@ -475,14 +498,21 @@ class FiniteRatesEVSE(BaseEVSE):
         """
         return np.any(np.isclose(pilot, self.allowable_rates, atol=1e-3, rtol=0))
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
         attribute_dict["allowable_rates"] = self.allowable_rates
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(attribute_dict["_station_id"], attribute_dict["allowable_rates"])
         return cls._from_dict_helper(out_obj, attribute_dict, context_dict, loaded_dict)

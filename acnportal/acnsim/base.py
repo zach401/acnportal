@@ -1,9 +1,12 @@
+# coding=utf-8
 """
 This module contains a base class shared by all ACN-Sim objects.
 """
 import json
 import operator
 import os
+from typing import Optional, Dict, Any, Tuple
+
 import numpy as np
 
 # noinspection PyProtectedMember
@@ -328,7 +331,9 @@ class BaseSimObj:
             context_dict,
         )
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Converts the object's attributes into a JSON serializable
         dict. Each ACN-Sim object defines this method differently.
 
@@ -654,7 +659,12 @@ class BaseSimObj:
         return out_obj, loaded_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, "BaseSimObj"]] = None,
+    ) -> Tuple["BaseSimObj", Dict[str, "BaseSimObj"]]:
         """ Converts a JSON serializable representation of an ACN-Sim
         object into an actual ACN-Sim object.
 

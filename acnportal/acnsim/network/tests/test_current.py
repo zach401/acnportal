@@ -64,11 +64,9 @@ class TestCurrent(TestCase):
         self.assertIsInstance(self.sum_curr, Current)
         pd.testing.assert_series_equal(
             self.sum_curr,
-            Current(
-                pd.Series(
-                    [0.25, 1.00, -0.25, -0.60, 0.30],
-                    index=["PS-001", "PS-002", "PS-003", "PS-004", "PS-006"],
-                )
+            pd.Series(
+                [0.25, 1.00, -0.25, -0.60, 0.30],
+                index=["PS-001", "PS-002", "PS-003", "PS-004", "PS-006"],
             ),
             check_series_type=False,
         )
@@ -82,11 +80,9 @@ class TestCurrent(TestCase):
         self.assertIsInstance(self.diff_curr, Current)
         pd.testing.assert_series_equal(
             self.diff_curr,
-            Current(
-                pd.Series(
-                    [0.25, 0.00, -0.25, 0.60, -0.30],
-                    index=["PS-001", "PS-002", "PS-003", "PS-004", "PS-006"],
-                )
+            pd.Series(
+                [0.25, 0.00, -0.25, 0.60, -0.30],
+                index=["PS-001", "PS-002", "PS-003", "PS-004", "PS-006"],
             ),
             check_series_type=False,
         )

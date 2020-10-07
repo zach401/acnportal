@@ -1,3 +1,7 @@
+# coding=utf-8
+"""
+Tests provided sorting algorithms under many cases.
+"""
 import random
 import unittest
 from unittest.mock import Mock
@@ -34,16 +38,53 @@ Scenario = namedtuple(
 
 
 class BaseAlgorithmTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
+        """
+        Tests that a given algorithm provides feasible schedules to a simulation.
+        The elements of feasibility tested here are:
+
+        - A given charging rate is <= the maximum rate of the EVSE it is sent to.
+
+        - A given charging rate is <= the maximum rate of the Session it is charging.
+
+        - A given charging rate is in the allowable rate set of the Session it is
+        charging.
+
+        - No session is given more energy than it requested.
+
+        - Infrastructure limits are satisfied.
+
+        - TODO: what is the function of the assert at max rate?
+
+        - Charging is uninterrupted (never goes to zero during the session unless the
+        vehicle is done charging) if required.
+
+        - A max rate estimation, if provided, is not exceeded during the session.
+
+        Each algorithm test class has an algorithm (set by overriding this function
+        and setting an actual algorithm) and a max_rate_estimation, which provides the
+        return value of a mocked UpperBoundEstimator (used if max rate estimation is
+        tested).
+
+        The implementation of the _get_scenarios method details which charging
+        scenarios should be run in this test class. A scenario is defined by a name,
+        interface (usually a testing interface with static simulator data,
+        see TestingInterface), and attributes assert_at_max, uninterrupted,
+        and estimate_max rate, which dictate additional constraints under which the
+        algorithm should operate.
+
+        Returns:
+            None.
+        """
         self.algo = None
         self.max_rate_estimation = {}
 
     @staticmethod
-    def get_scenarios():
+    def _get_scenarios() -> List[Scenario]:
         return []
 
-    def test_output_feasible(self):
-        scenarios = self.get_scenarios()
+    def test_output_feasible(self) -> None:
+        scenarios = self._get_scenarios()
         for scenario in scenarios:
             self.algo.register_interface(scenario.interface)
             self.algo.uninterrupted = scenario.uninterrupted
@@ -55,7 +96,7 @@ class BaseAlgorithmTest(unittest.TestCase):
             self.algo.estimate_max_rate = scenario.estimate_max_rate
 
             schedule = self.algo.run()
-            self.run_tests(
+            self._run_tests(
                 scenario.name,
                 scenario.interface.active_sessions(),
                 schedule,
@@ -64,20 +105,27 @@ class BaseAlgorithmTest(unittest.TestCase):
                 scenario.uninterrupted,
             )
 
-    def run_tests(
+    def _run_tests(
         self,
-        name,
-        sessions,
-        schedule,
-        interface,
-        assert_at_max=False,
-        uninterrupted=False,
-    ):
+        name: str,
+        sessions: List[SessionInfo],
+        schedule: Dict[str, List[float]],
+        interface: Interface,
+        assert_at_max: bool = False,
+        uninterrupted: bool = False,
+    ) -> None:
         with self.subTest(msg=f"test_all_rates_less_than_evse_limit - {name}"):
             self._test_all_rates_less_than_evse_limit(schedule, interface)
 
         with self.subTest(msg=f"test_all_rates_less_than_session_max_rates - {name}"):
             self._test_all_rates_less_than_session_max_rates(sessions, schedule)
+
+        with self.subTest(
+            msg=f"test_all_rates_greater_than_session_min_rates - {name}"
+        ):
+            self._test_all_rates_greater_than_session_min_rates(
+                sessions, interface, schedule
+            )
 
         with self.subTest(f"test_in_allowable_rates - {name}"):
             self._test_in_allowable_rates(sessions, schedule, interface)
@@ -100,21 +148,34 @@ class BaseAlgorithmTest(unittest.TestCase):
             with self.subTest(f"test_max_rate_estimator_not_exceeded - {name}"):
                 self._test_max_rate_estimator_not_exceeded(sessions, schedule)
 
-    def _test_all_rates_less_than_evse_limit(self, schedule, interface):
+    def _test_all_rates_less_than_evse_limit(self, schedule, interface) -> None:
         for station_id, rates in schedule.items():
             self.assertLessEqual(rates, interface.max_pilot_signal(station_id))
 
-    def _test_all_rates_less_than_session_max_rates(self, sessions, schedule):
+    def _test_all_rates_less_than_session_max_rates(self, sessions, schedule) -> None:
         for session in sessions:
             station_id = session.station_id
-            self.assertLessEqual(schedule[station_id], session.max_rates[0])
+            self.assertLessEqual(schedule[station_id][0], session.max_rates[0])
 
-    def _test_all_rates_greater_than_session_min_rates(self, sessions, schedule):
+    def _test_all_rates_greater_than_session_min_rates(
+        self, sessions, interface, schedule
+    ) -> None:
+        infrastructure = interface.infrastructure_info()
         for session in sessions:
             station_id = session.station_id
-            self.assertGreaterEqual(schedule[station_id], session.min_rates[0])
+            station_index = infrastructure.get_station_index(session.station_id)
+            threshold = (
+                infrastructure.min_pilot[station_index]
+                * infrastructure.voltages[station_index]
+                / (60 / interface.period)
+                / 1000
+            )
+            if session.remaining_demand > threshold:
+                self.assertGreaterEqual(schedule[station_id][0], session.min_rates[0])
+            else:
+                self.assertEqual(schedule[station_id][0], 0)
 
-    def _test_in_allowable_rates(self, sessions, schedule, interface):
+    def _test_in_allowable_rates(self, sessions, schedule, interface) -> None:
         for session in sessions:
             station_id = session.station_id
             (is_continuous, allowable,) = interface.allowable_pilot_signals(station_id)
@@ -124,26 +185,30 @@ class BaseAlgorithmTest(unittest.TestCase):
             else:
                 self.assertIn(schedule[station_id], allowable)
 
-    def _test_energy_requested_not_exceeded(self, sessions, schedule, interface):
+    def _test_energy_requested_not_exceeded(
+        self, sessions, schedule, interface
+    ) -> None:
         for session in sessions:
             station_id = session.station_id
             self.assertLessEqual(
                 schedule[station_id], interface.remaining_amp_periods(session),
             )
 
-    def _test_infrastructure_limits_satisfied(self, schedule, interface):
+    def _test_infrastructure_limits_satisfied(self, schedule, interface) -> None:
         self.assertTrue(interface.is_feasible(schedule))
 
-    def _test_all_rates_at_max(self, sessions, schedule, interface):
+    # noinspection PyMethodMayBeStatic
+    def _test_all_rates_at_max(
+        self, sessions, schedule, interface
+    ) -> None:  # pylint: disable=no-self-use
         infrastructure = interface.infrastructure_info()
         for session in sessions:
             i = infrastructure.get_station_index(session.station_id)
             ub = min(infrastructure.max_pilot[i], session.max_rates[0])
-            rates = schedule[session.session_id]
-            self.assertTrue(True)
+            rates = schedule[session.station_id]
             nptest.assert_almost_equal(rates, ub, decimal=4)
 
-    def _test_charging_not_interrupted(self, sessions, schedule, interface):
+    def _test_charging_not_interrupted(self, sessions, schedule, interface) -> None:
         for session in sessions:
             scheduled = schedule[session.station_id]
             minimum_pilot = interface.min_pilot_signal(session.station_id)
@@ -154,28 +219,35 @@ class BaseAlgorithmTest(unittest.TestCase):
             if minimum_pilot < remaining_energy:
                 self.assertGreaterEqual(scheduled, minimum_pilot)
 
-    def _test_max_rate_estimator_not_exceeded(self, sessions, schedule):
+    def _test_max_rate_estimator_not_exceeded(self, sessions, schedule) -> None:
         for session in sessions:
             self.assertLessEqual(
-                np.array(schedule[session.session_id]),
+                np.array(schedule[session.station_id]),
                 self.max_rate_estimation[session.session_id],
             )
 
 
 # Two Station Test Case
 def two_station(
-    limit, continuous, session_max_rate, session_min_rate=0, remaining_energy=None
-):
+    limit: float,
+    continuous: bool,
+    session_max_rate: float,
+    session_min_rate: float = 0,
+    remaining_energy: Optional[List[float]] = None,
+) -> TestingInterface:
+    """ Two EVSEs with the same phase, one constraint, and allowable rates from 0 to 32
+    if continuous; integers between 8 and 32 if not. Also provides 2 sessions arriving
+    and departing at the same time, with the same energy demands. """
     if continuous:
-        allowable = [[0, 32]] * 2
+        allowable: List[np.ndarray] = [np.array([0, 32])] * 2
     else:
-        allowable = [[0] + list(range(8, 33))] * 2
+        allowable: List[np.ndarray] = [np.array([0] + list(range(8, 33)))] * 2
     if remaining_energy is None:
-        remaining_energy = [3.3, 3.3]
-    network = single_phase_single_constraint(
-        2, limit, allowable_pilots=allowable, is_continuous=[continuous] * 2
+        remaining_energy: List[float] = [3.3, 3.3]
+    network: InfrastructureDict = single_phase_single_constraint(
+        2, limit, allowable_pilots=allowable, is_continuous=np.array([continuous] * 2)
     )
-    sessions = session_generator(
+    sessions: List[SessionDict] = session_generator(
         num_sessions=2,
         arrivals=[0] * 2,
         departures=[12] * 2,
@@ -193,9 +265,13 @@ def two_station(
     return TestingInterface(data)
 
 
-def big_three_phase_network(num_sessions=30, limit=1000):
-    # Network is WAY over designed to deal with unbalance and ensure
-    # all EVs can charge at their maximum rate
+def big_three_phase_network(
+    num_sessions: int = 30, limit: float = 1000
+) -> TestingInterface:
+    """
+    Network is WAY over designed to deal with unbalance and ensure all EVs can charge
+    at their maximum rate.
+    """
     network = three_phase_balanced_network(num_sessions // 3, limit)
     sessions = session_generator(
         num_sessions=num_sessions,
@@ -216,12 +292,13 @@ def big_three_phase_network(num_sessions=30, limit=1000):
 
 
 class TestTwoStationsBase(BaseAlgorithmTest):
-    def setUp(self):
+    def setUp(self) -> None:
+        """ See BaseAlgorithmTest.setUp. """
         self.algo = None
         self.max_rate_estimation = {"0": 16, "1": 12}
 
     @staticmethod
-    def get_scenarios():
+    def _get_scenarios() -> List[Scenario]:
         scenarios = []
         # Test one limit where constraints are binding (40 A),
         # one where constraint will be met exactly by charging at max (64 A),
@@ -235,6 +312,9 @@ class TestTwoStationsBase(BaseAlgorithmTest):
             for session_max_rate in [16, 32, 40]:
                 # Consider both continuous and discrete pilot signals
                 for session_min_rate in [0, 8]:
+                    # The latter case below tests when the remaining amp periods is
+                    # small enough to trigger a pilot signal going to 0 while there is
+                    # still demand remaining.
                     for session_energy_demands in [[3.3, 3.3], [0.3, 0.05]]:
                         # Consider continuous and discrete EVSEs
                         for continuous in [True, False]:
@@ -249,7 +329,7 @@ class TestTwoStationsBase(BaseAlgorithmTest):
                                         assert_at_max = False
                                     else:
                                         assert_at_max = True
-                                    interface = two_station(
+                                    interface: TestingInterface = two_station(
                                         limit,
                                         continuous,
                                         session_max_rate,
@@ -277,32 +357,39 @@ class TestTwoStationsBase(BaseAlgorithmTest):
 
 
 class TestThirtyStationsBase(BaseAlgorithmTest):
-    def setUp(self):
+    def setUp(self) -> None:
+        """ See BaseAlgorithmTest.setUp. """
         self.algo = None
         self.max_rate_estimation = {}  # Don't use max_rate_estimation for this test.
 
     @staticmethod
-    def get_scenarios():
+    def _get_scenarios() -> List[Scenario]:
         scenarios = []
         for limit in [1500, 3200]:
-            assert_at_max = limit > 3200
-            interface = big_three_phase_network(limit=limit)
+            interface: TestingInterface = big_three_phase_network(limit=limit)
             scenario_name = f"capacity: {limit} "
-            scenarios.append(
-                Scenario(scenario_name, interface, assert_at_max, False, False)
-            )
+            scenarios.append(Scenario(scenario_name, interface, False, False, False))
         return scenarios
 
 
+# --------------------------------------------------------------------------------------
+# Tests
+#
+# As the functionality tested in each class is evident from the class names,
+# the setUp methods are left without docstrings (hence the noinspection
+# comments).
+# --------------------------------------------------------------------------------------
 class TestTwoStationsMinRatesInfeasible(unittest.TestCase):
     """ Check that error is thrown when minimum rates are not feasible. """
 
-    def test_sorted_min_rates_infeasible(self):
+    def test_sorted_min_rates_infeasible(self) -> None:
         limit = 16
         max_rate = 32
         min_rate = 16
         for continuous in [True, False]:
-            interface = two_station(limit, continuous, max_rate, min_rate)
+            interface: TestingInterface = two_station(
+                limit, continuous, max_rate, min_rate
+            )
             for algo_name, algo in algorithms.items():
                 scenario_name = (
                     f"algorithm: {algo_name}, "
@@ -320,77 +407,86 @@ class TestTwoStationsMinRatesInfeasible(unittest.TestCase):
                         algo.run()
 
 
-# -----------------------------------------------------------------------------
-# Tests
-# -----------------------------------------------------------------------------
 class TestTwoStationsFCFS(TestTwoStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = SortedSchedulingAlgo(first_come_first_served)
 
 
 class TestThirtyStationsFCFS(TestThirtyStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = SortedSchedulingAlgo(first_come_first_served)
 
 
 class TestTwoStationsEDF(TestTwoStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = SortedSchedulingAlgo(earliest_deadline_first)
 
 
 class TestThirtyStationsEDF(TestThirtyStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = SortedSchedulingAlgo(earliest_deadline_first)
 
 
 class TestTwoStationsLLF(TestTwoStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = SortedSchedulingAlgo(least_laxity_first)
 
 
 class TestThirtyStationsLLF(TestThirtyStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = SortedSchedulingAlgo(least_laxity_first)
 
 
 class TestTwoStationsLCFS(TestTwoStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = SortedSchedulingAlgo(last_come_first_served)
 
 
 class TestThirtyStationsLCFS(TestThirtyStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = SortedSchedulingAlgo(last_come_first_served)
 
 
 class TestTwoStationsLRPT(TestTwoStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = SortedSchedulingAlgo(largest_remaining_processing_time)
 
 
 class TestThirtyStationsLRPT(TestThirtyStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = SortedSchedulingAlgo(largest_remaining_processing_time)
 
 
 class TestTwoStationsRR(TestTwoStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = RoundRobin(first_come_first_served)
 
 
 class TestThirtyStationsRR(TestThirtyStationsBase):
-    def setUp(self):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
         super().setUp()
         self.algo = RoundRobin(first_come_first_served)
 
