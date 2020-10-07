@@ -288,8 +288,9 @@ class TestThirtyStationsBase(BaseAlgorithmTest):
             assert_at_max = limit > 3200
             interface = big_three_phase_network(limit=limit)
             scenario_name = f"capacity: {limit} "
-            scenarios.append(Scenario(scenario_name, interface, assert_at_max,
-                                      False, False))
+            scenarios.append(
+                Scenario(scenario_name, interface, assert_at_max, False, False)
+            )
         return scenarios
 
 
