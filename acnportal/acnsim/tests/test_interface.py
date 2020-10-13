@@ -273,11 +273,8 @@ class TestInterface(TestCase):
         self.allowable_rates: List[int] = [0, 8, 16, 24, 32]
         evse4: FiniteRatesEVSE = FiniteRatesEVSE("PS-004", self.allowable_rates)
         self.network.register_evse(evse4, 120, -30)
-        for i in range(1, 5):
-            self.network.add_constraint(Current(f"PS-00{i}"), 1, f"C{i}")
-        self.network.constraint_matrix = np.eye(4)
-        self.network.magnitudes = np.ones(4)
-        self.network.constraint_index = ["C1", "C2", "C3", "C4"]
+        for i, station_id in enumerate(self.network.station_ids):
+            self.network.add_constraint(Current(station_id), 1, f"C{i+1}")
 
     def test_init(self) -> None:
         self.assertIs(self.interface._simulator, self.simulator)
