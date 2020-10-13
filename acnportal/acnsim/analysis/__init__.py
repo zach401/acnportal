@@ -69,8 +69,34 @@ def proportion_of_energy_delivered(sim):
         float: Proportion of total energy requested which was delivered during the simulation.
     """
     total_requested = sum(ev.requested_energy for ev in sim.ev_history.values())
-    total_delivered = sum(ev.energy_delivered for ev in sim.ev_history.values())
+    total_delivered = total_energy_delivered(sim)
     return total_delivered / total_requested
+
+
+def total_energy_delivered(sim):
+    """ Calculate total energy delivered in kWh.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+
+    Returns:
+        float: Total energy delivered during the simulation [kWh]
+    """
+    total_delivered = sum(ev.energy_delivered for ev in sim.ev_history.values())
+    return total_delivered
+
+
+def total_energy_requested(sim):
+    """ Calculate total energy requested in kWh.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+
+    Returns:
+        float: Total energy requested during the simulation [kWh]
+    """
+    total_requested = sum(ev.requested_energy for ev in sim.ev_history.values())
+    return total_requested
 
 
 def proportion_of_demands_met(sim, threshold=0.1):
@@ -192,7 +218,9 @@ def datetimes_array(sim):
 
     The resolution of the datetimes list is equal to the period of the
     simulation, and the number of datetimes in the returned list is
-    equal to teh number of iterations of the simulation.
+    equal to the number of iterations of the simulation.
+
+    Note that timezone information is not included with the datetime array.
 
     Args:
         sim (Simulator): A Simulator object which has been run.
@@ -206,11 +234,12 @@ def datetimes_array(sim):
     """
     if not sim.event_queue.empty():
         warnings.warn(
-            "Simulation incomplete; not all datetimes will be " "included.", UserWarning
+            "Simulation incomplete; not all datetimes will be included.", UserWarning
         )
+    no_tz_start: datetime = sim.start.replace(tzinfo=None)
     return np.array(
         [
-            np.datetime64(sim.start + datetime.timedelta(minutes=sim.period * i))
+            np.datetime64(no_tz_start + datetime.timedelta(minutes=sim.period * i))
             for i in range(sim.iteration)
         ]
     )

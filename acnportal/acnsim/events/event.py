@@ -1,3 +1,5 @@
+from typing import Optional, Dict, Any, Tuple
+
 from ..base import BaseSimObj
 import warnings
 
@@ -45,7 +47,9 @@ class Event(BaseSimObj):
         )
         return self.event_type
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict = {
             "timestamp": self.timestamp,
@@ -60,7 +64,12 @@ class Event(BaseSimObj):
         out_obj.precedence = attribute_dict["precedence"]
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(attribute_dict["timestamp"])
         cls._from_dict_helper(out_obj, attribute_dict)
@@ -81,7 +90,9 @@ class PluginEvent(Event):
         self.ev = ev
         self.precedence = 10
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
         # Plugin-specific attributes
@@ -93,7 +104,12 @@ class PluginEvent(Event):
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """ Implements BaseSimObj._from_dict. """
         # noinspection PyProtectedMember
         ev, loaded_dict = BaseSimObj._build_from_id(
@@ -120,7 +136,9 @@ class UnplugEvent(Event):
         self.session_id = session_id
         self.precedence = 0
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
         # Unplug-specific attributes
@@ -129,7 +147,12 @@ class UnplugEvent(Event):
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             attribute_dict["timestamp"],

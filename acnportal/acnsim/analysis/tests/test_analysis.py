@@ -4,6 +4,7 @@ from unittest import TestCase
 from unittest.mock import Mock, create_autospec
 
 import numpy as np
+import pytz
 
 from acnportal import acnsim
 from acnportal.algorithms import BaseAlgorithm
@@ -11,7 +12,7 @@ from acnportal.algorithms import BaseAlgorithm
 
 class TestAnalysis(TestCase):
     def setUp(self):
-        start = datetime(2018, 12, 31)
+        start = datetime(2018, 12, 31, tzinfo=pytz.timezone("America/Los_Angeles"))
         network = acnsim.ChargingNetwork()
         evse1 = acnsim.EVSE("PS-001", max_rate=32)
         network.register_evse(evse1, 240, 0)
@@ -44,4 +45,6 @@ class TestAnalysis(TestCase):
         self.events.empty = Mock(self.events.empty)
         self.events.empty = lambda: True
         datetime_array = acnsim.datetimes_array(self.simulator)
+        # Check that simulator start is unchanged.
+        self.assertIsNotNone(self.simulator.start.tzinfo)
         np.testing.assert_equal(datetime_array, self.expected_datetime_array)
