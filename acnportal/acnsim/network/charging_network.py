@@ -198,9 +198,15 @@ class ChargingNetwork(BaseSimObj):
                 "You may also overwrite an existing EVSE after constraints have been "
                 "added."
             )
+        # If EVSE is already registered, overwrite voltages and phase angles rather
+        # than appending.
+        if evse.station_id in self._EVSEs:
+            self._voltages[self.station_ids.index(evse.station_id)] = voltage
+            self._phase_angles[self.station_ids.index(evse.station_id)] = phase_angle
+        else:
+            self._voltages = np.append(self._voltages, voltage)
+            self._phase_angles = np.append(self._phase_angles, phase_angle)
         self._EVSEs[evse.station_id] = evse
-        self._voltages = np.append(self._voltages, voltage)
-        self._phase_angles = np.append(self._phase_angles, phase_angle)
         # Cached information-storing objects for use by Interface.
         _ = self._update_info_store()
 
