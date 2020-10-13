@@ -45,6 +45,12 @@ class TestChargingNetwork(TestCase):
         with self.assertRaises(EVSERegistrationError):
             self.network.register_evse(EVSE("PS-002"), 100, 150)
 
+    def test_register_evse_constraints_added_overwrite(self) -> None:
+        evse1 = EVSE("PS-001")
+        self.network.register_evse(evse1, 240, -30)
+        self.network.add_constraint(Current(["PS-001"]), 10)
+        self.network.register_evse(EVSE("PS-001"), 100, 150)
+
     def test_register_evse(self) -> None:
         evse1 = EVSE("PS-001")
         self.network.register_evse(evse1, 240, -30)

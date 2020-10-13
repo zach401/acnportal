@@ -189,11 +189,14 @@ class ChargingNetwork(BaseSimObj):
         Returns:
             None
         """
-        # Only allow registering of EVSEs before any constraints have been added.
-        if self.constraint_matrix is not None:
+        # Only allow registering of EVSEs before any constraints have been added, with
+        # the exception of overwriting an EVSE already registered.
+        if self.constraint_matrix is not None and evse.station_id not in self._EVSEs:
             raise EVSERegistrationError(
                 "Attempting to register an EVSE after constraints have been added. "
-                "Please register all EVSEs with the network before adding constraints."
+                "Please register all EVSEs with the network before adding constraints. "
+                "You may also overwrite an existing EVSE after constraints have been "
+                "added."
             )
         self._EVSEs[evse.station_id] = evse
         self._voltages = np.append(self._voltages, voltage)
