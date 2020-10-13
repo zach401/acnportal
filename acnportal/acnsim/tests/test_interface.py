@@ -12,6 +12,7 @@ from acnportal.acnsim import (
     InvalidScheduleError,
     FiniteRatesEVSE,
     DeadbandEVSE,
+    Current,
 )
 from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo, Constraint
 from acnportal.acnsim.models import EVSE
@@ -272,12 +273,17 @@ class TestInterface(TestCase):
         self.allowable_rates: List[int] = [0, 8, 16, 24, 32]
         evse4: FiniteRatesEVSE = FiniteRatesEVSE("PS-004", self.allowable_rates)
         self.network.register_evse(evse4, 120, -30)
+        for i in range(1, 5):
+            self.network.add_constraint(Current(f"PS-00{i}"), 1, f"C{i}")
         self.network.constraint_matrix = np.eye(4)
-        self.network.magnitudes = np.ones((4, 1))
+        self.network.magnitudes = np.ones(4)
         self.network.constraint_index = ["C1", "C2", "C3", "C4"]
 
     def test_init(self) -> None:
         self.assertIs(self.interface._simulator, self.simulator)
+        nptest.assert_equal(self.network.constraint_matrix, np.eye(4))
+        nptest.assert_equal(self.network.magnitudes, np.ones(4))
+        self.assertEqual(self.network.constraint_index, ["C1", "C2", "C3", "C4"])
 
     def test_violation_tolerance(self) -> None:
         self.assertEqual(
