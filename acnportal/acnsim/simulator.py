@@ -86,6 +86,11 @@ class Simulator(BaseSimObj):
             self.max_recompute = scheduler.max_recompute
             self.scheduler.register_interface(interface_type(self))
 
+    def generate_interface(self, interface_type: type) -> Interface:
+        """ If scheduler is None, generates and returns an Interface to this
+        Simulator. TODO Tests for this."""
+        return interface_type(self)
+
     @property
     def iteration(self):
         return self._iteration
