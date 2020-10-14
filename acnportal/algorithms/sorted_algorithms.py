@@ -424,6 +424,25 @@ class RoundRobin(SortedSchedulingAlgo):
                     schedule[i] = allowable_pilots[i][rate_idx[i]]
         return schedule
 
+    def schedule(self, active_sessions: List[SessionInfo]) -> Dict[str, List[float]]:
+        """ Schedule EVs by first sorting them by sort_fn, then allocating them their
+        maximum feasible rate.
+
+        Implements abstract method schedule from BaseAlgorithm.
+
+        See class documentation for description of the algorithm.
+
+        Args:
+            active_sessions (List[SessionInfo]): see BaseAlgorithm
+
+        Returns:
+            Dict[str, List[float]]: see BaseAlgorithm
+        """
+        infrastructure = self.interface.infrastructure_info()
+        active_sessions = self.run_preprocessing(active_sessions, infrastructure)
+        array_schedule = self.round_robin(active_sessions, infrastructure)
+        return self.run_postprocessing(array_schedule, infrastructure)
+
 
 # -------------------- Sorting Functions --------------------------
 # noinspection PyUnusedLocal
