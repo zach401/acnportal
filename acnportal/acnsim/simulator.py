@@ -536,10 +536,10 @@ class Simulator(BaseSimObj):
 
         return out_obj, loaded_dict
 
-    def update_scheduler(self, new_scheduler):
+    def update_scheduler(self, new_scheduler, interface_type: type = Interface):
         """ Updates a Simulator's schedule. """
         self.scheduler = new_scheduler
-        self.scheduler.register_interface(Interface(self))
+        self.scheduler.register_interface(interface_type(self))
         self.max_recompute = new_scheduler.max_recompute
 
 
