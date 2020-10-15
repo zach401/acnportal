@@ -38,6 +38,9 @@ Scenario = namedtuple(
 
 
 class BaseAlgorithmTest(unittest.TestCase):
+
+    algo: Optional[SortedSchedulingAlgo]
+
     def setUp(self) -> None:
         """
         Tests that a given algorithm provides feasible schedules to a simulation.
@@ -84,6 +87,8 @@ class BaseAlgorithmTest(unittest.TestCase):
         return []
 
     def test_output_feasible(self) -> None:
+        if self.algo is None:
+            raise (ValueError("Set an algorithm before running these tests."))
         scenarios = self._get_scenarios()
         for scenario in scenarios:
             self.algo.register_interface(scenario.interface)
@@ -144,7 +149,9 @@ class BaseAlgorithmTest(unittest.TestCase):
             with self.subTest(f"test_charging_not_interrupted - {name}"):
                 self._test_charging_not_interrupted(sessions, schedule, interface)
 
-        if self.algo.estimate_max_rate:
+        if self.algo is None:
+            raise (ValueError("Set an algorithm before running these tests."))
+        elif self.algo.estimate_max_rate:
             with self.subTest(f"test_max_rate_estimator_not_exceeded - {name}"):
                 self._test_max_rate_estimator_not_exceeded(sessions, schedule)
 
@@ -237,13 +244,16 @@ def two_station(
 ) -> TestingInterface:
     """ Two EVSEs with the same phase, one constraint, and allowable rates from 0 to 32
     if continuous; integers between 8 and 32 if not. Also provides 2 sessions arriving
-    and departing at the same time, with the same energy demands. """
-    if continuous:
-        allowable: List[np.ndarray] = [np.array([0, 32])] * 2
-    else:
-        allowable: List[np.ndarray] = [np.array([0] + list(range(8, 33)))] * 2
-    if remaining_energy is None:
-        remaining_energy: List[float] = [3.3, 3.3]
+    and departing at the same time, with the same energfy demands. """
+    allowable: List[np.ndarray] = (
+        [np.array([0, 32])] * 2
+        if continuous
+        else [np.array([0] + list(range(8, 33)))] * 2
+    )
+    remaining_energy_input: List[float] = [
+        3.3,
+        3.3,
+    ] if remaining_energy is None else remaining_energy
     network: InfrastructureDict = single_phase_single_constraint(
         2, limit, allowable_pilots=allowable, is_continuous=np.array([continuous] * 2)
     )
@@ -252,7 +262,7 @@ def two_station(
         arrivals=[0] * 2,
         departures=[12] * 2,
         requested_energy=[3.3] * 2,
-        remaining_energy=remaining_energy,
+        remaining_energy=remaining_energy_input,
         min_rates=[session_min_rate] * 2,
         max_rates=[session_max_rate] * 2,
     )
