@@ -4,7 +4,7 @@ Sorting-based scheduling algorithms.
 """
 from collections import deque
 from copy import copy
-from typing import Callable, List, Optional, Dict
+from typing import Callable, List, Optional, Dict, Protocol
 
 import numpy as np
 
@@ -21,6 +21,16 @@ from .preprocessing import (
 from warnings import warn
 
 from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo, Interface
+
+
+class SortFuncCallback(Protocol):
+    """
+    As Mypy can't distinguish bound methods (with "self" as the first arg) from Callable
+    attributes, we use a Protocol-like type hint to annotate
+    SortedSchedulingAlgo._sort_fn.
+    """
+    def __call__(self, evs: List[SessionInfo], iface: Interface) -> List[SessionInfo]:
+        pass
 
 
 class SortedSchedulingAlgo(BaseAlgorithm):
@@ -43,9 +53,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             same SessionInfo objects but sorted according to some metric.
     """
 
-    # TODO: Since this is a self attribute, its first arg is technically type(self).
-    #  How do we reconcile this with the type of sort_fn?
-    _sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]]
+    _sort_fn: SortFuncCallback
     estimate_max_rate: bool
     _max_rate_estimator: Optional[UpperBoundEstimatorBase]
     uninterrupted_charging: bool
@@ -53,7 +61,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
 
     def __init__(
         self,
-        sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]],
+        sort_fn: SortFuncCallback,
         estimate_max_rate: bool = False,
         max_rate_estimator: Optional[UpperBoundEstimatorBase] = None,
         uninterrupted_charging: bool = False,

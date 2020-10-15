@@ -20,7 +20,7 @@ class TestEnforcePilotLimit(TestCase):
     def test_pilot_greater_than_existing_max(
         self,
     ) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
+        session_dicts: List[SessionDict] = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
             departures=[ARRIVAL_TIME + SESSION_DUR] * N,
@@ -28,7 +28,7 @@ class TestEnforcePilotLimit(TestCase):
             remaining_energy=[3.3] * N,
             max_rates=[np.repeat(16, SESSION_DUR)] * N,
         )
-        sessions = [SessionInfo(**s) for s in sessions]
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in session_dicts]
         infrastructure = InfrastructureInfo(
             **single_phase_single_constraint(num_evses=N, limit=32)
         )
@@ -37,7 +37,7 @@ class TestEnforcePilotLimit(TestCase):
             nptest.assert_almost_equal(session.max_rates, 16)
 
     def test_pilot_less_than_existing_max(self) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
+        session_dicts: List[SessionDict] = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
             departures=[ARRIVAL_TIME + SESSION_DUR] * N,
@@ -45,7 +45,7 @@ class TestEnforcePilotLimit(TestCase):
             remaining_energy=[3.3] * N,
             max_rates=[np.repeat(40, SESSION_DUR)] * N,
         )
-        sessions = [SessionInfo(**s) for s in sessions]
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in session_dicts]
         infrastructure = InfrastructureInfo(
             **single_phase_single_constraint(num_evses=N, limit=32)
         )
@@ -107,7 +107,7 @@ class TestExpandMaxMinRates(TestCase):
         max_rates: List[Union[float, np.ndarray]],
         min_rates: List[Union[float, np.ndarray]],
     ) -> List[SessionInfo]:
-        sessions: List[SessionDict] = session_generator(
+        sessions_dicts: List[SessionDict] = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
             departures=[ARRIVAL_TIME + SESSION_DUR] * N,
@@ -116,7 +116,7 @@ class TestExpandMaxMinRates(TestCase):
             max_rates=max_rates,
             min_rates=min_rates,
         )
-        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions]
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions_dicts]
         # Since we want to test the expand function but the SessionInfo constructor
         # already expands the max/min rates, we manually set the max/min rates back to
         # the input max_rates/min_rates (possibly scalars) after construction.
@@ -128,7 +128,7 @@ class TestExpandMaxMinRates(TestCase):
             session.min_rates = min_rate
             return session
 
-        sessions: List[SessionInfo] = [
+        sessions = [
             _set_bounds(session, max_rates[i], min_rates[i])
             for i, session in enumerate(sessions)
         ]
@@ -174,14 +174,14 @@ class TestApplyUpperBoundEstimate(TestCase):
     @staticmethod
     def _session_generation_helper(
         max_rate_list: List[Union[float, np.ndarray]],
-        upper_bound_estimate: Dict[str, float],
+        upper_bound_estimate: Dict[str, Union[float, List[float]]],
         expected_max: float,
         expected_min: float,
         min_rate_list: Optional[List[Union[float, np.ndarray]]] = None,
     ) -> None:
         if min_rate_list is not None:
             min_rate_list *= N
-        sessions: List[SessionDict] = session_generator(
+        sessions_dicts: List[SessionDict] = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
             departures=[ARRIVAL_TIME + SESSION_DUR] * N,
@@ -190,7 +190,7 @@ class TestApplyUpperBoundEstimate(TestCase):
             max_rates=max_rate_list * N,
             min_rates=min_rate_list,
         )
-        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions]
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions_dicts]
         rd = Mock()
         rd.get_maximum_rates = Mock(return_value=upper_bound_estimate)
         modified_sessions = apply_upper_bound_estimate(rd, sessions)
@@ -260,7 +260,7 @@ class TestApplyUpperBoundEstimate(TestCase):
         )
 
     def test_partial_estimator(self) -> None:  # pylint: disable=no-self-use
-        sessions: List[SessionDict] = session_generator(
+        sessions_dicts: List[SessionDict] = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
             departures=[ARRIVAL_TIME + SESSION_DUR] * N,
@@ -268,7 +268,7 @@ class TestApplyUpperBoundEstimate(TestCase):
             remaining_energy=[3.3] * N,
             max_rates=[32] * N,
         )
-        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions]
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions_dicts]
         rd = Mock()
         rd.get_maximum_rates = Mock(
             return_value={f"{i}": [16] * 5 for i in range(N) if i != 1}
@@ -288,7 +288,7 @@ class TestApplyMinimumChargingRate(TestCase):
     ) -> List[SessionInfo]:
         if min_rate_list is not None:
             min_rate_list *= N
-        sessions: List[SessionDict] = session_generator(
+        sessions_dicts: List[SessionDict] = session_generator(
             num_sessions=N,
             arrivals=[ARRIVAL_TIME] * N,
             departures=[ARRIVAL_TIME + SESSION_DUR] * N,
@@ -297,7 +297,7 @@ class TestApplyMinimumChargingRate(TestCase):
             max_rates=max_rate_list * N,
             min_rates=min_rate_list,
         )
-        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions]
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions_dicts]
         infrastructure = InfrastructureInfo(**single_phase_single_constraint(N, 32))
         modified_sessions = apply_minimum_charging_rate(
             sessions, infrastructure, PERIOD
@@ -347,7 +347,7 @@ class TestApplyMinimumChargingRate(TestCase):
             nptest.assert_almost_equal(session.min_rates[1:], 0)
 
     def test_apply_min_infeasible(self) -> None:  # pylint: disable=no-self-use
-        sessions = session_generator(
+        sessions_dicts = session_generator(
             num_sessions=N,
             arrivals=[1, 2, 3],
             departures=[1 + SESSION_DUR, 2 + SESSION_DUR, 3 + SESSION_DUR],
@@ -355,7 +355,7 @@ class TestApplyMinimumChargingRate(TestCase):
             remaining_energy=[3.3] * N,
             max_rates=[np.repeat(32, SESSION_DUR)] * N,
         )
-        sessions = [SessionInfo(**s) for s in sessions]
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions_dicts]
         infrastructure = InfrastructureInfo(**single_phase_single_constraint(N, 16))
         modified_sessions = apply_minimum_charging_rate(
             sessions, infrastructure, PERIOD
@@ -373,7 +373,7 @@ class TestRemoveFinishedSessions(TestCase):
     def _test_remove_sessions_within_threshold(
         self, remaining_energies: List[float]
     ) -> None:
-        sessions = session_generator(
+        sessions_dicts: List[SessionDict] = session_generator(
             num_sessions=N,
             arrivals=[1, 2, 3],
             departures=[1 + SESSION_DUR, 2 + SESSION_DUR, 3 + SESSION_DUR],
@@ -384,7 +384,7 @@ class TestRemoveFinishedSessions(TestCase):
         infrastructure = InfrastructureInfo(
             **three_phase_balanced_network(1, limit=100)
         )
-        sessions = [SessionInfo(**s) for s in sessions]
+        sessions: List[SessionInfo] = [SessionInfo(**s) for s in sessions_dicts]
         modified_sessions = remove_finished_sessions(sessions, infrastructure, 5)
         self.assertEqual(len(modified_sessions), 2)
 

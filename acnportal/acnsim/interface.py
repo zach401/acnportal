@@ -64,8 +64,8 @@ class SessionInfo:
         departure: int,
         estimated_departure: Optional[int] = None,
         current_time: int = 0,
-        min_rates: Union[float, List[float]] = 0,
-        max_rates: Union[float, List[float]] = float("inf"),
+        min_rates: Union[float, List[float], np.ndarray] = 0,
+        max_rates: Union[float, List[float], np.ndarray] = float("inf"),
     ):
         self.station_id = station_id
         self.session_id = session_id
