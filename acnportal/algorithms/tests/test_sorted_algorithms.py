@@ -40,6 +40,7 @@ Scenario = namedtuple(
 class BaseAlgorithmTest(unittest.TestCase):
 
     algo: Optional[SortedSchedulingAlgo]
+    max_rate_estimation: Dict[str, float]
 
     def setUp(self) -> None:
         """
@@ -92,7 +93,7 @@ class BaseAlgorithmTest(unittest.TestCase):
         scenarios = self._get_scenarios()
         for scenario in scenarios:
             self.algo.register_interface(scenario.interface)
-            self.algo.uninterrupted = scenario.uninterrupted
+            self.algo.uninterrupted_charging = scenario.uninterrupted
             estimator_mock = UpperBoundEstimatorBase()
             self.algo.max_rate_estimator = estimator_mock
             self.algo.estimate_max_rate = scenario.estimate_max_rate

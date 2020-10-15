@@ -63,11 +63,46 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         # next period.
         self.max_recompute = 1
         self.estimate_max_rate = estimate_max_rate
-        self.max_rate_estimator = max_rate_estimator
+        self._max_rate_estimator = max_rate_estimator
         self.uninterrupted_charging = uninterrupted_charging
         self.allow_overcharging = allow_overcharging
 
+    @property
+    def max_rate_estimator(self) -> Optional[UpperBoundEstimatorBase]:
+        """
+        Return max_rate_estimator or None if there isn't any provided.
+
+        Returns:
+            Optional[UpperBoundEstimatorBase]: max_rate_estimator of this algorithm or
+                None if none is given.
+
+        """
+        return self._max_rate_estimator
+
+    @max_rate_estimator.setter
+    def max_rate_estimator(self, max_rate_estimator: UpperBoundEstimatorBase) -> None:
+        self._max_rate_estimator = max_rate_estimator
+
     def register_interface(self, interface: Interface) -> None:
+        """ Register interface to the _simulator/physical system.
+
+        This interface is the only connection between the algorithm and what it
+            is controlling. Its purpose is to abstract the underlying
+            network so that the same algorithms can run on a simulated
+            environment or a physical one.
+
+        Args:
+            interface (Interface): An interface to the underlying network
+                whether simulated or real.
+
+        Returns:
+            None
+        """
+        self._interface = interface
+        if self.max_rate_estimator is not None:
+            self.max_rate_estimator.register_interface(interface)
+
+    def register_max_rate_estimator(self, interface: Interface) -> None:
         """ Register interface to the _simulator/physical system.
 
         This interface is the only connection between the algorithm and what it
