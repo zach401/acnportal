@@ -332,7 +332,7 @@ class ChargingNetwork(BaseSimObj):
 
         Args:
             station_id (str): ID of the EVSE.
-            sesison_id (str): ID of the session to be unplugged.
+            session_id (str): ID of the session to be unplugged.
         Returns:
             None
 
