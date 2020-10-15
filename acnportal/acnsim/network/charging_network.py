@@ -414,16 +414,23 @@ class ChargingNetwork(BaseSimObj):
         Returns:
             np.ndarray: Aggregate currents subject to the given constraints.
         """
+        # If there are no constraints, throw an error as this function is not well-
+        # defined.
+        # TODO: Test the no constraint case for is_feasible and constraint_currents.
+        if self.constraint_matrix is None:
+            raise ValueError("Add constraints before calling constraint currents.")
+
         schedule_matrix: np.ndarray = np.array(input_schedule)
         # Convert list of constraint id's to list of indices in constraint matrix
+        constraint_indices: List[int]
         if constraints is not None:
-            constraint_indices: List[int] = [
+            constraint_indices = [
                 i
                 for i in range(len(self.constraint_index))
                 if self.constraint_index[i] in constraints
             ]
         else:
-            constraint_indices: List[int] = list(range(len(self.constraint_index)))
+            constraint_indices = list(range(len(self.constraint_index)))
 
         # If we only want the constraint currents at specific time indices,
         # index schedule_matrix columns using these indices
@@ -551,7 +558,7 @@ class ChargingNetwork(BaseSimObj):
             relative_tolerance=attribute_dict["relative_tolerance"],
         )
 
-        evses = {}
+        evses = OrderedDict()
         for station_id, evse in attribute_dict["_EVSEs"].items():
             # noinspection PyProtectedMember
             evse_elt, loaded_dict = BaseSimObj._build_from_id(
