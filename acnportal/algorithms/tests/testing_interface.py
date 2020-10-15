@@ -202,8 +202,8 @@ class TestingInterface(Interface):
         self,
         load_currents: Dict[str, List[float]],
         linear: bool = False,
-        violation_tolerance: float = 1e-5,
-        relative_tolerance: float = 1e-7,
+        violation_tolerance: Optional[float] = 1e-5,
+        relative_tolerance: Optional[float] = 1e-7,
     ) -> bool:
         """ Return if a set of current magnitudes for each load are feasible.
 
@@ -231,6 +231,11 @@ class TestingInterface(Interface):
             bool: If load_currents is feasible at time t according to this set of
                 constraints.
         """
+        if violation_tolerance is None:
+            violation_tolerance = 1e-5
+        if relative_tolerance is None:
+            relative_tolerance = 1e-7
+
         if len(load_currents) == 0:
             return True
         # Check that all schedules are the same length
