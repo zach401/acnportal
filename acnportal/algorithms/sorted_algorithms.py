@@ -43,9 +43,11 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             same SessionInfo objects but sorted according to some metric.
     """
 
+    # TODO: Since this is a self attribute, its first arg is technically type(self).
+    #  How do we reconcile this with the type of sort_fn?
     _sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]]
     estimate_max_rate: bool
-    max_rate_estimator: Optional[UpperBoundEstimatorBase]
+    _max_rate_estimator: Optional[UpperBoundEstimatorBase]
     uninterrupted_charging: bool
     allow_overcharging: bool
 
@@ -141,16 +143,25 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 "allow_overcharging is currently not supported. It will be added in a "
                 "future release."
             )
-        active_sessions: List[SessionInfo] = remove_finished_sessions(
+        active_sessions = remove_finished_sessions(
             active_sessions, infrastructure, self.interface.period
         )
         active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
         if self.estimate_max_rate:
-            active_sessions: List[SessionInfo] = apply_upper_bound_estimate(
-                self.max_rate_estimator, active_sessions
-            )
+            if self.max_rate_estimator is not None:
+                active_sessions = apply_upper_bound_estimate(
+                    self.max_rate_estimator, active_sessions
+                )
+            else:
+                # TODO: Test raised error.
+                raise (
+                    ValueError(
+                        "Register an UpperBoundEstimator before running the "
+                        "algorithm if you wish to estimate max rate."
+                    )
+                )
         if self.uninterrupted_charging:
-            active_sessions: List[SessionInfo] = apply_minimum_charging_rate(
+            active_sessions = apply_minimum_charging_rate(
                 active_sessions, infrastructure, self.interface.period
             )
         return active_sessions
@@ -191,12 +202,13 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             ub: float = min(
                 session.max_rates[0], self.interface.remaining_amp_periods(session)
             )
-            lb: float = max(0, session.min_rates[0])
+            lb = max(0, session.min_rates[0])
             if infrastructure.is_continuous[station_index]:
                 charging_rate: float = self.max_feasible_rate(
                     station_index, ub, schedule, infrastructure, eps=0.01, lb=lb
                 )
             else:
+                # TODO: What do we do if allowable_pilots is a list of Nones?
                 allowable = [
                     a
                     for a in infrastructure.allowable_pilots[station_index]
@@ -419,6 +431,7 @@ class RoundRobin(SortedSchedulingAlgo):
         queue = deque(self._sort_fn(active_sessions, self.interface))
         schedule = np.zeros(infrastructure.num_stations)
         rate_idx = np.zeros(infrastructure.num_stations, dtype=int)
+        # TODO: Again, this might be a list of Nones, with elements non-iterable.
         allowable_pilots = infrastructure.allowable_pilots.copy()
         for session in queue:
             i = infrastructure.get_station_index(session.station_id)

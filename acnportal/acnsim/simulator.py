@@ -1,6 +1,6 @@
 import copy
 from datetime import datetime
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 
 import pandas as pd
 import numpy as np
@@ -39,6 +39,9 @@ class Simulator(BaseSimObj):
     """
 
     period: float
+    ev_history: Dict[str, EV]
+    event_history: List[Event]
+    schedule_history: Optional[Dict[int, Dict[str, float]]]
 
     def __init__(
         self,
@@ -471,7 +474,7 @@ class Simulator(BaseSimObj):
             attribute_dict["event_queue"], context_dict, loaded_dict=loaded_dict
         )
 
-        scheduler_cls = locate(attribute_dict["scheduler"])
+        scheduler_cls: type = locate(attribute_dict["scheduler"])
         try:
             scheduler = scheduler_cls()
         except TypeError:
