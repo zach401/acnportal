@@ -4,7 +4,7 @@ Tests provided sorting algorithms under many cases.
 """
 import random
 import unittest
-from unittest.mock import Mock
+from unittest.mock import patch
 from numpy import testing as nptest
 from collections import namedtuple
 
@@ -94,13 +94,11 @@ class BaseAlgorithmTest(unittest.TestCase):
             self.algo.register_interface(scenario.interface)
             self.algo.uninterrupted = scenario.uninterrupted
             estimator_mock = UpperBoundEstimatorBase()
-            estimator_mock.get_maximum_rates = Mock(
-                return_value=self.max_rate_estimation
-            )
             self.algo.max_rate_estimator = estimator_mock
             self.algo.estimate_max_rate = scenario.estimate_max_rate
-
-            schedule = self.algo.run()
+            with patch.object(estimator_mock, "get_maximum_rates") as get_maximum_rates:
+                get_maximum_rates.return_value = self.max_rate_estimation
+                schedule = self.algo.run()
             self._run_tests(
                 scenario.name,
                 scenario.interface.active_sessions(),
