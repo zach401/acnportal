@@ -3,7 +3,7 @@
 from collections import OrderedDict
 from typing import Tuple
 from unittest import TestCase
-from unittest.mock import Mock, create_autospec
+from unittest.mock import Mock, create_autospec, patch
 
 import numpy as np
 import pandas as pd
@@ -81,13 +81,11 @@ class TestChargingNetwork(TestCase):
 
     def test_plugin_station_exists(self) -> None:
         evse = EVSE("PS-001")
-        evse.plugin = Mock(evse.plugin)
         self.network.register_evse(evse, 240, 0)
         ev = create_autospec(EV)
-
-        self.network.plugin(ev, "PS-001")
-        # noinspection PyUnresolvedReferences
-        evse.plugin.assert_called_once()
+        with patch.object(evse, "plugin") as plugin:
+            self.network.plugin(ev, "PS-001")
+        plugin.assert_called_once()
 
     def test_plugin_station_does_not_exist(self) -> None:
         ev = create_autospec(EV)
@@ -96,11 +94,10 @@ class TestChargingNetwork(TestCase):
 
     def test_unplug_station_exists(self) -> None:
         evse = EVSE("PS-001")
-        evse.unplug = Mock(evse.unplug)
         self.network.register_evse(evse, 240, 0)
-        self.network.unplug("PS-001")
-        # noinspection PyUnresolvedReferences
-        evse.unplug.assert_called_once()
+        with patch.object(evse, "unplug") as unplug:
+            self.network.unplug("PS-001")
+        unplug.assert_called_once()
 
     def test_unplug_station_does_not_exist(self) -> None:
         with self.assertRaises(KeyError):
@@ -124,16 +121,13 @@ class TestChargingNetwork(TestCase):
         self.network.register_evse(evse2, 240, 0)
         evse3 = EVSE("PS-003")
         self.network.register_evse(evse3, 240, 0)
-        evse1.set_pilot = create_autospec(evse1.set_pilot)
-        evse2.set_pilot = create_autospec(evse2.set_pilot)
-        evse3.set_pilot = create_autospec(evse3.set_pilot)
-        self.network.update_pilots(np.array([[24, 16], [16, 24], [0, 0]]), 0, 5)
-        # noinspection PyUnresolvedReferences
-        evse1.set_pilot.assert_any_call(24, 240, 5)
-        # noinspection PyUnresolvedReferences
-        evse2.set_pilot.assert_any_call(16, 240, 5)
-        # noinspection PyUnresolvedReferences
-        evse3.set_pilot.assert_any_call(0, 240, 5)
+        with patch.object(evse1, "set_pilot") as set_pilot1, patch.object(
+            evse2, "set_pilot"
+        ) as set_pilot2, patch.object(evse3, "set_pilot") as set_pilot3:
+            self.network.update_pilots(np.array([[24, 16], [16, 24], [0, 0]]), 0, 5)
+        set_pilot1.assert_any_call(24, 240, 5)
+        set_pilot2.assert_any_call(16, 240, 5)
+        set_pilot3.assert_any_call(0, 240, 5)
 
     def _accessor_test_setup(self) -> None:
         evse1 = EVSE("PS-001")
