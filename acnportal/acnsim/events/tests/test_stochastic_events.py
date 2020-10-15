@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 from acnportal.acnsim.events.stochastic_events import StochasticEvents
 import numpy as np
 from acnportal.acnsim import Battery, EV
@@ -100,6 +100,30 @@ class TestStochasticEvents(unittest.TestCase):
         with self.subTest("test_requested_energy"):
             self.assertListEqual([ev.requested_energy for ev in evs],
                                  [self.max_battery_power, 3, self.max_battery_power])
+
+    def test_generate_events_multi_day(self):
+        samples = np.array([[6.5, 8, 10], [8.3, 6.05, 3], [10, 3, 15]])
+        gen = StochasticEvents()
+
+        # sample expects an argument n_samples. We need to copy the array to prevent
+        # changing it in the function between calls to sample.
+        gen.sample = Mock(side_effect=lambda n: samples.copy())
+        queue = gen.generate_events([3, 3], self.period, self.voltage, self.max_battery_power)
+
+        gen.sample.assert_has_calls([call(3), call(3)])
+
+        evs = [event[1].ev for event in queue.queue]
+        with self.subTest("test_length_of_evs"):
+            self.assertEqual(6, len(evs))
+
+        with self.subTest("test_arrival_times"):
+            self.assertListEqual([ev.arrival for ev in evs],
+                                 [78, 99, 120, 366, 387, 408])
+
+        with self.subTest("test_departure_time"):
+            self.assertListEqual([ev.departure for ev in evs],
+                                 [174, 172, 156, 462, 460, 444])
+
 
 if __name__ == '__main__':
     unittest.main()
