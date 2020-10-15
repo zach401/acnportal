@@ -3,6 +3,7 @@
 from unittest import TestCase
 from unittest.mock import Mock
 from numpy import testing as nptest
+
 from acnportal.algorithms.preprocessing import *
 from acnportal.algorithms.tests.generate_test_cases import *
 from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo

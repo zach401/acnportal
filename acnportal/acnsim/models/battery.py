@@ -90,7 +90,7 @@ class Battery(BaseSimObj):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict = {}
         nn_attr_lst = [
@@ -115,7 +115,7 @@ class Battery(BaseSimObj):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             attribute_dict["_capacity"],
@@ -342,7 +342,7 @@ class Linear2StageBattery(Battery):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
         attribute_dict["_noise_level"] = self._noise_level
@@ -356,7 +356,7 @@ class Linear2StageBattery(Battery):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             attribute_dict["_capacity"],

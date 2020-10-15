@@ -361,7 +361,7 @@ class Simulator(BaseSimObj):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """
         Implements BaseSimObj._to_dict. Certain simulator attributes are
         not serialized completely as they are not ACN-Sim objects
@@ -443,7 +443,7 @@ class Simulator(BaseSimObj):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """
         Implements BaseSimObj._from_dict. Certain simulator attributes
         are not loaded completely as they are not ACN-Sim objects

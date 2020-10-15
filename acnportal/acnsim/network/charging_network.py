@@ -303,12 +303,11 @@ class ChargingNetwork(BaseSimObj):
         Returns:
             None
         """
-        if new_name is None:
-            new_name: str = name
+        new_name_processed: str = name if new_name is None else new_name
         if name not in self.constraint_index:
             raise KeyError(f"Cannot update constraint {name}: not found in network.")
         self.remove_constraint(name)
-        self.add_constraint(current, limit, name=new_name)
+        self.add_constraint(current, limit, name=new_name_processed)
         # Cached information-storing objects for use by Interface.
         _ = self._update_info_store()
 
@@ -504,7 +503,7 @@ class ChargingNetwork(BaseSimObj):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """ Implements BaseSimObj._to_dict. """
 
         attribute_dict = {}
@@ -545,7 +544,7 @@ class ChargingNetwork(BaseSimObj):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             violation_tolerance=attribute_dict["violation_tolerance"],

@@ -41,7 +41,7 @@ class BatteryListEvent(acnsim.Event):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         attribute_dict, context_dict = super()._to_dict(context_dict)
         battery_list = []
         for ev in self.battery_list:
@@ -57,7 +57,7 @@ class BatteryListEvent(acnsim.Event):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         battery_list = []
         for ev in attribute_dict["battery_list"]:
             # noinspection PyProtectedMember
