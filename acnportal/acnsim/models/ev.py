@@ -84,7 +84,7 @@ class EV(BaseSimObj):
         return self._session_id
 
     @property
-    def station_id(self):
+    def station_id(self) -> str:
         """ Return the unique identifier for the EVSE used for this charging session. """
         return self._station_id
 

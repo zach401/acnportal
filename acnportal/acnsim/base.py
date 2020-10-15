@@ -352,7 +352,9 @@ class BaseSimObj:
         raise NotImplementedError
 
     @staticmethod
-    def _build_from_id(obj_id, context_dict, loaded_dict=None):
+    def _build_from_id(
+        obj_id, context_dict, loaded_dict=None
+    ) -> Tuple["BaseSimObj", Dict[str, "BaseSimObj"]]:
         """
         Given an object ID and a dictionary mapping object ID's to JSON
         serializable representations of ACN-Sim objects, returns the ACN-Sim

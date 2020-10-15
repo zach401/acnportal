@@ -2,12 +2,12 @@
 """
 Integration tests using gym_acnsim.
 """
-from typing import List, Dict
+from typing import List, Dict, Any
 from unittest import TestCase
 
 from acnportal import acnsim
 from acnportal.acnsim import Simulator, Interface, EV
-from acnportal.acnsim import acndata_events
+from acnportal.acnsim.events import acndata_events
 from acnportal.acnsim import sites
 from acnportal.algorithms import BaseAlgorithm
 from datetime import datetime
@@ -21,11 +21,14 @@ from copy import deepcopy
 
 class EarliestDeadlineFirstAlgoStateful(BaseAlgorithm):
     """ See EarliestDeadlineFirstAlgo in tutorial 2. This is a stateful version that
-    occasionally records charging rates and pilot signals to test the last_applied_pilot_signals
-    and last_actual_charging_rate functions in Interface.
+    occasionally records charging rates and pilot signals to test the last_applied_pilot
+    _signals and last_actual_charging_rate functions in Interface.
     """
 
-    def __init__(self, increment=1):
+    polled_pilots: Dict[str, Dict[str, float]]
+    polled_charging_rates: Dict[str, Dict[str, float]]
+
+    def __init__(self, increment: float = 1):
         super().__init__()
         self._increment = increment
         self.polled_pilots = {}
@@ -49,7 +52,7 @@ class EarliestDeadlineFirstAlgoStateful(BaseAlgorithm):
         Returns:
             Dict[str, List[float]]: see BaseAlgorithm
         """
-        schedule = {ev.station_id: [0] for ev in active_evs}
+        schedule = {ev.station_id: [0.0] for ev in active_evs}
 
         sorted_evs = sorted(active_evs, key=lambda x: x.departure)
 
@@ -60,7 +63,7 @@ class EarliestDeadlineFirstAlgoStateful(BaseAlgorithm):
                 schedule[ev.station_id][0] -= self._increment
 
                 if schedule[ev.station_id][0] < 0:
-                    schedule[ev.station_id] = [0]
+                    schedule[ev.station_id] = [0.0]
                     break
         if not self.interface.current_time % 100:
             self.polled_pilots[
@@ -80,6 +83,14 @@ def to_array_dict(list_dict: Dict[str, List[float]]) -> Dict[str, np.ndarray]:
 
 
 class TestIntegration(TestCase):
+
+    sch: EarliestDeadlineFirstAlgoStateful
+    sim: Simulator
+    # TODO: More specific typing for below attrs.
+    edf_algo_true_analysis_dict: Dict[str, Any]
+    edf_algo_true_datetimes_array: List[datetime]
+    edf_algo_true_info_dict: Dict[str, Any]
+
     # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
@@ -311,6 +322,15 @@ class EmptyScheduler(BaseAlgorithm):
 
 
 class TestEmptyScheduleSim(TestCase):
+
+    plugin_event1: acnsim.PluginEvent
+    plugin_event2: acnsim.PluginEvent
+    evse1: acnsim.EVSE
+    evse2: acnsim.EVSE
+    event_queue: acnsim.EventQueue
+    network: acnsim.ChargingNetwork
+    simulator: acnsim.Simulator
+
     # noinspection PyMissingOrEmptyDocstring
     @classmethod
     def setUpClass(cls) -> None:
