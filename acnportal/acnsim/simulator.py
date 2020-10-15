@@ -478,7 +478,7 @@ class Simulator(BaseSimObj):
         )
         # locate outputs an object in general, though a BaseSimObj class is expected
         # here. Mypy will ignore this.
-        scheduler_cls: Type["BaseAlgorithm"] = locate( # type: ignore
+        scheduler_cls: Type["BaseAlgorithm"] = locate(  # type: ignore
             attribute_dict["scheduler"]
         )
         try:
