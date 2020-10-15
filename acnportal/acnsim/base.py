@@ -393,7 +393,7 @@ class BaseSimObj:
 
         # Get the class of this object from the context_dict.
         obj_type = context_dict[obj_id]["class"]
-        # locate outputs an object in general, though a BaseSimObj class is exptected
+        # locate outputs an object in general, though a BaseSimObj class is expected
         # here. Mypy will ignore this.
         obj_class: Type["BaseSimObj"] = locate(obj_type)  # type: ignore
 

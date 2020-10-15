@@ -24,7 +24,9 @@ class TestingInterface(Interface):
     data: Dict[str, Any]
 
     def __init__(self, data: Dict[str, Any]) -> None:
-        super().__init__(None)
+        # Just for this test case, we don't actually input a Simulator to __init__,
+        # since all the data is hard-coded.
+        super().__init__(None)  # type: ignore
         self.data = data
 
     def _get_or_error(self, field: str) -> Any:

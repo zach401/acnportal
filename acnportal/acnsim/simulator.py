@@ -1,6 +1,6 @@
 import copy
 from datetime import datetime
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional, Dict, Any, Tuple, List, Type
 
 import pandas as pd
 import numpy as np
@@ -464,6 +464,8 @@ class Simulator(BaseSimObj):
         stored. The Simulator provides a method to set the scheduler
         after the Simulator is loaded.
 
+        Warnings are issued if unexpected object types are encountered. Typing is
+        ignored for these cases.
         """
         # noinspection PyProtectedMember
         network, loaded_dict = BaseSimObj._build_from_id(
@@ -474,10 +476,13 @@ class Simulator(BaseSimObj):
         events, loaded_dict = BaseSimObj._build_from_id(
             attribute_dict["event_queue"], context_dict, loaded_dict=loaded_dict
         )
-
-        scheduler_cls: type = locate(attribute_dict["scheduler"])
+        # locate outputs an object in general, though a BaseSimObj class is expected
+        # here. Mypy will ignore this.
+        scheduler_cls: Type["BaseAlgorithm"] = locate( # type: ignore
+            attribute_dict["scheduler"]
+        )
         try:
-            scheduler = scheduler_cls()
+            scheduler: BaseAlgorithm = scheduler_cls()
         except TypeError:
             warnings.warn(
                 f"Scheduler {attribute_dict['scheduler']} "
@@ -522,19 +527,31 @@ class Simulator(BaseSimObj):
 
         ev_history: Dict[str, EV] = {}
         for session_id, ev in attribute_dict["ev_history"].items():
-            # noinspection PyProtectedMember
-            ev_elt, loaded_dict = BaseSimObj._build_from_id(
+            ev_elt: EV
+            ev_elt, loaded_dict = BaseSimObj._build_from_id(  # type: ignore
                 ev, context_dict, loaded_dict=loaded_dict
             )
+            if not isinstance(ev_elt, EV):
+                warnings.warn(
+                    f"Got an element of type {ev_elt} when loading ev_history, which "
+                    f"is not an instance of EV or a subclass. Loaded "
+                    f"object may not function correctly."
+                )
             ev_history[session_id] = ev_elt
         out_obj.ev_history = ev_history
 
         event_history: List[Event] = []
         for past_event in attribute_dict["event_history"]:
-            # noinspection PyProtectedMember
-            loaded_event, loaded_dict = BaseSimObj._build_from_id(
+            loaded_event: Event
+            loaded_event, loaded_dict = BaseSimObj._build_from_id(  # type: ignore
                 past_event, context_dict, loaded_dict=loaded_dict
             )
+            if not isinstance(loaded_event, Event):
+                warnings.warn(
+                    f"Got an element of type {loaded_event} when loading ev_history,"
+                    f"which is not an instance of EV or a subclass. Loaded "
+                    f"object may not function correctly."
+                )
             event_history.append(loaded_event)
         out_obj.event_history = event_history
 
