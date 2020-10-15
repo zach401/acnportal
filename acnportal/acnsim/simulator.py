@@ -42,6 +42,7 @@ class Simulator(BaseSimObj):
     ev_history: Dict[str, EV]
     event_history: List[Event]
     schedule_history: Optional[Dict[int, Dict[str, float]]]
+    max_recompute: Optional[int]
 
     def __init__(
         self,
@@ -519,7 +520,7 @@ class Simulator(BaseSimObj):
         out_obj.pilot_signals = np.array(attribute_dict["pilot_signals"])
         out_obj.charging_rates = np.array(attribute_dict["charging_rates"])
 
-        ev_history = {}
+        ev_history: Dict[str, EV] = {}
         for session_id, ev in attribute_dict["ev_history"].items():
             # noinspection PyProtectedMember
             ev_elt, loaded_dict = BaseSimObj._build_from_id(
@@ -528,7 +529,7 @@ class Simulator(BaseSimObj):
             ev_history[session_id] = ev_elt
         out_obj.ev_history = ev_history
 
-        event_history = []
+        event_history: List[Event] = []
         for past_event in attribute_dict["event_history"]:
             # noinspection PyProtectedMember
             loaded_event, loaded_dict = BaseSimObj._build_from_id(

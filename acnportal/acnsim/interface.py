@@ -3,7 +3,7 @@
 This module contains methods for directly interacting with the _simulator.
 """
 from copy import deepcopy
-from typing import List, Union, Optional, Dict, Set, Tuple
+from typing import List, Union, Optional, Dict, Set, Tuple, TYPE_CHECKING
 
 import numpy as np
 from datetime import timedelta, datetime
@@ -12,6 +12,9 @@ from warnings import warn
 
 from .models import EV
 from .network import ChargingNetwork
+
+if TYPE_CHECKING:
+    from acnportal.acnsim import Simulator
 
 
 class SessionInfo:
@@ -91,7 +94,7 @@ class SessionInfo:
 
         self.current_time = current_time
 
-        if np.isscalar(min_rates):
+        if isinstance(min_rates, float):
             self.min_rates = np.array([min_rates] * self.remaining_time)
         elif len(min_rates) == self.remaining_time:
             self.min_rates = np.array(min_rates)
@@ -103,7 +106,7 @@ class SessionInfo:
                 f"Remaining time: {self.remaining_time}"
             )
 
-        if np.isscalar(max_rates):
+        if isinstance(max_rates, float):
             self.max_rates = np.array([max_rates] * self.remaining_time)
         elif len(max_rates) == self.remaining_time:
             self.max_rates = np.array(max_rates)
@@ -286,10 +289,8 @@ Constraint = namedtuple(
 class Interface:
     """ Interface between algorithms and the ACN Simulation Environment."""
 
-    # noinspection PyUnresolvedReferences
     _simulator: "Simulator"
 
-    # noinspection PyUnresolvedReferences
     def __init__(self, simulator: "Simulator"):
         self._simulator = simulator
 
@@ -410,7 +411,7 @@ class Interface:
         return self._simulator.period
 
     @property
-    def max_recompute_time(self) -> int:
+    def max_recompute_time(self) -> Optional[int]:
         """ Return the maximum recompute time of the simulator.
 
         Returns:
@@ -501,6 +502,7 @@ class Interface:
             infrastructure_info.get_station_index(station_id)
         ].tolist()
         # Numpy tolist method returns "object", so type checking will fail here.
+        # TODO: Allowable pilots could be a list of Nones. How to handle?
         # noinspection PyTypeChecker
         allowable_pilots: List[float] = infrastructure_info.allowable_pilots[
             infrastructure_info.get_station_index(station_id)

@@ -9,6 +9,7 @@ from acnportal import acnsim
 from acnportal.acnsim import Simulator, Interface, EV
 from acnportal.acnsim.events import acndata_events
 from acnportal.acnsim import sites
+from acnportal.acnsim.interface import SessionInfo
 from acnportal.algorithms import BaseAlgorithm
 from datetime import datetime
 
@@ -35,7 +36,7 @@ class EarliestDeadlineFirstAlgoStateful(BaseAlgorithm):
         self.polled_charging_rates = {}
         self.max_recompute = 1
 
-    def schedule(self, active_evs: List[EV]) -> Dict[str, List[float]]:
+    def schedule(self, active_evs: List[SessionInfo]) -> Dict[str, List[float]]:
         """ Schedule EVs by first sorting them by departure time, then
         allocating them their maximum feasible rate.
 
