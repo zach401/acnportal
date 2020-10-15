@@ -5,7 +5,7 @@ This module contains a base class shared by all ACN-Sim objects.
 import json
 import operator
 import os
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, Type
 
 import numpy as np
 
@@ -393,7 +393,9 @@ class BaseSimObj:
 
         # Get the class of this object from the context_dict.
         obj_type = context_dict[obj_id]["class"]
-        obj_class: "BaseSimObj" = locate(obj_type)
+        # locate outputs an object in general, though a BaseSimObj class is exptected
+        # here. Mypy will ignore this.
+        obj_class: Type["BaseSimObj"] = locate(obj_type)  # type: ignore
 
         # 'version' is None since we've already checked the version of the
         # parent object.

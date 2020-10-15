@@ -4,7 +4,8 @@ Sorting-based scheduling algorithms.
 """
 from collections import deque
 from copy import copy
-from typing import Callable, List, Optional, Dict, Protocol
+from typing import List, Optional, Dict, Union
+from typing_extensions import Protocol
 
 import numpy as np
 
@@ -29,6 +30,7 @@ class SortFuncCallback(Protocol):
     attributes, we use a Protocol-like type hint to annotate
     SortedSchedulingAlgo._sort_fn.
     """
+
     def __call__(self, evs: List[SessionInfo], iface: Interface) -> List[SessionInfo]:
         pass
 
@@ -211,25 +213,29 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 session.max_rates[0], self.interface.remaining_amp_periods(session)
             )
             lb = max(0, session.min_rates[0])
+            charging_rate: float
             if infrastructure.is_continuous[station_index]:
-                charging_rate: float = self.max_feasible_rate(
+                charging_rate = self.max_feasible_rate(
                     station_index, ub, schedule, infrastructure, eps=0.01, lb=lb
                 )
             else:
-                # TODO: What do we do if allowable_pilots is a list of Nones?
-                allowable = [
-                    a
-                    for a in infrastructure.allowable_pilots[station_index]
-                    if lb <= a <= ub
-                ]
-
-                if len(allowable) == 0:
+                # Check for the case where allowable_pilots is a List of Nones and set
+                # charging rate to 0 in that case. TODO: Test this case
+                curr_allowable_pilots: Optional[
+                    np.ndarray
+                ] = infrastructure.allowable_pilots[station_index]
+                if curr_allowable_pilots is None:
                     charging_rate = 0
                 else:
-                    charging_rate = self.discrete_max_feasible_rate(
-                        station_index, allowable, schedule, infrastructure
-                    )
-            schedule[station_index] = charging_rate
+                    allowable = [a for a in curr_allowable_pilots if lb <= a <= ub]
+
+                    if len(allowable) == 0:
+                        charging_rate = 0
+                    else:
+                        charging_rate = self.discrete_max_feasible_rate(
+                            station_index, allowable, schedule, infrastructure
+                        )
+            schedule[station_index] = max(charging_rate, schedule[station_index])
         return schedule
 
     @staticmethod
@@ -402,7 +408,7 @@ class RoundRobin(SortedSchedulingAlgo):
 
     def __init__(
         self,
-        sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]],
+        sort_fn: SortFuncCallback,
         estimate_max_rate: bool = False,
         max_rate_estimator: Optional[UpperBoundEstimatorBase] = None,
         uninterrupted_charging: bool = False,
@@ -440,7 +446,14 @@ class RoundRobin(SortedSchedulingAlgo):
         schedule = np.zeros(infrastructure.num_stations)
         rate_idx = np.zeros(infrastructure.num_stations, dtype=int)
         # TODO: Again, this might be a list of Nones, with elements non-iterable.
-        allowable_pilots = infrastructure.allowable_pilots.copy()
+        # TODO: This could give speed issues due to the excessive copying.
+        intermediate_allowable_pilots: Union[
+            List[np.ndarray], List[None]
+        ] = infrastructure.allowable_pilots.copy()
+        # Initialize allowable_pilots with a placeholder of correct type.
+        allowable_pilots: List[np.ndarray] = [np.array(0)] * len(
+            intermediate_allowable_pilots
+        )
         for session in queue:
             i = infrastructure.get_station_index(session.station_id)
             # If pilot signal is continuous discretize it with increments of
@@ -451,6 +464,14 @@ class RoundRobin(SortedSchedulingAlgo):
                     session.max_rates[0] + self.continuous_inc / 2,
                     self.continuous_inc,
                 )
+            elif intermediate_allowable_pilots[i] is None:
+                # TODO: Test this error case.
+                raise ValueError(
+                    "An allowable pilots array must be provided if the "
+                    "EVSE is non-continuous."
+                )
+            else:
+                allowable_pilots[i] = intermediate_allowable_pilots[i]
             ub = min(
                 session.max_rates[0],
                 infrastructure.max_pilot[i],

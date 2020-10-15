@@ -3,6 +3,7 @@
 This module contains methods for directly interacting with the _simulator.
 """
 from copy import deepcopy
+from numbers import Number
 from typing import List, Union, Optional, Dict, Set, Tuple, TYPE_CHECKING
 
 import numpy as np
@@ -94,7 +95,11 @@ class SessionInfo:
 
         self.current_time = current_time
 
-        if isinstance(min_rates, float):
+        if (
+            isinstance(min_rates, Number)
+            or isinstance(min_rates, float)
+            or isinstance(min_rates, int)
+        ):
             self.min_rates = np.array([min_rates] * self.remaining_time)
         elif len(min_rates) == self.remaining_time:
             self.min_rates = np.array(min_rates)
@@ -106,7 +111,11 @@ class SessionInfo:
                 f"Remaining time: {self.remaining_time}"
             )
 
-        if isinstance(max_rates, float):
+        if (
+            isinstance(max_rates, Number)
+            or isinstance(max_rates, float)
+            or isinstance(max_rates, int)
+        ):
             self.max_rates = np.array([max_rates] * self.remaining_time)
         elif len(max_rates) == self.remaining_time:
             self.max_rates = np.array(max_rates)
@@ -483,7 +492,9 @@ class Interface:
         """
         return deepcopy(self._infrastructure_info())
 
-    def allowable_pilot_signals(self, station_id: str) -> Tuple[bool, List[float]]:
+    def allowable_pilot_signals(
+        self, station_id: str
+    ) -> Tuple[bool, Optional[List[float]]]:
         """ Returns the allowable pilot signal levels for the specified EVSE.
         One may assume an EVSE pilot signal of 0 is allowed regardless
         of this function's return values.
@@ -501,12 +512,15 @@ class Interface:
         continuity: bool = infrastructure_info.is_continuous[
             infrastructure_info.get_station_index(station_id)
         ].tolist()
-        # Numpy tolist method returns "object", so type checking will fail here.
-        # TODO: Allowable pilots could be a list of Nones. How to handle?
-        # noinspection PyTypeChecker
-        allowable_pilots: List[float] = infrastructure_info.allowable_pilots[
+        curr_allowable_pilots: Optional[
+            np.ndarray
+        ] = infrastructure_info.allowable_pilots[
             infrastructure_info.get_station_index(station_id)
-        ].tolist()
+        ]
+        if curr_allowable_pilots is not None:
+            allowable_pilots = curr_allowable_pilots.tolist()
+        else:
+            allowable_pilots = None
         return continuity, allowable_pilots
 
     def max_pilot_signal(self, station_id: str) -> float:
