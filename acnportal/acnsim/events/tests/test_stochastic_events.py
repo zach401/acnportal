@@ -36,9 +36,9 @@ class TestStochasticEvents(unittest.TestCase):
 
     def test_generate_events(self):
         samples = np.array([[6.5, 8, 10], [8.3, 6.05, 3], [10, 3, 6.6]])
-        self.gen = StochasticEvents()
-        self.gen.sample = Mock(return_value=samples)
-        queue = self.gen.generate_events(self.sessions_per_day, self.period, self.voltage, self.max_battery_power)
+        gen = StochasticEvents()
+        gen.sample = Mock(return_value=samples)
+        queue = gen.generate_events(self.sessions_per_day, self.period, self.voltage, self.max_battery_power)
         evs = [event[1].ev for event in queue.queue]
         self._default_tests(evs)
 
@@ -52,9 +52,9 @@ class TestStochasticEvents(unittest.TestCase):
 
     def test_generate_events_with_force_feasible(self):
         samples = np.array([[6.5, 1, 10], [8.3, 6.05, 3], [10, 3, 6.6]])
-        self.gen = StochasticEvents()
-        self.gen.sample = Mock(return_value=samples)
-        queue = self.gen.generate_events(self.sessions_per_day, self.period, self.voltage, self.max_battery_power,
+        gen = StochasticEvents()
+        gen.sample = Mock(return_value=samples)
+        queue = gen.generate_events(self.sessions_per_day, self.period, self.voltage, self.max_battery_power,
                                          force_feasible=True)
         evs = [event[1].ev for event in queue.queue]
         self._default_tests(evs)
@@ -69,9 +69,9 @@ class TestStochasticEvents(unittest.TestCase):
 
     def test_generate_events_with_max_len(self):
         samples = np.array([[6.5, 8, 10], [8.3, 6.05, 3], [10, 3, 6.6]])
-        self.gen = StochasticEvents()
-        self.gen.sample = Mock(return_value=samples)
-        queue = self.gen.generate_events(self.sessions_per_day, self.period, self.voltage, self.max_battery_power,
+        gen = StochasticEvents()
+        gen.sample = Mock(return_value=samples)
+        queue = gen.generate_events(self.sessions_per_day, self.period, self.voltage, self.max_battery_power,
                                          max_len=3)
         evs = [event[1].ev for event in queue.queue]
         self._default_tests(evs)
@@ -86,9 +86,9 @@ class TestStochasticEvents(unittest.TestCase):
 
     def test_generate_events_with_max_len_and_force_feasible(self):
         samples = np.array([[6.5, 8, 10], [8.3, 6.05, 3], [10, 3, 15]])
-        self.gen = StochasticEvents()
-        self.gen.sample = Mock(return_value=samples)
-        queue = self.gen.generate_events(self.sessions_per_day, self.period, self.voltage, self.max_battery_power,
+        gen = StochasticEvents()
+        gen.sample = Mock(return_value=samples)
+        queue = gen.generate_events(self.sessions_per_day, self.period, self.voltage, self.max_battery_power,
                                          max_len=1, force_feasible=True)
         evs = [event[1].ev for event in queue.queue]
         self._default_tests(evs)
@@ -100,7 +100,6 @@ class TestStochasticEvents(unittest.TestCase):
         with self.subTest("test_requested_energy"):
             self.assertListEqual([ev.requested_energy for ev in evs],
                                  [self.max_battery_power, 3, self.max_battery_power])
-
 
 if __name__ == '__main__':
     unittest.main()
