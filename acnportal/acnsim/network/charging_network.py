@@ -327,12 +327,12 @@ class ChargingNetwork(BaseSimObj):
         else:
             raise KeyError("Station {0} not found.".format(ev.station_id))
 
-    def unplug(self, station_id: str) -> None:
+    def unplug(self, station_id: str, session_id: str) -> None:
         """ Detach EV from a specific EVSE.
 
         Args:
             station_id (str): ID of the EVSE.
-
+            sesison_id (str): ID of the session to be unplugged.
         Returns:
             None
 
@@ -340,7 +340,11 @@ class ChargingNetwork(BaseSimObj):
             KeyError: Raised when the station id has not yet been registered.
         """
         if station_id in self._EVSEs:
-            self._EVSEs[station_id].unplug()
+            if session_id == self._EVSEs[station_id].ev.session_id:
+                self._EVSEs[station_id].unplug()
+            else:
+                warnings.warn(f"Tried to remove EV with session_id {session_id} which was not "
+                              f"present at station {station_id}.")
         else:
             raise KeyError("Station {0} not found.".format(station_id))
 
