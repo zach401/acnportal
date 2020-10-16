@@ -2,9 +2,12 @@ from typing import List, Dict, Any
 from acnportal.acnsim.events import EventQueue, PluginEvent
 from acnportal.acnsim.models import EV, Battery
 import numpy as np
+from sklearn.mixture import GaussianMixture
+import pandas as pd
 
 
 class StochasticEvents:
+    """ Base class for generating events from a stochastic model. """
     def fit(self, data: List[Dict[str, Any]]) -> None:
         """ Fit StochasticEvents model to data from ACN-Data.
 
@@ -16,7 +19,7 @@ class StochasticEvents:
         """
         pass
 
-    def sample(self, n_samples: int):
+    def sample(self, n_samples: int) -> np.ndarray:
         """ Generate random samples from the fitted model.
 
         Args:
@@ -63,6 +66,24 @@ class StochasticEvents:
                                       battery_params, force_feasible)
         events = [PluginEvent(sess.arrival, sess) for sess in evs]
         return EventQueue(events)
+
+    @staticmethod
+    def extract_training_data(data: List[Dict[str, Any]]):
+        """ Generate matrix for training Gaussian Mixture Model.
+
+        Args:
+            data (List[Dict[str, Any]]): List of session dictionaries. See DataClient.get_sessions().
+
+        Returns:
+            np.ndarray: shape(n_sessions, 3) Column 1 is the arrival time in hours since midnight, column 2 is the
+                sojourn time in hours, and column 3 is the energy demand in kWh.
+        """
+        df = pd.DataFrame(data)
+        df.sort_values(by='connectionTime', inplace=True)
+        connection_time = [v.hour + v.minute / 60 for v in df['connectionTime']]
+        durations = [v.total_seconds() / 3600 for v in df['disconnectTime'] - df['connectionTime']]
+        energy = [v for v in df['kWhDelivered']]
+        return np.array([connection_time, durations, energy]).T
 
     @staticmethod
     def _convert_ev_matrix(ev_matrix: np.ndarray, period: float, voltage: float, max_battery_power: float,
@@ -116,5 +137,44 @@ class StochasticEvents:
         return evs
 
 
+class GaussianMixtureEvents(StochasticEvents):
+    """ Model to draw charging session parameters from a gaussian mixture model.
 
+    Args:
+        pretrained_model (GaussianMixture): A trained Gaussian Mixture Model with
+            variables arrival time (h), sojourn time (h), energy demand (kWh).
+    """
+    def __init__(self, pretrained_model=None, **kwargs):
+        if pretrained_model is None:
+            self.gmm = GaussianMixture(**kwargs)
+        else:
+            self.gmm = pretrained_model
+
+    def fit(self, data: List[Dict[str, Any]], **kwargs) -> None:
+        """ Fit StochasticEvents model to data from ACN-Data.
+
+        Args:
+            data (List[Dict[str, Any]]): List of session dictionaries. See DataClient.get_sessions().
+
+        Returns:
+            None
+        """
+        x = self.extract_training_data(data)
+        self.gmm.fit(x, **kwargs)
+
+    def sample(self, n_samples: int):
+        """ Generate random samples from the fitted model.
+
+        Args:
+            n_samples (int): Number of samples to generate.
+
+        Returns:
+            np.ndarray: shape (n_samples, 3), randomly generated samples. Column 1 is the arrival time in hours
+                since midnight, column 2 is the sojourn time in hours, and column 3 is the energy demand in kWh.
+        """
+        if n_samples > 0:
+            ev_matrix, _ = self.gmm.sample(n_samples)
+            return ev_matrix
+        else:
+            return np.array([])
 
