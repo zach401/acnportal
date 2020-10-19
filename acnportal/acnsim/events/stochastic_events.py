@@ -184,7 +184,11 @@ class GaussianMixtureEvents(StochasticEvents):
         Also accepts any kwargs for the sklearn GaussianMixture class.
         See https://scikit-learn.org/stable/modules/generated/sklearn.mixture.GaussianMixture.html.
     """
-    def __init__(self, pretrained_model=None, **kwargs):
+    def __init__(self, arrival_min: float = 0., arrival_max:float = 24.,
+                 duration_min: float = 0.0833, duration_max: float = 48.,
+                 energy_min:float = 0.5, energy_max: float = 150.,
+                 pretrained_model=None, **kwargs):
+        super().__init__(arrival_min, arrival_max, duration_min, duration_max, energy_min, energy_max)
         if pretrained_model is None:
             self.gmm = GaussianMixture(**kwargs)
         else:
@@ -214,7 +218,7 @@ class GaussianMixtureEvents(StochasticEvents):
         """
         if n_samples > 0:
             ev_matrix, _ = self.gmm.sample(n_samples)
-            return ev_matrix
+            return self.clip_samples(ev_matrix)
         else:
             return np.array([])
 
