@@ -179,5 +179,34 @@ class TestStochasticEvents(unittest.TestCase):
         ])
         np.testing.assert_equal(StochasticEvents.extract_training_data(sessions),
                                 expected)
+
+    def test_clip_samples(self):
+        samples = np.array([
+            [8, 8.5, 8.24],
+            [-1, 8.5, 8.24],
+            [26, 8.5, 8.24],
+            [8, -1, 8.24],
+            [8, 72, 8.24],
+            [8, 8.5, -11],
+            [8, 8.5, 200],
+        ])
+
+        expected = np.array([
+            [8, 8.5, 8.24],
+            [0, 8.5, 8.24],
+            [24, 8.5, 8.24],
+            [8, .0833, 8.24],
+            [8, 48, 8.24],
+            [8, 8.5, .5],
+            [8, 8.5, 150],
+        ])
+
+        se = StochasticEvents()
+        np.testing.assert_equal(
+            se.clip_samples(samples),
+            expected
+        )
+
+
 if __name__ == '__main__':
     unittest.main()

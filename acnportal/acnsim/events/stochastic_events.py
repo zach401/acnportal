@@ -7,7 +7,27 @@ import pandas as pd
 
 
 class StochasticEvents:
-    """ Base class for generating events from a stochastic model. """
+    """ Base class for generating events from a stochastic model.
+    
+    Args:
+        arrival_min (float): Lower bound for arrival time, [hours since midnight]
+        arrival_max (float): Upper bound for arrival time [hours since midnight]
+        duration_min (float): Lower bound for duration [hours] 
+        duration_max (float): Upper bound for duration [hours]  
+        energy_min (float): Lower bound for energy request [kWh] 
+        energy_max (float): Upper bound for energy request [kWh]     
+    """
+
+    def __init__(self, arrival_min: float = 0., arrival_max:float = 24.,
+                 duration_min: float = 0.0833, duration_max: float = 48.,
+                 energy_min:float = 0.5, energy_max: float = 150.):
+        self.arrival_min = arrival_min
+        self.arrival_max = arrival_max
+        self.duration_min = duration_min
+        self.duration_max = duration_max
+        self.energy_min = energy_min
+        self.energy_max = energy_max
+
     def fit(self, data: List[Dict[str, Any]]) -> None:
         """ Fit StochasticEvents model to data from ACN-Data.
 
@@ -30,6 +50,24 @@ class StochasticEvents:
                 since midnight, column 2 is the sojourn time in hours, and column 3 is the energy demand in kWh.
         """
         pass
+
+    def clip_samples(self, sample_matrix: np.ndarray) -> np.ndarray:
+        """ Clip samples matrix into their upper and lower bounds.
+
+            Note that this function will modify the samples_matrix in place as well as return it.
+
+        Args:
+            sample_matrix (np.ndarray): shape (n_samples, 3), randomly generated samples. Column 1 is the arrival
+                time in hours since midnight, column 2 is the sojourn time in hours, and column 3 is the energy
+                demand in kWh.
+
+        Returns:
+            np.ndarray: sample matrix with all entries projected into their corresponding bounds.
+        """
+        sample_matrix[:, 0] = np.clip(sample_matrix[:, 0], self.arrival_min, self.arrival_max)
+        sample_matrix[:, 1] = np.clip(sample_matrix[:, 1], self.duration_min, self.duration_max)
+        sample_matrix[:, 2] = np.clip(sample_matrix[:, 2], self.energy_min, self.energy_max)
+        return sample_matrix
 
     def generate_events(self, sessions_per_day: List[int], period: float, voltage: float, max_battery_power: float,
                         max_len: int = None, battery_params: Dict[str, Any] = None, force_feasible: bool = False
@@ -143,6 +181,8 @@ class GaussianMixtureEvents(StochasticEvents):
     Args:
         pretrained_model (GaussianMixture): A trained Gaussian Mixture Model with
             variables arrival time (h), sojourn time (h), energy demand (kWh).
+        Also accepts any kwargs for the sklearn GaussianMixture class.
+        See https://scikit-learn.org/stable/modules/generated/sklearn.mixture.GaussianMixture.html.
     """
     def __init__(self, pretrained_model=None, **kwargs):
         if pretrained_model is None:
