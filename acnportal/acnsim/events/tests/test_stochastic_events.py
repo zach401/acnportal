@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import Mock, call
 from acnportal.acnsim.events.stochastic_events import StochasticEvents
 import numpy as np
+from datetime import datetime
 from acnportal.acnsim import Battery, EV
 from typing import List
 
@@ -153,6 +154,30 @@ class TestStochasticEvents(unittest.TestCase):
                                  [174, 172, 156,
                                   2*self.periods_per_day + 174, 2*self.periods_per_day + 172, 2*self.periods_per_day + 156])
 
-
+    def test_extract_training_data(self):
+        sessions = [
+            {
+                "connectionTime": datetime(2020, 1, 1, 0, 0),
+                "disconnectTime": datetime(2020, 1, 1, 8, 30),
+                "kWhDelivered": 8.24
+            },
+            {
+                "connectionTime": datetime(2020, 1, 1, 7, 24),
+                "disconnectTime": datetime(2020, 1, 1, 10, 0),
+                "kWhDelivered": 1
+            },
+            {
+                "connectionTime": datetime(2020, 1, 1, 8, 0),
+                "disconnectTime": datetime(2020, 1, 1, 13, 0),
+                "kWhDelivered": 12.3
+            }
+        ]
+        expected = np.array([
+            [0, 8.5, 8.24],
+            [7.4, 2.6, 1],
+            [8, 5, 12.3]
+        ])
+        np.testing.assert_equal(StochasticEvents.extract_training_data(sessions),
+                                expected)
 if __name__ == '__main__':
     unittest.main()
