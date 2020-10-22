@@ -18,9 +18,15 @@ class StochasticEvents:
         energy_max (float): Upper bound for energy request [kWh]     
     """
 
-    def __init__(self, arrival_min: float = 0., arrival_max:float = 24.,
-                 duration_min: float = 0.0833, duration_max: float = 48.,
-                 energy_min:float = 0.5, energy_max: float = 150.):
+    def __init__(
+        self,
+        arrival_min: float = 0.0,
+        arrival_max: float = 24.0,
+        duration_min: float = 0.0833,
+        duration_max: float = 48.0,
+        energy_min: float = 0.5,
+        energy_max: float = 150.0,
+    ):
         self.arrival_min = arrival_min
         self.arrival_max = arrival_max
         self.duration_min = duration_min
@@ -64,14 +70,27 @@ class StochasticEvents:
         Returns:
             np.ndarray: sample matrix with all entries projected into their corresponding bounds.
         """
-        sample_matrix[:, 0] = np.clip(sample_matrix[:, 0], self.arrival_min, self.arrival_max)
-        sample_matrix[:, 1] = np.clip(sample_matrix[:, 1], self.duration_min, self.duration_max)
-        sample_matrix[:, 2] = np.clip(sample_matrix[:, 2], self.energy_min, self.energy_max)
+        sample_matrix[:, 0] = np.clip(
+            sample_matrix[:, 0], self.arrival_min, self.arrival_max
+        )
+        sample_matrix[:, 1] = np.clip(
+            sample_matrix[:, 1], self.duration_min, self.duration_max
+        )
+        sample_matrix[:, 2] = np.clip(
+            sample_matrix[:, 2], self.energy_min, self.energy_max
+        )
         return sample_matrix
 
-    def generate_events(self, sessions_per_day: List[int], period: float, voltage: float, max_battery_power: float,
-                        max_len: int = None, battery_params: Dict[str, Any] = None, force_feasible: bool = False
-                        ) -> EventQueue:
+    def generate_events(
+        self,
+        sessions_per_day: List[int],
+        period: float,
+        voltage: float,
+        max_battery_power: float,
+        max_len: int = None,
+        battery_params: Dict[str, Any] = None,
+        force_feasible: bool = False,
+    ) -> EventQueue:
         """ Return EventQueue from random generated samples.
 
             Args:
@@ -100,8 +119,15 @@ class StochasticEvents:
                 daily_arrivals[:, 0] += 24 * d
                 daily_sessions.append(daily_arrivals)
         ev_matrix = np.vstack([day for day in daily_sessions if day is not None])
-        evs = self._convert_ev_matrix(ev_matrix, period, voltage, max_battery_power, max_len,
-                                      battery_params, force_feasible)
+        evs = self._convert_ev_matrix(
+            ev_matrix,
+            period,
+            voltage,
+            max_battery_power,
+            max_len,
+            battery_params,
+            force_feasible,
+        )
         events = [PluginEvent(sess.arrival, sess) for sess in evs]
         return EventQueue(events)
 
@@ -117,16 +143,25 @@ class StochasticEvents:
                 sojourn time in hours, and column 3 is the energy demand in kWh.
         """
         df = pd.DataFrame(data)
-        df.sort_values(by='connectionTime', inplace=True)
-        connection_time = [v.hour + v.minute / 60 for v in df['connectionTime']]
-        durations = [v.total_seconds() / 3600 for v in df['disconnectTime'] - df['connectionTime']]
-        energy = [v for v in df['kWhDelivered']]
+        df.sort_values(by="connectionTime", inplace=True)
+        connection_time = [v.hour + v.minute / 60 for v in df["connectionTime"]]
+        durations = [
+            v.total_seconds() / 3600
+            for v in df["disconnectTime"] - df["connectionTime"]
+        ]
+        energy = [v for v in df["kWhDelivered"]]
         return np.array([connection_time, durations, energy]).T
 
     @staticmethod
-    def _convert_ev_matrix(ev_matrix: np.ndarray, period: float, voltage: float, max_battery_power: float,
-                           max_len: int = None, battery_params: Dict[str, Any] = None, force_feasible: bool = False,
-                           ) -> List[EV]:
+    def _convert_ev_matrix(
+        ev_matrix: np.ndarray,
+        period: float,
+        voltage: float,
+        max_battery_power: float,
+        max_len: int = None,
+        battery_params: Dict[str, Any] = None,
+        force_feasible: bool = False,
+    ) -> List[EV]:
         """
 
         Args:
@@ -171,7 +206,16 @@ class StochasticEvents:
                 init = 0
             battery_type = battery_params["type"]
             battery = battery_type(cap, init, max_battery_power, **batt_kwargs)
-            evs.append(EV(arrival, departure, energy_delivered, station_id, session_id, battery))
+            evs.append(
+                EV(
+                    arrival,
+                    departure,
+                    energy_delivered,
+                    station_id,
+                    session_id,
+                    battery,
+                )
+            )
         return evs
 
 
@@ -184,11 +228,21 @@ class GaussianMixtureEvents(StochasticEvents):
         Also accepts any kwargs for the sklearn GaussianMixture class.
         See https://scikit-learn.org/stable/modules/generated/sklearn.mixture.GaussianMixture.html.
     """
-    def __init__(self, arrival_min: float = 0., arrival_max:float = 24.,
-                 duration_min: float = 0.0833, duration_max: float = 48.,
-                 energy_min:float = 0.5, energy_max: float = 150.,
-                 pretrained_model=None, **kwargs):
-        super().__init__(arrival_min, arrival_max, duration_min, duration_max, energy_min, energy_max)
+
+    def __init__(
+        self,
+        arrival_min: float = 0.0,
+        arrival_max: float = 24.0,
+        duration_min: float = 0.0833,
+        duration_max: float = 48.0,
+        energy_min: float = 0.5,
+        energy_max: float = 150.0,
+        pretrained_model=None,
+        **kwargs
+    ):
+        super().__init__(
+            arrival_min, arrival_max, duration_min, duration_max, energy_min, energy_max
+        )
         if pretrained_model is None:
             self.gmm = GaussianMixture(**kwargs)
         else:
@@ -221,4 +275,3 @@ class GaussianMixtureEvents(StochasticEvents):
             return self.clip_samples(ev_matrix)
         else:
             return np.array([])
-
