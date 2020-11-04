@@ -100,7 +100,8 @@ class TestChargingNetwork(TestCase):
 
         evse.unplug = Mock(evse.unplug)
         self.network.register_evse(evse, 240, 0)
-        self.network.unplug("PS-001", "Session-01")
+        with self.assertWarns(UserWarning):
+            self.network.unplug("PS-001", "Session-01")
         # noinspection PyUnresolvedReferences
         evse.unplug.assert_not_called()
 

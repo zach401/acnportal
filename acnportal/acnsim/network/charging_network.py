@@ -344,8 +344,10 @@ class ChargingNetwork(BaseSimObj):
             if session_id == self._EVSEs[station_id].ev.session_id:
                 self._EVSEs[station_id].unplug()
             else:
-                warnings.warn(f"Tried to remove EV with session_id {session_id} which was not "
-                              f"present at station {station_id}.")
+                warnings.warn(
+                    f"Tried to remove EV with session_id {session_id} which was not "
+                    f"present at station {station_id}."
+                )
         else:
             raise KeyError("Station {0} not found.".format(station_id))
 
