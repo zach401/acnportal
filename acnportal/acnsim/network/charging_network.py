@@ -319,7 +319,8 @@ class ChargingNetwork(BaseSimObj):
         """
         if station_id is not None:
             warnings.warn(
-                "plugin arg 'station_id' is deprecated. Plugin now uses the value of ev.station_id directly.",
+                "plugin arg 'station_id' is deprecated. Plugin now uses the value of "
+                "ev.station_id directly.",
                 DeprecationWarning,
             )
         if ev.station_id in self._EVSEs:
