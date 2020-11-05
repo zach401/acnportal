@@ -67,15 +67,16 @@ class TestChargingNetwork(TestCase):
         evse.plugin = Mock(evse.plugin)
         self.network.register_evse(evse, 240, 0)
         ev = create_autospec(EV)
-
-        self.network.plugin(ev, "PS-001")
+        ev.station_id = "PS-001"
+        self.network.plugin(ev)
         # noinspection PyUnresolvedReferences
         evse.plugin.assert_called_once()
 
     def test_plugin_station_does_not_exist(self) -> None:
         ev = create_autospec(EV)
+        ev.station_id = "PS-001"
         with self.assertRaises(KeyError):
-            self.network.plugin(ev, "PS-001")
+            self.network.plugin(ev)
 
     def test_unplug_station_exists(self) -> None:
         evse = EVSE("PS-001")
