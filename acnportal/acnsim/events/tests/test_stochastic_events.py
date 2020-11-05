@@ -1,3 +1,5 @@
+# coding=utf-8
+""" Tests for stochastic event generation. """
 import unittest
 from unittest.mock import Mock, call
 from acnportal.acnsim.events.stochastic_events import StochasticEvents
@@ -8,7 +10,8 @@ from typing import List
 
 
 class TestStochasticEvents(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
+        """ Tests for StochasticEvents. """
         self.period = 5
         self.periods_per_hour = 60 / self.period
         self.periods_per_day = self.periods_per_hour * 24
@@ -38,7 +41,7 @@ class TestStochasticEvents(unittest.TestCase):
                 self.assertIsInstance(ev._battery, Battery)
                 self.assertEqual(ev.maximum_charging_power, self.max_battery_power)
 
-    def test_generate_events(self):
+    def test_generate_events(self) -> None:
         samples = np.array([[6.5, 8, 10], [8.3, 6.05, 3], [10, 3, 6.6]])
         gen = StochasticEvents()
         gen.sample = Mock(return_value=samples)
@@ -54,7 +57,7 @@ class TestStochasticEvents(unittest.TestCase):
         with self.subTest("test_requested_energy"):
             self.assertListEqual([ev.requested_energy for ev in evs], [10, 3, 6.6])
 
-    def test_generate_events_with_force_feasible(self):
+    def test_generate_events_with_force_feasible(self) -> None:
         samples = np.array([[6.5, 1, 10], [8.3, 6.05, 3], [10, 3, 6.6]])
         gen = StochasticEvents()
         gen.sample = Mock(return_value=samples)
@@ -76,7 +79,7 @@ class TestStochasticEvents(unittest.TestCase):
                 [ev.requested_energy for ev in evs], [self.max_battery_power, 3, 6.6]
             )
 
-    def test_generate_events_with_max_len(self):
+    def test_generate_events_with_max_len(self) -> None:
         samples = np.array([[6.5, 8, 10], [8.3, 6.05, 3], [10, 3, 6.6]])
         gen = StochasticEvents()
         gen.sample = Mock(return_value=samples)
@@ -96,7 +99,7 @@ class TestStochasticEvents(unittest.TestCase):
         with self.subTest("test_requested_energy"):
             self.assertListEqual([ev.requested_energy for ev in evs], [10, 3, 6.6])
 
-    def test_generate_events_with_max_len_and_force_feasible(self):
+    def test_generate_events_with_max_len_and_force_feasible(self) -> None:
         samples = np.array([[6.5, 8, 10], [8.3, 6.05, 3], [10, 3, 15]])
         gen = StochasticEvents()
         gen.sample = Mock(return_value=samples)
@@ -120,7 +123,7 @@ class TestStochasticEvents(unittest.TestCase):
                 [self.max_battery_power, 3, self.max_battery_power],
             )
 
-    def test_generate_events_multi_day(self):
+    def test_generate_events_multi_day(self) -> None:
         samples = np.array([[6.5, 8, 10], [8.3, 6.05, 3], [10, 3, 15]])
         gen = StochasticEvents()
 
@@ -163,7 +166,7 @@ class TestStochasticEvents(unittest.TestCase):
                 ],
             )
 
-    def test_generate_events_multi_day_with_0_sessions(self):
+    def test_generate_events_multi_day_with_0_sessions(self) -> None:
         samples = np.array([[6.5, 8, 10], [8.3, 6.05, 3], [10, 3, 15]])
         gen = StochasticEvents()
 
@@ -206,7 +209,7 @@ class TestStochasticEvents(unittest.TestCase):
                 ],
             )
 
-    def test_extract_training_data(self):
+    def test_extract_training_data(self) -> None:
         sessions = [
             {
                 "connectionTime": datetime(2020, 1, 1, 0, 0),
@@ -229,7 +232,7 @@ class TestStochasticEvents(unittest.TestCase):
             StochasticEvents.extract_training_data(sessions), expected
         )
 
-    def test_clip_samples(self):
+    def test_clip_samples(self) -> None:
         samples = np.array(
             [
                 [8, 8.5, 8.24],
