@@ -220,7 +220,7 @@ class Simulator(BaseSimObj):
         """
         if event.event_type == "Plugin":
             self._print("Plugin Event...")
-            self.network.plugin(event.ev, event.ev.station_id)
+            self.network.plugin(event.ev)
             self.ev_history[event.ev.session_id] = event.ev
             self.event_queue.add_event(
                 UnplugEvent(

@@ -311,11 +311,12 @@ class ChargingNetwork(BaseSimObj):
         # Cached information-storing objects for use by Interface.
         _ = self._update_info_store()
 
-    def plugin(self, ev: EV, station_id: str) -> None:
+    def plugin(self, ev: EV, station_id: str = None) -> None:
         """ Attach EV to a specific EVSE.
 
         Args:
             ev (EV): EV object which will be attached to the EVSE.
+            [Depreciated]
             station_id (str): ID of the EVSE.
 
         Returns:
@@ -324,10 +325,16 @@ class ChargingNetwork(BaseSimObj):
         Raises:
             KeyError: Raised when the station id has not yet been registered.
         """
-        if station_id in self._EVSEs:
-            self._EVSEs[station_id].plugin(ev)
+        if station_id is not None:
+            warnings.warn(
+                "plugin arg 'station_id' is deprecated. Plugin now uses the value of "
+                "ev.station_id directly.",
+                DeprecationWarning,
+            )
+        if ev.station_id in self._EVSEs:
+            self._EVSEs[ev.station_id].plugin(ev)
         else:
-            raise KeyError("Station {0} not found.".format(station_id))
+            raise KeyError("Station {0} not found.".format(ev.station_id))
 
     def unplug(self, station_id: str) -> None:
         """ Detach EV from a specific EVSE.

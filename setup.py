@@ -16,8 +16,8 @@ setuptools.setup(
         "": [
             "LICENSE.txt",
             "THANKS.txt",
-            "acnportal/signals/tariffs/tariff_schedules/*",
-        ]
+        ],
+        "acnportal": ["signals/tariffs/tariff_schedules/*"],
     },
     include_package_data=True,
     classifiers=[
