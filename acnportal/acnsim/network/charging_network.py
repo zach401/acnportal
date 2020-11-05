@@ -346,7 +346,8 @@ class ChargingNetwork(BaseSimObj):
             else:
                 warnings.warn(
                     f"Tried to remove EV with session_id {session_id} which was not "
-                    f"present at station {station_id}."
+                    f"present at station {station_id}. Found EV with session_id "
+                    f"{self._EVSEs[station_id].ev.session_id} instead."
                 )
         else:
             raise KeyError("Station {0} not found.".format(station_id))
