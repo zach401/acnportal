@@ -78,28 +78,25 @@ class TestChargingNetwork(TestCase):
         with self.assertRaises(KeyError):
             self.network.plugin(ev)
 
-    def test_unplug_station_exists_session_id_matches(self) -> None:
+    def _unplug_test_setup(self, real_session_id: str) -> EVSE:
         evse = EVSE("PS-001")
         ev = create_autospec(EV)
         ev.station_id = "PS-001"
-        ev.session_id = "Session-01"
+        ev.session_id = real_session_id
         evse.plugin(ev)
 
         evse.unplug = Mock(evse.unplug)
         self.network.register_evse(evse, 240, 0)
+        return evse
+
+    def test_unplug_station_exists_session_id_matches(self) -> None:
+        evse = self._unplug_test_setup("Session-01")
         self.network.unplug("PS-001", "Session-01")
         # noinspection PyUnresolvedReferences
         evse.unplug.assert_called_once()
 
     def test_unplug_station_exists_session_id_mismatch(self) -> None:
-        evse = EVSE("PS-001")
-        ev = create_autospec(EV)
-        ev.station_id = "PS-001"
-        ev.session_id = "Session-02"
-        evse.plugin(ev)
-
-        evse.unplug = Mock(evse.unplug)
-        self.network.register_evse(evse, 240, 0)
+        evse = self._unplug_test_setup("Session-02")
         with self.assertWarns(UserWarning):
             self.network.unplug("PS-001", "Session-01")
         # noinspection PyUnresolvedReferences
