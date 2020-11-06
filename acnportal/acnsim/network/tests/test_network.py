@@ -2,7 +2,7 @@
 """ Tests for ChargingNetwork functionality. """
 from collections import OrderedDict
 from unittest import TestCase
-from unittest.mock import Mock, create_autospec
+from unittest.mock import Mock, create_autospec, patch
 
 import numpy as np
 import pandas as pd
@@ -91,16 +91,16 @@ class TestChargingNetwork(TestCase):
 
     def test_unplug_station_exists_session_id_matches(self) -> None:
         evse = self._unplug_test_setup("Session-01")
-        self.network.unplug("PS-001", "Session-01")
-        # noinspection PyUnresolvedReferences
-        evse.unplug.assert_called_once()
+        with patch.object(evse, "unplug") as unplug:
+            self.network.unplug("PS-001", "Session-01")
+        unplug.assert_called_once()
 
     def test_unplug_station_exists_session_id_mismatch(self) -> None:
         evse = self._unplug_test_setup("Session-02")
-        with self.assertWarns(UserWarning):
-            self.network.unplug("PS-001", "Session-01")
-        # noinspection PyUnresolvedReferences
-        evse.unplug.assert_not_called()
+        with patch.object(evse, "unplug") as unplug:
+            with self.assertWarns(UserWarning):
+                self.network.unplug("PS-001", "Session-01")
+        unplug.assert_not_called()
 
     def test_unplug_station_does_not_exist(self) -> None:
         with self.assertRaises(KeyError):

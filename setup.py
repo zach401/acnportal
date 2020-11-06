@@ -13,10 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
     package_data={
-        "": [
-            "LICENSE.txt",
-            "THANKS.txt",
-        ],
+        "": ["LICENSE.txt", "THANKS.txt",],
         "acnportal": ["signals/tariffs/tariff_schedules/*"],
     },
     include_package_data=True,
