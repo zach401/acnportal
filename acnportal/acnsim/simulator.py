@@ -1,9 +1,7 @@
 import copy
 from datetime import datetime
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Tuple
 
-import pandas as pd
-import numpy as np
 import warnings
 import json
 
@@ -139,6 +137,7 @@ class Simulator(BaseSimObj):
             self.charging_rates = _increase_width(self.charging_rates, width_increase)
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
+            self.network.post_charging_update()
             self._iteration = self._iteration + 1
 
     def step(self, new_schedule):
@@ -181,6 +180,7 @@ class Simulator(BaseSimObj):
             self.charging_rates = _increase_width(self.charging_rates, width_increase)
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
+            self.network.post_charging_update()
             self._iteration = self._iteration + 1
             current_events = self.event_queue.get_current_events(self._iteration)
             for e in current_events:
