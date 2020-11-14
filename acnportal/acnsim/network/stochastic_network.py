@@ -68,17 +68,17 @@ class StochasticNetwork(ChargingNetwork):
         Raises:
             KeyError: Raised when the station id has not yet been registered.
         """
-        if station_id in self._EVSEs:
+        if session_id in self.waiting_queue:
+            del self.waiting_queue[session_id]
+            self.never_charged += 1
+        elif station_id in self._EVSEs:
             if session_id == self._EVSEs[station_id].ev.session_id:
                 self._EVSEs[station_id].unplug()
                 if len(self.waiting_queue) > 0:
                     _, next_ev = self.waiting_queue.popitem(last=False)
-                    next_ev.station_id = station_id
-                    super().plugin(next_ev, station_id)
+                    next_ev.update_station_id(station_id)
+                    super().plugin(next_ev)
                     self.swaps += 1
-            elif session_id in self.waiting_queue:
-                del self.waiting_queue[session_id]
-                self.never_charged += 1
             else:
                 warnings.warn(
                     f"Tried to remove EV with session_id {session_id} which was not "
