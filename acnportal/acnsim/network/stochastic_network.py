@@ -98,3 +98,4 @@ class StochasticNetwork(ChargingNetwork):
             for ev in fully_charged_evs:
                 if len(self.waiting_queue) > 0:
                     self.unplug(ev.station_id, ev.session_id)
+                    self.early_unplug += 1

@@ -121,9 +121,7 @@ class TestStochasticChargingNetwork(TestCase):
     def test_unplug_station_exists_session_id_mismatch(self, choice_mock) -> None:
         ev = EV(0, 10, 10, "", "Session-01", Battery(100, 0, 6.6))
         choice_mock.return_value = "PS-002"
-
         self.network.plugin(ev)
-
         self.network._EVSEs["PS-002"].unplug = Mock()
         self.network.unplug(ev.station_id, "Incorrect ID")
         # noinspection PyUnresolvedReferences
@@ -132,3 +130,93 @@ class TestStochasticChargingNetwork(TestCase):
     def test_unplug_station_does_not_exist(self) -> None:
         with self.assertRaises(KeyError):
             self.network.unplug("PS-005", "Session-01")
+
+    @patch(RANDOM_CHOICE_PATCH_STR)
+    def test_post_charging_update_early_departure_ev_in_queue(self, choice_mock):
+        self.network.early_departure = True
+
+        ev1 = EV(0, 10, 10, "", "Session-01", Battery(100, 0, 6.6))
+        ev2 = EV(0, 10, 10, "", "Session-02", Battery(100, 0, 6.6))
+
+        # Plug ev1 into space PS-001
+        choice_mock.return_value = "PS-002"
+        self.network.plugin(ev1)
+
+        # Fully charge ev1
+        ev1._energy_delivered = 10
+
+        # Add ev2 to the waiting queue
+        self.network.waiting_queue[ev2.session_id] = ev2
+        self.network.waiting_queue.move_to_end(ev2.session_id)
+
+        # Test that unplug is called during post_charging_update.
+        self.network.unplug = Mock()
+        self.network.post_charging_update()
+        self.network.unplug.assert_called_with(ev1.station_id, ev1.session_id)
+        self.assertEqual(self.network.early_unplug, 1)
+
+    @patch(RANDOM_CHOICE_PATCH_STR)
+    def test_post_charging_update_early_departure_off_ev_in_queue(self, choice_mock):
+        self.network.early_departure = False
+
+        ev1 = EV(0, 10, 10, "", "Session-01", Battery(100, 0, 6.6))
+        ev2 = EV(0, 10, 10, "", "Session-02", Battery(100, 0, 6.6))
+
+        # Plug ev1 into space PS-001
+        choice_mock.return_value = "PS-002"
+        self.network.plugin(ev1)
+
+        # Fully charge ev1
+        ev1._energy_delivered = 10
+
+        # Add ev2 to the waiting queue
+        self.network.waiting_queue[ev2.session_id] = ev2
+        self.network.waiting_queue.move_to_end(ev2.session_id)
+
+        # Test that unplug is called during post_charging_update.
+        self.network.unplug = Mock()
+        self.network.post_charging_update()
+        self.network.unplug.assert_not_called()
+
+    @patch(RANDOM_CHOICE_PATCH_STR)
+    def test_post_charging_update_early_departure_ev_not_full(self, choice_mock):
+        self.network.early_departure = True
+
+        ev1 = EV(0, 10, 10, "", "Session-01", Battery(100, 0, 6.6))
+        ev2 = EV(0, 10, 10, "", "Session-02", Battery(100, 0, 6.6))
+
+        # Plug ev1 into space PS-001
+        choice_mock.return_value = "PS-002"
+        self.network.plugin(ev1)
+
+        # ev1 not fully charged
+        ev1._energy_delivered = 5
+
+        # Add ev2 to the waiting queue
+        self.network.waiting_queue[ev2.session_id] = ev2
+        self.network.waiting_queue.move_to_end(ev2.session_id)
+
+        # Test that unplug is called during post_charging_update.
+        self.network.unplug = Mock()
+        self.network.post_charging_update()
+        self.network.unplug.assert_not_called()
+
+    @patch(RANDOM_CHOICE_PATCH_STR)
+    def test_post_charging_update_early_departure_no_ev_in_queue(self, choice_mock):
+        self.network.early_departure = True
+
+        ev1 = EV(0, 10, 10, "", "Session-01", Battery(100, 0, 6.6))
+
+        # Plug ev1 into space PS-001
+        choice_mock.return_value = "PS-002"
+        self.network.plugin(ev1)
+
+        # Fully charge ev1
+        ev1._energy_delivered = 10
+
+        # Test that unplug is called during post_charging_update.
+        self.network.unplug = Mock()
+        self.network.post_charging_update()
+        self.network.unplug.assert_not_called()
+
+
