@@ -41,7 +41,7 @@ class Simulator(BaseSimObj):
     period: float
     ev_history: Dict[str, EV]
     event_history: List[Event]
-    schedule_history: Optional[Dict[int, Dict[str, float]]]
+    schedule_history: Optional[Dict[int, Dict[str, List[float]]]]
     max_recompute: Optional[int]
 
     def __init__(
@@ -90,9 +90,8 @@ class Simulator(BaseSimObj):
             self.max_recompute = scheduler.max_recompute
             self.scheduler.register_interface(interface_type(self))
 
-    def generate_interface(self, interface_type: type) -> Interface:
-        """ If scheduler is None, generates and returns an Interface to this
-        Simulator. TODO Tests for this."""
+    def get_interface(self, interface_type: type) -> Interface:
+        """ Generates and returns an Interface to this Simulator. TODO Tests for this."""
         return interface_type(self)
 
     @property
