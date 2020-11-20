@@ -6,9 +6,19 @@ from typing import List, Dict, Any, Callable, Tuple, Type, Optional
 from acnportal.acnsim.events import EventQueue, PluginEvent
 from acnportal.acnsim.models import EV, Battery
 import numpy as np
-from sklearn.mixture import GaussianMixture
 import pandas as pd
 from typing_extensions import TypedDict
+
+try:
+    from sklearn.mixture import GaussianMixture
+except ImportError as e:
+    raise ImportError("scikit-learn is required to use the stochastic_events module. "
+                      "Please install scikit-learn using\n"
+                      "\tpip install scikit-learn\n"
+                      "or install acnportal with extra options\n"
+                      "\tpip install acnportal[scikit-learn]")
+
+
 
 CapFnCallable = Callable[[float, float, float, float], Tuple[float, float]]
 
