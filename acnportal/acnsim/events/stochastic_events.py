@@ -104,7 +104,7 @@ class StochasticEvents:
         Args:
             sample_matrix (np.ndarray): shape (n_samples, 3), randomly generated
                 samples. Column 1 is the arrival time in hours since midnight,
-                column 2 is the sojourn time in hours, and column 3 is the energy
+                column 2 is the session duration time in hours, and column 3 is the energy
                 demand in kWh.
 
         Returns:
@@ -188,7 +188,7 @@ class StochasticEvents:
 
         Returns:
             np.ndarray: shape(n_sessions, 3) Column 1 is the arrival time in hours since
-                midnight, column 2 is the sojourn time in hours, and column 3 is the
+                midnight, column 2 is the session duration in hours, and column 3 is the
                 energy demand in kWh.
         """
         df = pd.DataFrame(data)
@@ -216,7 +216,7 @@ class StochasticEvents:
         Args:
             ev_matrix (np.ndarray[float]): Nx3 array where N is the number of EVs.
                 Column 1 is the arrival time in hours since midnight, column 2 is the
-                sojourn time in hours, and column 3 is the energy demand in kWh.
+                session duration in hours, and column 3 is the energy demand in kWh.
             (See generate_events() for other arguments)
 
         Returns:
@@ -226,20 +226,20 @@ class StochasticEvents:
         period_per_hour = 60 / period
         evs = []
         for row_idx, row in enumerate(ev_matrix):
-            arrival, sojourn, energy_delivered = row
+            arrival, duration, energy_delivered = row
 
-            if arrival < 0 or sojourn <= 0 or energy_delivered <= 0:
+            if arrival < 0 or duration <= 0 or energy_delivered <= 0:
                 print("Invalid session.")
                 continue
 
-            if max_len is not None and sojourn > max_len:
-                sojourn = max_len
+            if max_len is not None and duration > max_len:
+                duration = max_len
 
             if force_feasible:
-                max_feasible = max_battery_power * sojourn
+                max_feasible = max_battery_power * duration
                 energy_delivered = np.minimum(max_feasible, energy_delivered)
 
-            departure = int((arrival + sojourn) * period_per_hour)
+            departure = int((arrival + duration) * period_per_hour)
             arrival = int(arrival * period_per_hour)
             session_id = f"session_{row_idx}"
             # By default a new station is created for each EV.
@@ -258,7 +258,7 @@ class StochasticEvents:
             )
             if "capacity_fn" in battery_params_input:
                 cap_fn: CapFnCallable = battery_params_input["capacity_fn"]
-                cap, init = cap_fn(energy_delivered, sojourn, voltage, period)
+                cap, init = cap_fn(energy_delivered, duration, voltage, period)
             else:
                 cap = energy_delivered
                 init = 0
@@ -282,7 +282,7 @@ class GaussianMixtureEvents(StochasticEvents):
 
     Args:
         pretrained_model (GaussianMixture): A trained Gaussian Mixture Model with
-            variables arrival time (h), sojourn time (h), energy demand (kWh).
+            variables arrival time (h), session duration (h), energy demand (kWh).
         Also accepts any kwargs for the sklearn GaussianMixture class.
         See https://scikit-learn.org/stable/modules/generated/sklearn.mixture.GaussianMixture.html.
     """
@@ -330,8 +330,8 @@ class GaussianMixtureEvents(StochasticEvents):
 
         Returns:
             np.ndarray: shape (n_samples, 3), randomly generated samples. Column 1 is
-                the arrival time in hours since midnight, column 2 is the sojourn
-                time in hours, and column 3 is the energy demand in kWh.
+                the arrival time in hours since midnight, column 2 is the session duration in hours,
+                and column 3 is the energy demand in kWh.
         """
         if n_samples > 0:
             ev_matrix, _ = self.gmm.sample(n_samples)
