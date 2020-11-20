@@ -222,7 +222,7 @@ class Simulator(BaseSimObj):
             self._last_schedule_update = event.timestamp
         elif event.event_type == "Unplug":
             self._print("Unplug Event...")
-            self.network.unplug(event.station_id)
+            self.network.unplug(event.station_id, event.session_id)
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.event_type == "Recompute":
