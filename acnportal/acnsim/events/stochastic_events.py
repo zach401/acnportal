@@ -32,7 +32,7 @@ BatteryParams = TypedDict(
 
 class StochasticEvents:
     """ Base class for generating events from a stochastic model.
-    
+
     Args:
         arrival_min (float): Clip arrive time at lower bound. Useful if you know that drivers should not arrive before a
             certain time. By default 0, meaning drivers do not arrive on the previous day. [hours since midnight]
@@ -71,7 +71,7 @@ class StochasticEvents:
         self.energy_min = energy_min
         self.energy_max = energy_max
 
-    def fit(self, data: List[Dict[str, Any]]) -> None:
+    def fit(self, data: List[Dict[str, Any]], **kwargs) -> None:
         """ Fit StochasticEvents model to data from ACN-Data.
 
         Args:
@@ -81,7 +81,6 @@ class StochasticEvents:
         Returns:
             None
         """
-        pass
 
     def sample(self, n_samples: int) -> np.ndarray:
         """ Generate random samples from the fitted model.
