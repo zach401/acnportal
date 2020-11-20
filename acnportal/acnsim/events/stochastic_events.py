@@ -33,12 +33,18 @@ class StochasticEvents:
     """ Base class for generating events from a stochastic model.
     
     Args:
-        arrival_min (float): Lower bound for arrival time, [hours since midnight]
-        arrival_max (float): Upper bound for arrival time [hours since midnight]
-        duration_min (float): Lower bound for duration [hours] 
-        duration_max (float): Upper bound for duration [hours]  
-        energy_min (float): Lower bound for energy request [kWh] 
-        energy_max (float): Upper bound for energy request [kWh]     
+        arrival_min (float): Clip arrive time at lower bound. Useful if you know that drivers should not arrive before a
+            certain time. By default 0, meaning drivers do not arrive on the previous day. [hours since midnight]
+        arrival_max (float): Clip arrive time at upper bound. Useful if you know drivers should not arrive after a
+            certain time. My default 24, meaning drivers do not arrive the next day. [hours since midnight]
+        duration_min (float): Clip duration to lower bound. Useful to limit session duration to a reasonable minimum.
+            By default 0.0833 hours or 5 minutes. [hours]
+        duration_max (float): Clip duration to upper bound. Useful to limit session duration to a reasonable maximum.
+            By default 48 hours. [hours]
+        energy_min (float): Clip energy request to lower bound. Useful to limit energy request to a reasonable minimum.
+            By default 0.5 kWh. [kWh]
+        energy_max (float): Clip energy request to upper bound. Useful to limit energy request to a reasonable maximum.
+            By default 150 kWh. [kWh]
     """
 
     arrival_min: float
