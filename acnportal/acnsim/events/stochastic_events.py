@@ -2,12 +2,21 @@
 """
 Classes for generating Events from stochastic models.
 """
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Callable, Tuple, Type, Optional
 from acnportal.acnsim.events import EventQueue, PluginEvent
 from acnportal.acnsim.models import EV, Battery
 import numpy as np
 from sklearn.mixture import GaussianMixture
 import pandas as pd
+from typing_extensions import TypedDict
+
+CapFnCallable = Callable[[float, float, float, float], Tuple[float, float]]
+
+BatteryParams = TypedDict(
+    "BatteryParams",
+    {"type": Type[Battery], "capacity_fn": CapFnCallable, "kwargs": Dict[str, Any]},
+    total=False,
+)
 
 
 class StochasticEvents:
@@ -65,8 +74,8 @@ class StochasticEvents:
 
         Returns:
             np.ndarray: shape (n_samples, 3), randomly generated samples. Column 1 is
-                the arrival time in hours since midnight, column 2 is the sojourn
-                time in hours, and column 3 is the energy demand in kWh.
+                the arrival time in hours since midnight, column 2 is the duration of
+                the stay in hours, and column 3 is the energy demand in kWh.
         """
         pass
 
@@ -104,7 +113,7 @@ class StochasticEvents:
         voltage: float,
         max_battery_power: float,
         max_len: int = None,
-        battery_params: Dict[str, Any] = None,
+        battery_params: Optional[BatteryParams] = None,
         force_feasible: bool = False,
     ) -> EventQueue:
         """ Return EventQueue from random generated samples.
@@ -134,9 +143,9 @@ class StochasticEvents:
                     session. Default False. Returns: EventQueue: Queue of plugin
                     events for the samples charging sessions.
         """
-        daily_sessions = []
+        daily_sessions: List[np.ndarray] = []
         for d, num_sessions in enumerate(sessions_per_day):
-            if sessions_per_day[d] > 0:
+            if num_sessions > 0:
                 daily_arrivals = self.sample(num_sessions)
                 daily_arrivals[:, 0] += 24 * d
                 daily_sessions.append(daily_arrivals)
@@ -183,7 +192,7 @@ class StochasticEvents:
         voltage: float,
         max_battery_power: float,
         max_len: int = None,
-        battery_params: Dict[str, Any] = None,
+        battery_params: Optional[BatteryParams] = None,
         force_feasible: bool = False,
     ) -> List[EV]:
         """
@@ -216,22 +225,29 @@ class StochasticEvents:
 
             departure = int((arrival + sojourn) * period_per_hour)
             arrival = int(arrival * period_per_hour)
-            session_id = "session_{0}".format(row_idx)
+            session_id = f"session_{row_idx}"
             # By default a new station is created for each EV.
             # Infinite space assumption.
-            station_id = "station_{0}".format(row_idx)
+            station_id = f"station_{row_idx}"
 
+            battery_params_input: BatteryParams
             if battery_params is None:
-                battery_params = {"type": Battery}
-            batt_kwargs = battery_params["kwargs"] if "kwargs" in battery_params else {}
-            if "capacity_fn" in battery_params:
-                cap_fn = battery_params["capacity_fn"]
+                battery_params_input = {"type": Battery}
+            else:
+                battery_params_input = battery_params
+            battery_kwargs = (
+                battery_params_input["kwargs"]
+                if "kwargs" in battery_params_input
+                else {}
+            )
+            if "capacity_fn" in battery_params_input:
+                cap_fn: CapFnCallable = battery_params_input["capacity_fn"]
                 cap, init = cap_fn(energy_delivered, sojourn, voltage, period)
             else:
                 cap = energy_delivered
                 init = 0
-            battery_type = battery_params["type"]
-            battery = battery_type(cap, init, max_battery_power, **batt_kwargs)
+            battery_type = battery_params_input["type"]
+            battery = battery_type(cap, init, max_battery_power, **battery_kwargs)
             evs.append(
                 EV(
                     arrival,
@@ -255,6 +271,8 @@ class GaussianMixtureEvents(StochasticEvents):
         See https://scikit-learn.org/stable/modules/generated/sklearn.mixture.GaussianMixture.html.
     """
 
+    gmm: GaussianMixture
+
     def __init__(
         self,
         arrival_min: float = 0.0,
@@ -263,8 +281,8 @@ class GaussianMixtureEvents(StochasticEvents):
         duration_max: float = 48.0,
         energy_min: float = 0.5,
         energy_max: float = 150.0,
-        pretrained_model=None,
-        **kwargs
+        pretrained_model: Optional[GaussianMixture] = None,
+        **kwargs,
     ):
         super().__init__(
             arrival_min, arrival_max, duration_min, duration_max, energy_min, energy_max
@@ -280,6 +298,7 @@ class GaussianMixtureEvents(StochasticEvents):
         Args:
             data (List[Dict[str, Any]]): List of session dictionaries.
             See DataClient.get_sessions().
+            Also accepts any kwargs for the sklearn GaussianMixture class fit method.
 
         Returns:
             None
