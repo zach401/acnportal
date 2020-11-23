@@ -94,16 +94,47 @@ class TestChargingNetwork(TestCase):
         with self.assertRaises(KeyError):
             self.network.plugin(ev)
 
-    def test_unplug_station_exists(self) -> None:
+    def test_unplug_no_ev(self) -> None:
         evse = EVSE("PS-001")
         self.network.register_evse(evse, 240, 0)
         with patch.object(evse, "unplug") as unplug:
-            self.network.unplug("PS-001")
+            with self.assertWarns(UserWarning):
+                self.network.unplug("PS-001", "Session-01")
+        unplug.assert_not_called()
+
+    def _unplug_test_setup_helper(self, real_session_id: str) -> EVSE:
+        evse = EVSE("PS-001")
+        ev = create_autospec(EV)
+        ev.station_id = "PS-001"
+        ev.session_id = real_session_id
+        evse.plugin(ev)
+
+        self.network.register_evse(evse, 240, 0)
+        return evse
+
+    def test_unplug_no_session_id(self) -> None:
+        evse = self._unplug_test_setup_helper("Session-01")
+        with patch.object(evse, "unplug") as unplug:
+            with self.assertWarns(UserWarning):
+                self.network.unplug("PS-001")
         unplug.assert_called_once()
+
+    def test_unplug_station_exists_session_id_matches(self) -> None:
+        evse = self._unplug_test_setup_helper("Session-01")
+        with patch.object(evse, "unplug") as unplug:
+            self.network.unplug("PS-001", "Session-01")
+        unplug.assert_called_once()
+
+    def test_unplug_station_exists_session_id_mismatch(self) -> None:
+        evse = self._unplug_test_setup_helper("Session-02")
+        with patch.object(evse, "unplug") as unplug:
+            with self.assertWarns(UserWarning):
+                self.network.unplug("PS-001", "Session-01")
+        unplug.assert_not_called()
 
     def test_unplug_station_does_not_exist(self) -> None:
         with self.assertRaises(KeyError):
-            self.network.unplug("PS-001")
+            self.network.unplug("PS-001", "Session-01")
 
     def test_get_ev_station_exists(self) -> None:
         evse = EVSE("PS-001")
