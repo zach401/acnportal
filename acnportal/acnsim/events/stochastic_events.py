@@ -251,7 +251,7 @@ class StochasticEvents:
                 battery_params_input = {"type": Battery}
             else:
                 battery_params_input = battery_params
-            battery_kwargs = (
+            battery_kwargs: Dict = (
                 battery_params_input["kwargs"]
                 if "kwargs" in battery_params_input
                 else {}
@@ -263,7 +263,12 @@ class StochasticEvents:
                 cap = energy_delivered
                 init = 0
             battery_type = battery_params_input["type"]
-            battery = battery_type(cap, init, max_battery_power, **battery_kwargs)
+            # Mypy can't determine if battery_type is compatible with a non-empty
+            # battery_kwargs dict, so this construction throws a mypy error. This
+            # is ignored.
+            battery = battery_type(  # type: ignore
+                cap, init, max_battery_power, **battery_kwargs
+            )
             evs.append(
                 EV(
                     arrival,

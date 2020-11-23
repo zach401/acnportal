@@ -316,7 +316,9 @@ class Linear2StageBattery(Battery):
         if self._soc < self._transition_soc:
             charge_power = min([pilot * voltage / 1000, self._max_power, rate_to_full])
             if self._noise_level > 0:
-                charge_power = max(charge_power - abs(np.random.normal(0, self._noise_level)), 0)
+                charge_power = max(
+                    charge_power - abs(np.random.normal(0, self._noise_level)), 0
+                )
         else:
             charge_power = min(
                 [
@@ -326,7 +328,12 @@ class Linear2StageBattery(Battery):
                 ]
             )
             if self._noise_level > 0:
-                charge_power = min(max(charge_power + np.random.normal(0, self._noise_level), 0), pilot * voltage / 1000, self._max_power, rate_to_full)
+                charge_power = min(
+                    max(charge_power + np.random.normal(0, self._noise_level), 0),
+                    pilot * voltage / 1000,
+                    self._max_power,
+                    rate_to_full,
+                )
                 # ensure that noise does not cause the battery to violate any hard limits.
                 charge_power = min(
                     [
