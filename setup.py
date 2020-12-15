@@ -23,5 +23,16 @@ setuptools.setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
     ],
-    install_requires=["numpy", "pandas >= 1.1.0", "matplotlib", "requests", "pytz"],
+    install_requires=[
+        "numpy",
+        "pandas >= 1.1.0",
+        "matplotlib",
+        "requests",
+        "pytz",
+        "typing_extensions",
+    ],
+    extras_require={
+        "all": ["scikit-learn"],
+        "scikit-learn": ["scikit-learn"]
+    }
 )
