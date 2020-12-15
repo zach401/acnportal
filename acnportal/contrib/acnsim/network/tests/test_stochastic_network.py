@@ -3,10 +3,10 @@
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
-from acnportal.acnsim import StochasticNetwork
+from acnportal.contrib.acnsim.network import StochasticNetwork
 from acnportal.acnsim.models import EV, EVSE, Battery
 
-RANDOM_CHOICE_PATCH_STR = "acnportal.acnsim.stochastic_network.random.choice"
+RANDOM_CHOICE_PATCH_STR = "acnportal.contrib.acnsim.stochastic_network.random.choice"
 
 
 class TestStochasticChargingNetwork(TestCase):
