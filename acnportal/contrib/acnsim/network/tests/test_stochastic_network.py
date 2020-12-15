@@ -65,7 +65,9 @@ class TestStochasticChargingNetwork(TestCase):
         self.assertIs(second_in_queue, ev2)
 
     @patch(RANDOM_CHOICE_PATCH_STR)
-    def test_unplug_station_exists_session_id_matches_queue_empty(self, choice_mock) -> None:
+    def test_unplug_station_exists_session_id_matches_queue_empty(
+        self, choice_mock
+    ) -> None:
         ev = EV(0, 10, 10, "", "Session-01", Battery(100, 0, 6.6))
         choice_mock.return_value = "PS-002"
 
@@ -76,7 +78,9 @@ class TestStochasticChargingNetwork(TestCase):
         self.network._EVSEs["PS-002"].unplug.assert_called()
 
     @patch(RANDOM_CHOICE_PATCH_STR)
-    def test_unplug_station_exists_session_id_matches_ev_in_queue(self, choice_mock) -> None:
+    def test_unplug_station_exists_session_id_matches_ev_in_queue(
+        self, choice_mock
+    ) -> None:
         ev1 = EV(0, 10, 10, "", "Session-01", Battery(100, 0, 6.6))
         ev2 = EV(0, 10, 10, "", "Session-02", Battery(100, 0, 6.6))
 
@@ -218,5 +222,3 @@ class TestStochasticChargingNetwork(TestCase):
         self.network.unplug = Mock()
         self.network.post_charging_update()
         self.network.unplug.assert_not_called()
-
-

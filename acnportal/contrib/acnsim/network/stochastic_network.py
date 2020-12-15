@@ -48,7 +48,7 @@ class StochasticNetwork(ChargingNetwork):
                 DeprecationWarning,
             )
         available_spots = self.available_evses()
-        if len(available_spots) > 0: # and len(self.waiting_queue) == 0:
+        if len(available_spots) > 0:  # and len(self.waiting_queue) == 0:
             chosen_spot = random.choice(available_spots)
             ev.update_station_id(chosen_spot)
             super().plugin(ev)
@@ -72,7 +72,7 @@ class StochasticNetwork(ChargingNetwork):
             del self.waiting_queue[session_id]
             self.never_charged += 1
         else:
-            unplug_successful = (session_id == self._EVSEs[station_id].ev.session_id)
+            unplug_successful = session_id == self._EVSEs[station_id].ev.session_id
             super().unplug(station_id, session_id)
             if unplug_successful:
                 if len(self.waiting_queue) > 0:
