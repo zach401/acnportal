@@ -5,8 +5,8 @@ from unittest import TestCase
 from acnportal import acnsim
 from acnportal.algorithms import BaseAlgorithm, UncontrolledCharging
 from acnportal.acnsim.base import ErrorAllWrapper
-from .serialization_extensions import NamedEvent, DefaultNamedEvent
-from .serialization_extensions import SetAttrEvent, BatteryListEvent
+from tests.serialization_extensions import NamedEvent, DefaultNamedEvent
+from tests.serialization_extensions import SetAttrEvent, BatteryListEvent
 
 import os
 import numpy as np
@@ -87,7 +87,7 @@ class TestJSONIO(TestCase):
         # Events
         cls.event = acnsim.Event(0)
         cls.plugin_event1 = acnsim.PluginEvent(10, cls.ev1)
-        cls.unplug_event = acnsim.UnplugEvent(20, "PS-001", "EV-001")
+        cls.unplug_event = acnsim.UnplugEvent(20, cls.ev1)
         cls.recompute_event1 = acnsim.RecomputeEvent(30)
         cls.plugin_event2 = acnsim.PluginEvent(40, cls.ev2)
         cls.plugin_event3 = acnsim.PluginEvent(50, cls.ev3)
@@ -200,13 +200,7 @@ class TestJSONIO(TestCase):
             ],
             "Event": ["timestamp", "event_type", "precedence"],
             "PluginEvent": ["timestamp", "event_type", "precedence"],
-            "UnplugEvent": [
-                "timestamp",
-                "event_type",
-                "precedence",
-                "station_id",
-                "session_id",
-            ],
+            "UnplugEvent": ["timestamp", "event_type", "precedence"],
             "RecomputeEvent": ["timestamp", "event_type", "precedence"],
             "EventQueue": ["_timestep"],
             "ChargingNetwork": [

@@ -76,8 +76,8 @@ class Event(BaseSimObj):
         return out_obj, loaded_dict
 
 
-class PluginEvent(Event):
-    """ Subclass of Event for EV plugins.
+class EVEvent(Event):
+    """ Subclass of Event for events which deal with an EV such as Plugin and Unplug events.
 
     Args:
         timestamp (int): See Event.
@@ -86,9 +86,7 @@ class PluginEvent(Event):
 
     def __init__(self, timestamp, ev):
         super().__init__(timestamp)
-        self.event_type = "Plugin"
         self.ev = ev
-        self.precedence = 10
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
@@ -120,47 +118,32 @@ class PluginEvent(Event):
         return out_obj, loaded_dict
 
 
-class UnplugEvent(Event):
+class PluginEvent(EVEvent):
+    """ Subclass of Event for EV plugins.
+
+    Args:
+        timestamp (int): See Event.
+        ev (EV): The EV which will be plugged in.
+    """
+
+    def __init__(self, timestamp, ev):
+        super().__init__(timestamp, ev)
+        self.event_type = "Plugin"
+        self.precedence = 10
+
+
+class UnplugEvent(EVEvent):
     """ Subclass of Event for EV unplugs.
 
     Args:
         timestamp (int): See Event.
-        station_id (str): ID of the EVSE where the EV is to be unplugged.
-        session_id (str): ID of the session which should be ended.
+        ev (EV): The EV which will be unplugged.
     """
 
-    def __init__(self, timestamp, station_id, session_id):
-        super().__init__(timestamp)
+    def __init__(self, timestamp, ev):
+        super().__init__(timestamp, ev)
         self.event_type = "Unplug"
-        self.station_id = station_id
-        self.session_id = session_id
         self.precedence = 0
-
-    def _to_dict(
-        self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """ Implements BaseSimObj._to_dict. """
-        attribute_dict, context_dict = super()._to_dict(context_dict)
-        # Unplug-specific attributes
-        attribute_dict["station_id"] = self.station_id
-        attribute_dict["session_id"] = self.session_id
-        return attribute_dict, context_dict
-
-    @classmethod
-    def _from_dict(
-        cls,
-        attribute_dict: Dict[str, Any],
-        context_dict: Dict[str, Any],
-        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
-        """ Implements BaseSimObj._from_dict. """
-        out_obj = cls(
-            attribute_dict["timestamp"],
-            attribute_dict["station_id"],
-            attribute_dict["session_id"],
-        )
-        cls._from_dict_helper(out_obj, attribute_dict)
-        return out_obj, loaded_dict
 
 
 class RecomputeEvent(Event):
