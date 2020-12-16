@@ -53,6 +53,7 @@ class StochasticNetwork(ChargingNetwork):
             ev.update_station_id(chosen_spot)
             super().plugin(ev)
         else:
+            ev.update_station_id(None)
             self.waiting_queue[ev.session_id] = ev
             self.waiting_queue.move_to_end(ev.session_id)
 
@@ -71,15 +72,23 @@ class StochasticNetwork(ChargingNetwork):
         if session_id in self.waiting_queue:
             del self.waiting_queue[session_id]
             self.never_charged += 1
-        else:
-            unplug_successful = session_id == self._EVSEs[station_id].ev.session_id
-            super().unplug(station_id, session_id)
-            if unplug_successful:
+        elif station_id in self._EVSEs:
+            if session_id is None:
+                raise ValueError("StochasticNetwork requires a session_id to unplug an EV.")
+            elif self._EVSEs[station_id].ev is None:
+                warnings.warn(
+                    f"Tried to remove EV with session_id {session_id} which was not "
+                    f"present at station {station_id}. Found no EV instead."
+                )
+            elif session_id == self._EVSEs[station_id].ev.session_id:
+                self._EVSEs[station_id].unplug()
                 if len(self.waiting_queue) > 0:
                     _, next_ev = self.waiting_queue.popitem(last=False)
                     next_ev.update_station_id(station_id)
                     super().plugin(next_ev)
                     self.swaps += 1
+        else:
+            raise KeyError("Station {0} not found.".format(station_id))
 
     def post_charging_update(self):
         """ Unplug fully charged EVs, even if they are not scheduled to depart. """
