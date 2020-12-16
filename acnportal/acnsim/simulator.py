@@ -1,9 +1,7 @@
 import copy
 from datetime import datetime
-from typing import Optional, Dict, Any, Tuple
+from typing import Dict
 
-import pandas as pd
-import numpy as np
 import warnings
 import json
 
@@ -204,7 +202,7 @@ class Simulator(BaseSimObj):
         """ Process an event and take appropriate actions.
 
         Args:
-            event (Event): Event to be processed.
+            event (EVEvent): Event to be processed.
 
         Returns:
             None
@@ -213,16 +211,12 @@ class Simulator(BaseSimObj):
             self._print("Plugin Event...")
             self.network.plugin(event.ev)
             self.ev_history[event.ev.session_id] = event.ev
-            self.event_queue.add_event(
-                UnplugEvent(
-                    event.ev.departure, event.ev.station_id, event.ev.session_id
-                )
-            )
+            self.event_queue.add_event(UnplugEvent(event.ev.departure, event.ev))
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.event_type == "Unplug":
             self._print("Unplug Event...")
-            self.network.unplug(event.station_id, event.session_id)
+            self.network.unplug(event.ev.station_id, event.ev.session_id)
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.event_type == "Recompute":
