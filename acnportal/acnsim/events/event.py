@@ -1,5 +1,10 @@
+# coding=utf-8
+"""
+Defines several classes of Events in the simulation.
+"""
 from typing import Optional, Dict, Any, Tuple
 
+from .. import EV
 from ..base import BaseSimObj
 import warnings
 
@@ -13,17 +18,20 @@ class Event(BaseSimObj):
     Attributes:
         timestamp (int): See args.
         event_type (str): Name of the event type.
-        precedence (float): Used to order occurrence for events that happen in the same timestep. Higher precedence
-            events occur before lower precedence events.
+        precedence (float): Used to order occurrence for events that happen in the same
+            timestep. Higher precedence events occur before lower precedence events.
 
     """
+    timestamp: int
+    event_type: str
+    precedence: float
 
-    def __init__(self, timestamp):
+    def __init__(self, timestamp: int) -> None:
         self.timestamp = timestamp
         self.event_type = ""
         self.precedence = float("inf")
 
-    def __lt__(self, other):
+    def __lt__(self, other: "Event") -> bool:
         """ Return True if the precedence of self is less than that of other.
 
         Args:
@@ -35,7 +43,7 @@ class Event(BaseSimObj):
         return self.precedence < other.precedence
 
     @property
-    def type(self):
+    def type(self) -> str:
         """
         Legacy accessor for event_type. This will be removed in a future
         release.
@@ -59,7 +67,9 @@ class Event(BaseSimObj):
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict_helper(cls, out_obj, attribute_dict):
+    def _from_dict_helper(
+        cls, out_obj: "Event", attribute_dict: Dict[str, Any]
+    ) -> None:
         out_obj.event_type = attribute_dict["event_type"]
         out_obj.precedence = attribute_dict["precedence"]
 
@@ -77,14 +87,16 @@ class Event(BaseSimObj):
 
 
 class EVEvent(Event):
-    """ Subclass of Event for events which deal with an EV such as Plugin and Unplug events.
+    """ Subclass of Event for events which deal with an EV such as Plugin and Unplug
+    events.
 
     Args:
         timestamp (int): See Event.
-        ev (EV): The EV which will be plugged in.
+        ev (EV): The EV associated with this event.
     """
+    ev: EV
 
-    def __init__(self, timestamp, ev):
+    def __init__(self, timestamp: int, ev: EV) -> None:
         super().__init__(timestamp)
         self.ev = ev
 
@@ -126,7 +138,7 @@ class PluginEvent(EVEvent):
         ev (EV): The EV which will be plugged in.
     """
 
-    def __init__(self, timestamp, ev):
+    def __init__(self, timestamp: int, ev: EV) -> None:
         super().__init__(timestamp, ev)
         self.event_type = "Plugin"
         self.precedence = 10
@@ -140,7 +152,7 @@ class UnplugEvent(EVEvent):
         ev (EV): The EV which will be unplugged.
     """
 
-    def __init__(self, timestamp, ev):
+    def __init__(self, timestamp: int, ev: EV) -> None:
         super().__init__(timestamp, ev)
         self.event_type = "Unplug"
         self.precedence = 0
@@ -149,7 +161,7 @@ class UnplugEvent(EVEvent):
 class RecomputeEvent(Event):
     """ Subclass of Event for when the algorithm should be recomputed."""
 
-    def __init__(self, timestamp):
+    def __init__(self, timestamp: int) -> None:
         super().__init__(timestamp)
         self.event_type = "Recompute"
         self.precedence = 20
