@@ -273,7 +273,8 @@ class TestJSONIO(TestCase):
         self.assertEqual(getattr(getattr(event_loaded, "ev"), "_session_id"), "EV-001")
 
     def test_unplug_event_json(self):
-        _ = self._obj_compare_helper(self.unplug_event)
+        event_loaded = self._obj_compare_helper(self.unplug_event)
+        self.assertEqual(getattr(getattr(event_loaded, "ev"), "_session_id"), "EV-001")
 
     def test_recompute_event_json(self):
         _ = self._obj_compare_helper(self.recompute_event1)

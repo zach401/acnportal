@@ -2,11 +2,13 @@
 """
 Defines several classes of Events in the simulation.
 """
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, TYPE_CHECKING
 
-from .. import EV
 from ..base import BaseSimObj
 import warnings
+
+if TYPE_CHECKING:
+    from acnportal.acnsim import EV
 
 
 class Event(BaseSimObj):
@@ -94,9 +96,9 @@ class EVEvent(Event):
         timestamp (int): See Event.
         ev (EV): The EV associated with this event.
     """
-    ev: EV
+    ev: "EV"
 
-    def __init__(self, timestamp: int, ev: EV) -> None:
+    def __init__(self, timestamp: int, ev: "EV") -> None:
         super().__init__(timestamp)
         self.ev = ev
 
@@ -138,7 +140,7 @@ class PluginEvent(EVEvent):
         ev (EV): The EV which will be plugged in.
     """
 
-    def __init__(self, timestamp: int, ev: EV) -> None:
+    def __init__(self, timestamp: int, ev: "EV") -> None:
         super().__init__(timestamp, ev)
         self.event_type = "Plugin"
         self.precedence = 10
@@ -152,7 +154,7 @@ class UnplugEvent(EVEvent):
         ev (EV): The EV which will be unplugged.
     """
 
-    def __init__(self, timestamp: int, ev: EV) -> None:
+    def __init__(self, timestamp: int, ev: "EV") -> None:
         super().__init__(timestamp, ev)
         self.event_type = "Unplug"
         self.precedence = 0
