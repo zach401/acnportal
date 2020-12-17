@@ -102,6 +102,16 @@ class EVEvent(Event):
         super().__init__(timestamp)
         self.ev = ev
 
+    @property
+    def station_id(self) -> str:
+        """ Return the station_id for the EV associated with this Event. """
+        return self.ev.station_id
+
+    @property
+    def session_id(self) -> str:
+        """ Return the session_id for the EV associated with this Event. """
+        return self.ev.session_id
+
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
