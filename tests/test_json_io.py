@@ -619,3 +619,39 @@ class TestJSONIOTypes(TestJSONIO):
         input_str_io = io.StringIO(output_str)
         battery_loaded = acnsim.Battery.from_json(input_str_io)
         self.assertEqual(self.battery.__dict__, battery_loaded.__dict__)
+
+
+class TestLegacyObjJSONInput(TestCase):
+    def test_legacy_unplug_event_json(self) -> None:
+        """ Tests that UnplugEvents from <0.2.2 can be loaded.
+
+        In acnportal v0.2.2, UnplugEvent had session_id and station_id attributes
+        instead of an ev attribute.
+
+        Returns:
+            None
+        """
+        with self.assertWarns(UserWarning):
+            unplug_loaded: acnsim.UnplugEvent = acnsim.UnplugEvent.from_json(
+                os.path.join(os.path.dirname(__file__), "old_unplug.json")
+            )
+        self.assertIsInstance(unplug_loaded, acnsim.UnplugEvent)
+        self.assertEqual(unplug_loaded.event_type, "Unplug")
+        self.assertEqual(unplug_loaded.timestamp, 11)
+        self.assertEqual(unplug_loaded.precedence, 0)
+
+        # Check that UnplugEvent's EV is partially loaded
+        self.assertEqual(getattr(getattr(unplug_loaded, "ev"), "_session_id"), "EV-001")
+        self.assertEqual(getattr(getattr(unplug_loaded, "ev"), "_station_id"), "PS-001")
+
+        for attribute in [
+            "arrival",
+            "departure",
+            "requested_energy",
+            "estimated_departure",
+            "battery",
+            "energy_delivered",
+            "current_charging_rate",
+        ]:
+            with self.assertRaises(AttributeError):
+                getattr(unplug_loaded.ev, attribute)
