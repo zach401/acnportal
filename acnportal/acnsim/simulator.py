@@ -204,7 +204,7 @@ class Simulator(BaseSimObj):
         """ Process an event and take appropriate actions.
 
         Args:
-            event (EVEvent): Event to be processed.
+            event (Event): Event to be processed.
 
         Returns:
             None
