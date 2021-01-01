@@ -9,9 +9,9 @@ from acnportal.acnsim.models import EV
 class StochasticNetwork(ChargingNetwork):
     def __init__(
         self,
-        early_departure: bool = False,
         violation_tolerance: float = 1e-5,
         relative_tolerance: float = 1e-7,
+        early_departure: bool = False,
     ):
         """ Extends ChargingNetwork to support non-deterministic space assignment."""
         super().__init__(violation_tolerance, relative_tolerance)
@@ -74,7 +74,9 @@ class StochasticNetwork(ChargingNetwork):
             self.never_charged += 1
         elif station_id in self._EVSEs:
             if session_id is None:
-                raise ValueError("StochasticNetwork requires a session_id to unplug an EV.")
+                raise ValueError(
+                    "StochasticNetwork requires a session_id to unplug an EV."
+                )
             elif self._EVSEs[station_id].ev is None:
                 warnings.warn(
                     f"Tried to remove EV with session_id {session_id} which was not "
