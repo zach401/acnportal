@@ -24,8 +24,8 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "numpy >= 1.16.5",
-        "pandas >= 1.1.0",
+        "numpy",
+        "pandas >= 1.1.0, < 1.2.0",
         "matplotlib",
         "requests",
         "pytz",
