@@ -30,4 +30,4 @@ jobs:
             pip install .[all]
         - name: Test with pytest
           run: |
-            pytest
+            python -m unittest discover
