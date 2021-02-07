@@ -495,7 +495,7 @@ def least_laxity_first(evs: List[SessionInfo], iface: Interface) -> List[Session
     """ Sort EVs by laxity in increasing order.
 
     Laxity is a measure of the charging flexibility of an EV. Here we define laxity as:
-        LAX_i(t) = (departure_i - t) - (remaining_demand_i(t) / max_rate_i)
+        LAX_i(t) = (estimated_departure_i - t) - (remaining_demand_i(t) / max_rate_i)
 
     Args:
         evs (List[SessionInfo]): List of EVs to be sorted.
