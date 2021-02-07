@@ -488,7 +488,7 @@ def earliest_deadline_first(
     Returns:
         List[SessionInfo]: List of EVs sorted by departure time in increasing order.
     """
-    return sorted(evs, key=lambda x: x.departure)
+    return sorted(evs, key=lambda x: x.estimated_departure)
 
 
 def least_laxity_first(evs: List[SessionInfo], iface: Interface) -> List[SessionInfo]:
@@ -514,7 +514,7 @@ def least_laxity_first(evs: List[SessionInfo], iface: Interface) -> List[Session
         Returns:
             float: The laxity of the EV.
         """
-        lax = (ev.departure - iface.current_time) - (
+        lax = (ev.estimated_departure - iface.current_time) - (
             iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id)
         )
         return lax
