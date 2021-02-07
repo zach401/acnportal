@@ -234,6 +234,7 @@ def two_station(
     session_max_rate: float,
     session_min_rate: float = 0,
     remaining_energy: Optional[List[float]] = None,
+    estimated_departure: Optional[List[float]] = None,
 ) -> TestingInterface:
     """ Two EVSEs with the same phase, one constraint, and allowable rates from 0 to 32
     if continuous; integers between 8 and 32 if not. Also provides 2 sessions arriving
@@ -250,7 +251,8 @@ def two_station(
     sessions: List[SessionDict] = session_generator(
         num_sessions=2,
         arrivals=[0] * 2,
-        departures=[12] * 2,
+        departures=[11, 12],
+        estimated_departures=estimated_departure,
         requested_energy=[3.3] * 2,
         remaining_energy=remaining_energy,
         min_rates=[session_min_rate] * 2,
@@ -489,6 +491,35 @@ class TestThirtyStationsRR(TestThirtyStationsBase):
     def setUp(self) -> None:
         super().setUp()
         self.algo = RoundRobin(first_come_first_served)
+
+class TestEarliestDeadlineFirstOrder(unittest.TestCase):
+    def test_estimated_departure_matches_real(self):
+        interface = two_station(limit=100, continuous=True, session_max_rate=32, estimated_departure=[11, 12])
+        sorted_sessions = earliest_deadline_first(interface.active_sessions(), interface)
+        self.assertEqual(sorted_sessions[0].session_id, "0")
+        self.assertEqual(sorted_sessions[1].session_id, "1")
+
+
+    def test_estimated_departure_does_not_match_real(self):
+        interface = two_station(limit=100, continuous=True, session_max_rate=32, estimated_departure=[12, 11])
+        sorted_sessions = earliest_deadline_first(interface.active_sessions(), interface)
+        self.assertEqual(sorted_sessions[0].session_id, "1")
+        self.assertEqual(sorted_sessions[1].session_id, "0")
+
+
+class TestLeastLaxityFirstOrder(unittest.TestCase):
+    def test_estimated_departure_matches_real(self):
+        interface = two_station(limit=100, continuous=True, session_max_rate=32, estimated_departure=[11, 12])
+        sorted_sessions = least_laxity_first(interface.active_sessions(), interface)
+        self.assertEqual(sorted_sessions[0].session_id, "0")
+        self.assertEqual(sorted_sessions[1].session_id, "1")
+
+
+    def test_estimated_departure_does_not_match_real(self):
+        interface = two_station(limit=100, continuous=True, session_max_rate=32, estimated_departure=[12, 11])
+        sorted_sessions = least_laxity_first(interface.active_sessions(), interface)
+        self.assertEqual(sorted_sessions[0].session_id, "1")
+        self.assertEqual(sorted_sessions[1].session_id, "0")
 
 
 del BaseAlgorithmTest
