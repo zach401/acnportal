@@ -60,8 +60,8 @@ class EarliestDeadlineFirstAlgo(BaseAlgorithm):
         # First we define a schedule, this will be the output of our function
         schedule = {ev.station_id: [0] for ev in active_evs}
 
-        # Next, we sort the active_evs by their departure time.
-        sorted_evs = sorted(active_evs, key=lambda x: x.departure)
+        # Next, we sort the active_evs by their estimated departure time.
+        sorted_evs = sorted(active_evs, key=lambda x: x.estimated_departure)
 
         # We now iterate over the sorted list of EVs.
         for ev in sorted_evs:
