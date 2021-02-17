@@ -78,10 +78,11 @@ class StochasticNetwork(ChargingNetwork):
                     "StochasticNetwork requires a session_id to unplug an EV."
                 )
             elif self._EVSEs[station_id].ev is None:
-                warnings.warn(
-                    f"Tried to remove EV with session_id {session_id} which was not "
-                    f"present at station {station_id}. Found no EV instead."
-                )
+                pass
+                # warnings.warn(
+                #     f"Tried to remove EV with session_id {session_id} which was not "
+                #     f"present at station {station_id}. Found no EV instead."
+                # )
             elif session_id == self._EVSEs[station_id].ev.session_id:
                 self._EVSEs[station_id].unplug()
                 if len(self.waiting_queue) > 0:
