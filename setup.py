@@ -30,6 +30,7 @@ setuptools.setup(
         "requests",
         "pytz",
         "typing_extensions",
+        "scikit-learn"
     ],
     extras_require={"all": ["scikit-learn"], "scikit-learn": ["scikit-learn"]},
 )
