@@ -31,6 +31,7 @@ def session_generator(
     max_rates: List[Union[float, Iterable[float], np.ndarray]],
     min_rates: Optional[List[Union[float, Iterable[float], np.ndarray]]] = None,
     station_ids: Optional[List[str]] = None,
+    estimated_departures: Optional[List[Union[float, Iterable[float], np.ndarray]]] = None
 ) -> List[SessionDict]:
     """ Generate Sessions with the input info in dict format. """
     sessions: List[SessionDict] = []
@@ -47,7 +48,7 @@ def session_generator(
             "energy_delivered": requested_energy[i] - remaining_energy[i],
             "arrival": arrivals[i],
             "departure": departures[i],
-            "estimated_departure": None,
+            "estimated_departure": estimated_departures[i] if estimated_departures is not None else departures[i],
             "min_rates": min_rates_processed[i],
             "max_rates": max_rates[i],
         }

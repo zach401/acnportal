@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
     name="acnportal",
-    version="0.2.2",
+    version="0.3.2",
     author="Zachary Lee, Sunash Sharma",
     author_email="ev-help@caltech.edu",
     url="https://github.com/zach401/acnportal",
@@ -25,11 +25,12 @@ setuptools.setup(
     ],
     install_requires=[
         "numpy",
-        "pandas >= 1.1.0",
+        "pandas >= 1.1.0, < 1.2.0",
         "matplotlib",
         "requests",
         "pytz",
         "typing_extensions",
+        "scikit-learn"
     ],
     extras_require={"all": ["scikit-learn"], "scikit-learn": ["scikit-learn"]},
 )

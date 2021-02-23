@@ -1,0 +1,20 @@
+{
+  "id": "140258042267600",
+  "context_dict": {
+    "140258042267600": {
+      "class": "acnportal.acnsim.events.event.UnplugEvent",
+      "attributes": {
+        "timestamp": 11,
+        "event_type": "Unplug",
+        "precedence": 0,
+        "station_id": "PS-001",
+        "session_id": "EV-001"
+      }
+    }
+  },
+  "version": "0.2.2",
+  "dependency_versions": {
+    "numpy": "1.19.1",
+    "pandas": "1.1.0"
+  }
+}

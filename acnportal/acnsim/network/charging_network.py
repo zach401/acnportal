@@ -535,6 +535,10 @@ class ChargingNetwork(BaseSimObj):
             >= np.abs(aggregate_currents)
         )
 
+    def post_charging_update(self):
+        """ Hook to define actions to take after the charging update. """
+        pass
+
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
     ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:

@@ -656,7 +656,16 @@ class BaseSimObj:
                         loaded_attr_value = attribute_dict[attr]
                     # If the attribute was originally JSON serializable,
                     # this is correct loading.
-                    setattr(out_obj, attr, loaded_attr_value)
+                    try:
+                        setattr(out_obj, attr, loaded_attr_value)
+                    except AttributeError:
+                        # attr could be protected for out_obj. Warn if it is.
+                        warnings.warn(
+                            f"Attribute {attr} is protected for object of class "
+                            f"{out_obj.__class__}. Not setting {attr} to "
+                            f"{loaded_attr_value}. Please see {out_obj.__class__} "
+                            f"implementation for more info."
+                        )
 
         # Add this object to the dictionary of loaded objects.
         loaded_dict[obj_id] = out_obj

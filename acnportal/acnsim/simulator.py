@@ -2,8 +2,6 @@ import copy
 from datetime import datetime
 from typing import Optional, Dict, Any, Tuple, List, Type
 
-import pandas as pd
-import numpy as np
 import warnings
 import json
 
@@ -147,6 +145,7 @@ class Simulator(BaseSimObj):
             self.charging_rates = _increase_width(self.charging_rates, width_increase)
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
+            self.network.post_charging_update()
             self._iteration = self._iteration + 1
 
     def step(self, new_schedule):
@@ -189,6 +188,7 @@ class Simulator(BaseSimObj):
             self.charging_rates = _increase_width(self.charging_rates, width_increase)
             self.network.update_pilots(self.pilot_signals, self._iteration, self.period)
             self._store_actual_charging_rates()
+            self.network.post_charging_update()
             self._iteration = self._iteration + 1
             current_events = self.event_queue.get_current_events(self._iteration)
             for e in current_events:
@@ -221,16 +221,12 @@ class Simulator(BaseSimObj):
             self._print("Plugin Event...")
             self.network.plugin(event.ev)
             self.ev_history[event.ev.session_id] = event.ev
-            self.event_queue.add_event(
-                UnplugEvent(
-                    event.ev.departure, event.ev.station_id, event.ev.session_id
-                )
-            )
+            self.event_queue.add_event(UnplugEvent(event.ev.departure, event.ev))
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.event_type == "Unplug":
             self._print("Unplug Event...")
-            self.network.unplug(event.station_id, event.session_id)
+            self.network.unplug(event.ev.station_id, event.ev.session_id)
             self._resolve = True
             self._last_schedule_update = event.timestamp
         elif event.event_type == "Recompute":

@@ -123,6 +123,10 @@ class EV(BaseSimObj):
         """ Return the maximum charging power of the battery."""
         return self._battery.max_charging_power
 
+    def update_station_id(self, station_id):
+        """ Method to update the station where EV will charge. """
+        self._station_id = station_id
+
     def charge(self, pilot, voltage, period):
         """ Method to "charge" the ev.
 
