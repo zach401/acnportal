@@ -1,6 +1,9 @@
 import numpy as np
+import pandas as pd
 import warnings
 import datetime
+
+from acnportal.acnsim import Simulator
 
 
 def aggregate_current(sim):
@@ -243,3 +246,31 @@ def datetimes_array(sim):
             for i in range(sim.iteration)
         ]
     )
+
+
+def compile_violations(sim: Simulator, level: str = "pilot"):
+    """
+    Returns a DataFrame with information on network infrastructure constraint
+    violations that occurred during the simulation. Includes iteration when
+    each violation occurred, which constraint was violated, and by how many
+    amps.
+
+    Args:
+        sim (Simulator): A Simulator object which has been run.
+        level (str): Level at which to calculate violations. If "pilot", calculate
+            violations in infrastructure from the pilot signals at each timestep.
+            If "charging_rate", calculate violations in infrastructure from the
+            charging rates at each timestep.
+
+    Returns:
+        pd.DataFrame: A pandas DataFrame with information on network infrastructure
+            constraint violations that occurred during the simulation.
+
+    """
+    level_to_df = {"pilot": sim.pilot_signals_as_df, "charging_rate": sim.charging_rates_as_df}
+    if level not in level_to_df.keys():
+        raise ValueError(
+            f"Arg level must be \"pilot\" or \"charging_rate\", got \"{level}\""
+        )
+    sim_data: pd.DataFrame = level_to_df[level]()
+
