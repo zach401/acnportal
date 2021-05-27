@@ -8,6 +8,8 @@
 The ACN Portal is a suite of research tools developed at Caltech to accelerate the pace of large-scale EV charging research.
 Checkout the documentation at <https://acnportal.readthedocs.io/en/latest/>.
 
+For more information about the ACN Portal and EV reasearch at Caltech check out <https://ev.caltech.edu>.
+
 ## ACN-Data
 
 The ACN-Data Dataset is a collection of EV charging sessions collected at Caltech and NASA's Jet Propulsion Laboratory (JPL). This basic Python client simplifies the process of pulling data from his dataset via its public API.
@@ -36,7 +38,7 @@ See the `tutorials` directory for jupyter notebooks that you can
 run to learn some of the functionality of `acnportal`. These
 tutorials are also included on the readthedocs page. Additional
 demos and case studies can be found at
-<https://github.com/zach401/ACN-Sim-Demo>
+<https://github.com/caltech-netlab/acnportal-experiments>
 We also have a video series of `acnportal` demos, which can
 be found at TODO.
 
