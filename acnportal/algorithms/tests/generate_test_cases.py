@@ -3,8 +3,23 @@
 from typing import List, Iterable, Optional, Dict, Union
 
 import numpy as np
+from typing_extensions import TypedDict
 
-SessionDict = Dict[str, Optional[Union[str, float, int, Iterable[float]]]]
+
+SessionDict = TypedDict(
+    "SessionDict",
+    {
+        "station_id": str,
+        "session_id": str,
+        "requested_energy": float,
+        "energy_delivered": float,
+        "arrival": int,
+        "departure": int,
+        "estimated_departure": Optional[int],
+        "min_rates": Union[float, Iterable[float], np.ndarray],
+        "max_rates": Union[float, Iterable[float], np.ndarray],
+    },
+)
 
 
 def session_generator(
@@ -20,7 +35,9 @@ def session_generator(
 ) -> List[SessionDict]:
     """ Generate Sessions with the input info in dict format. """
     sessions: List[SessionDict] = []
-    min_rates: List[float] = min_rates if min_rates is not None else [0] * num_sessions
+    min_rates_processed: List[
+        Union[float, Iterable[float], np.ndarray]
+    ] = min_rates if min_rates is not None else [0] * num_sessions
     for i in range(num_sessions):
         station_id: str = station_ids[i] if station_ids is not None else f"{i}"
         session_id: str = f"{i}"
@@ -32,7 +49,7 @@ def session_generator(
             "arrival": arrivals[i],
             "departure": departures[i],
             "estimated_departure": estimated_departures[i] if estimated_departures is not None else departures[i],
-            "min_rates": min_rates[i],
+            "min_rates": min_rates_processed[i],
             "max_rates": max_rates[i],
         }
         sessions.append(s)
@@ -52,12 +69,12 @@ def single_phase_single_constraint(
 ) -> InfrastructureDict:
     """ Generates a single-phase one-constraint network; returns the corresponding
     infrastructure info in a dict. """
-    if allowable_pilots is None:
-        allowable_pilots: List[np.ndarray] = [
-            np.array([min_pilot, max_pilot])
-        ] * num_evses
-    if is_continuous is None:
-        is_continuous: np.ndarray = np.ones(num_evses, dtype=bool)
+    allowable_pilots_processed: List[np.ndarray] = [
+        np.array([min_pilot, max_pilot])
+    ] * num_evses if allowable_pilots is None else allowable_pilots
+    is_continuous_processed: np.ndarray = np.ones(
+        num_evses, dtype=bool
+    ) if is_continuous is None else is_continuous
     infrastructure: InfrastructureDict = {
         "constraint_matrix": np.ones((1, num_evses)),
         "constraint_limits": np.array([limit]),
@@ -67,8 +84,8 @@ def single_phase_single_constraint(
         "station_ids": [f"{i}" for i in range(num_evses)],
         "max_pilot": np.repeat(max_pilot, num_evses),
         "min_pilot": np.repeat(min_pilot, num_evses),
-        "allowable_pilots": allowable_pilots,
-        "is_continuous": is_continuous,
+        "allowable_pilots": allowable_pilots_processed,
+        "is_continuous": is_continuous_processed,
     }
     return infrastructure
 
@@ -85,12 +102,12 @@ def three_phase_balanced_network(
     infrastructure info in a dict. """
     n: int = evses_per_phase
     num_evses: int = 3 * evses_per_phase
-    if allowable_pilots is None:
-        allowable_pilots: List[np.ndarray] = [
-            np.array([min_pilot, max_pilot])
-        ] * num_evses
-    if is_continuous is None:
-        is_continuous: np.ndarray = np.ones(num_evses, dtype=bool)
+    allowable_pilots_processed: List[np.ndarray] = [
+        np.array([min_pilot, max_pilot])
+    ] * num_evses if allowable_pilots is None else allowable_pilots
+    is_continuous_processed: np.ndarray = np.ones(
+        num_evses, dtype=bool
+    ) if is_continuous is None else is_continuous
     infrastructure: InfrastructureDict = {
         "constraint_matrix": np.array(
             [
@@ -106,7 +123,7 @@ def three_phase_balanced_network(
         "station_ids": [f"{i}" for i in range(num_evses)],
         "max_pilot": np.repeat(max_pilot, num_evses),
         "min_pilot": np.repeat(min_pilot, num_evses),
-        "allowable_pilots": allowable_pilots,
-        "is_continuous": is_continuous,
+        "allowable_pilots": allowable_pilots_processed,
+        "is_continuous": is_continuous_processed,
     }
     return infrastructure

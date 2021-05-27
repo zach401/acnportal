@@ -84,7 +84,7 @@ class EV(BaseSimObj):
         return self._session_id
 
     @property
-    def station_id(self):
+    def station_id(self) -> str:
         """ Return the unique identifier for the EVSE used for this charging session. """
         return self._station_id
 
@@ -154,7 +154,7 @@ class EV(BaseSimObj):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict = {}
         nn_attr_lst = [
@@ -182,7 +182,7 @@ class EV(BaseSimObj):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """ Implements BaseSimObj._from_dict. """
         # noinspection PyProtectedMember
         battery, loaded_dict = BaseSimObj._build_from_id(
