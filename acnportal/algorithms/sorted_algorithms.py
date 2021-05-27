@@ -1,7 +1,14 @@
+# coding=utf-8
+"""
+Sorting-based scheduling algorithms.
+"""
 from collections import deque
 from copy import copy
+from typing import Callable, List, Optional, Dict
 
 import numpy as np
+
+from .upper_bound_estimator import UpperBoundEstimatorBase
 from .base_algorithm import BaseAlgorithm
 from .utils import infrastructure_constraints_feasible
 from .postprocessing import format_array_schedule
@@ -9,34 +16,47 @@ from .preprocessing import (
     enforce_pilot_limit,
     apply_upper_bound_estimate,
     apply_minimum_charging_rate,
+    remove_finished_sessions,
 )
 from warnings import warn
 
+from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo, Interface
+
 
 class SortedSchedulingAlgo(BaseAlgorithm):
-    """ Class for sorting based algorithms like First Come First Served (FCFS) and Earliest Deadline First (EDF).
+    """ Class for sorting based algorithms like First Come First Served (FCFS) and
+    Earliest Deadline First (EDF).
 
     Implements abstract class BaseAlgorithm.
 
-    For this family of algorithms, active EVs are first sorted by some metric, then current is allocated to each EV in
-    order. To allocate current we use a binary search approach which allocates each EV the maximum current possible
-    subject to the constraints and already allocated allotments.
+    For this family of algorithms, active EVs are first sorted by some metric, then
+    current is allocated to each EV in order. To allocate current we use a binary
+    search approach which allocates each EV the maximum current possible subject to the
+    constraints and already allocated allotments.
 
-    The argument sort_fn controlled how the EVs are sorted and thus which sorting based algorithm is implemented.
+    The argument sort_fn controlled how the EVs are sorted and thus which sorting based
+    algorithm is implemented.
 
     Args:
-        sort_fn (Callable[List[EV]]): Function which takes in a list of EVs and returns a list of the same EVs but
-            sorted according to some metric.
+        sort_fn (Callable[[List[SessionInfo], Interface], List[SessionInfo]]): Function
+            which takes in a list of SessionInfo objects and returns a list of the
+            same SessionInfo objects but sorted according to some metric.
     """
+
+    _sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]]
+    estimate_max_rate: bool
+    max_rate_estimator: Optional[UpperBoundEstimatorBase]
+    uninterrupted_charging: bool
+    allow_overcharging: bool
 
     def __init__(
         self,
-        sort_fn,
-        estimate_max_rate=False,
-        max_rate_estimator=None,
-        uninterrupted_charging=False,
-        allow_overcharging=False,
-    ):
+        sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]],
+        estimate_max_rate: bool = False,
+        max_rate_estimator: Optional[UpperBoundEstimatorBase] = None,
+        uninterrupted_charging: bool = False,
+        allow_overcharging: bool = False,
+    ) -> None:
         super().__init__()
         self._sort_fn = sort_fn
         # Call algorithm each period since it only returns a rate for the
@@ -47,7 +67,7 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         self.uninterrupted_charging = uninterrupted_charging
         self.allow_overcharging = allow_overcharging
 
-    def register_interface(self, interface):
+    def register_interface(self, interface: Interface) -> None:
         """ Register interface to the _simulator/physical system.
 
         This interface is the only connection between the algorithm and what it
@@ -66,46 +86,79 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         if self.max_rate_estimator is not None:
             self.max_rate_estimator.register_interface(interface)
 
-    def sorting_algorithm(self, active_sessions, infrastructure):
+    def run_preprocessing(
+        self, active_sessions: List[SessionInfo], infrastructure: InfrastructureInfo
+    ) -> List[SessionInfo]:
+        """ Run a set of preprocessing functions on the active_sessions given to the
+        algorithm.
+
+        Args:
+            active_sessions (List[SessionInfo]): see BaseAlgorithm
+            infrastructure (InfrastructureInfo): Description of the electrical
+                infrastructure.
+
+        Returns:
+            List[SessionInfo]: A list of processed SessionInfo objects.
+
+        """
+        if self.allow_overcharging:
+            warn(
+                "allow_overcharging is currently not supported. It will be added in a "
+                "future release."
+            )
+        active_sessions: List[SessionInfo] = remove_finished_sessions(
+            active_sessions, infrastructure, self.interface.period
+        )
+        active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
+        if self.estimate_max_rate:
+            active_sessions: List[SessionInfo] = apply_upper_bound_estimate(
+                self.max_rate_estimator, active_sessions
+            )
+        if self.uninterrupted_charging:
+            active_sessions: List[SessionInfo] = apply_minimum_charging_rate(
+                active_sessions, infrastructure, self.interface.period
+            )
+        return active_sessions
+
+    def sorting_algorithm(
+        self, active_sessions: List[SessionInfo], infrastructure: InfrastructureInfo
+    ) -> np.ndarray:
         """ Schedule EVs by first sorting them by sort_fn, then allocating
             them their maximum feasible rate.
-
-        Implements abstract method schedule from BaseAlgorithm.
 
         See class documentation for description of the algorithm.
 
         Args:
             active_sessions (List[SessionInfo]): see BaseAlgorithm
-            infrastructure (InfrastructureInfo): Description of the electical
+            infrastructure (InfrastructureInfo): Description of the electrical
                 infrastructure.
 
         Returns:
             np.array[Union[float, int]]: Array of charging rates, where each
                 row is the charging rates for a specific session.
         """
-        queue = self._sort_fn(active_sessions, self.interface)
-        schedule = np.zeros(infrastructure.num_stations)
+        queue: List[SessionInfo] = self._sort_fn(active_sessions, self.interface)
+        schedule: np.ndarray = np.zeros(infrastructure.num_stations)
 
         # Start each EV at its lower bound
         for session in queue:
-            station_index = infrastructure.get_station_index(session.station_id)
-            lb = max(0, session.min_rates[0])
+            station_index: int = infrastructure.get_station_index(session.station_id)
+            lb: float = max(0, session.min_rates[0])
             schedule[station_index] = lb
 
         if not infrastructure_constraints_feasible(schedule, infrastructure):
             raise ValueError(
-                "Charging all sessions at their lower bound " "is not feasible."
+                "Charging all sessions at their lower bound is not feasible."
             )
 
         for session in queue:
             station_index = infrastructure.get_station_index(session.station_id)
-            ub = min(
+            ub: float = min(
                 session.max_rates[0], self.interface.remaining_amp_periods(session)
             )
-            lb = max(0, session.min_rates[0])
-            # ub = max(lb, session.max_rates[0])
+            lb: float = max(0, session.min_rates[0])
             if infrastructure.is_continuous[station_index]:
-                charging_rate = self.max_feasible_rate(
+                charging_rate: float = self.max_feasible_rate(
                     station_index, ub, schedule, infrastructure, eps=0.01, lb=lb
                 )
             else:
@@ -126,9 +179,15 @@ class SortedSchedulingAlgo(BaseAlgorithm):
 
     @staticmethod
     def max_feasible_rate(
-        station_index, ub, schedule, infrastructure, eps=0.0001, lb=0.0
-    ):
-        """ Return the maximum feasible rate less than ub subject to the environment's constraints.
+        station_index: int,
+        ub: float,
+        schedule: np.ndarray,
+        infrastructure: InfrastructureInfo,
+        eps: float = 0.0001,
+        lb: float = 0.0,
+    ) -> float:
+        """ Return the maximum feasible rate less than ub subject to the environment's
+        constraints.
 
         If schedule contains non-zero elements at the given time, these are
         treated as fixed allocations and this function will include them
@@ -138,14 +197,8 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             station_index (int): Index for the station in the schedule
                 vector.
             ub (float): Upper bound on the charging rate. [A]
-            schedule (Dict[str, List[float]]): Dictionary mapping a station_id
-                to a list of already fixed charging rates.
-            infrastructure (InfrastructureInfo): Description of the electrical
-                infrastructure.
-            eps (float): Accuracy to which the max rate should be calculated.
-                (When the binary search is terminated.)
-            schedule (Dict[str, List[float]]): Dictionary mapping a station_id
-                to a list of already fixed charging rates.
+            schedule (np.array[Union[float, int]]): Array of charging rates, where each
+                row is the charging rates for a specific session.
             infrastructure (InfrastructureInfo): Description of the electrical
                 infrastructure.
             eps (float): Accuracy to which the max rate should be calculated.
@@ -157,18 +210,20 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 environment's constraints. [A]
         """
 
-        def bisection(_index, _lb, _ub, _schedule):
+        def bisection(
+            _index: int, _lb: float, _ub: float, _schedule: np.ndarray
+        ) -> float:
             """ Use the bisection method to find the maximum feasible charging
                 rate for the EV. """
-            mid = (_ub + _lb) / 2
-            new_schedule = copy(schedule)
-            new_schedule[_index] = mid
+            mid: float = (_ub + _lb) / 2
+            _new_schedule = copy(schedule)
+            _new_schedule[_index] = mid
             if (_ub - _lb) <= eps:
                 return _lb
-            elif infrastructure_constraints_feasible(new_schedule, infrastructure):
-                return bisection(_index, mid, _ub, new_schedule)
+            elif infrastructure_constraints_feasible(_new_schedule, infrastructure):
+                return bisection(_index, mid, _ub, _new_schedule)
             else:
-                return bisection(_index, _lb, mid, new_schedule)
+                return bisection(_index, _lb, mid, _new_schedule)
 
         if not infrastructure_constraints_feasible(schedule, infrastructure):
             raise ValueError("The initial schedule is not feasible.")
@@ -182,10 +237,14 @@ class SortedSchedulingAlgo(BaseAlgorithm):
 
     @staticmethod
     def discrete_max_feasible_rate(
-        station_index, allowable_pilots, schedule, infrastructure
-    ):
+        station_index: int,
+        allowable_pilots: List[float],
+        schedule: np.ndarray,
+        infrastructure: InfrastructureInfo,
+    ) -> float:
         """ Return the maximum feasible allowable rate subject to the
-            infrastructure's constraints.
+            infrastructure's constraints and the discrete pilot constraints of this
+            station.
 
         If schedule contains non-zero elements at the given time, these are
         treated as fixed allocations and this function will include them
@@ -196,8 +255,8 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 vector.
             allowable_pilots (List[float]): List of allowable charging rates
                 sorted in ascending order.
-            schedule (Dict[str, List[float]]): Dictionary mapping a station_id
-                to a list of already fixed charging rates.
+            schedule (np.array[Union[float, int]]): Array of charging rates, where each
+                row is the charging rates for a specific session.
             infrastructure (InfrastructureInfo): Description of the electrical
                 infrastructure.
 
@@ -219,35 +278,44 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 new_schedule[station_index] = allowable_pilots[feasible_idx]
         return new_schedule[station_index]
 
-    def schedule(self, active_sessions):
-        """ Schedule EVs by first sorting them by sort_fn, then allocating them their maximum feasible rate.
+    # noinspection PyMethodMayBeStatic
+    def run_postprocessing(
+        self, raw_schedule: np.ndarray, infrastructure: InfrastructureInfo
+    ) -> Dict[str, List[float]]:
+        """ Run a set of postprocessing functions on the schedule returned by the
+        algorithm
+
+        Args:
+            raw_schedule (np.ndarray): An unprocessed schedule returned by a step of the
+                algorithm.
+            infrastructure (InfrastructureInfo): Description of the electrical
+                infrastructure.
+
+        Returns:
+            Dict[str, List[float]]: Output schedule in a Simulator-accepted form (see
+                BaseAlgorithm.schedule).
+
+        """
+        return format_array_schedule(raw_schedule, infrastructure)
+
+    def schedule(self, active_sessions: List[SessionInfo]) -> Dict[str, List[float]]:
+        """ Schedule EVs by first sorting them by sort_fn, then allocating them their
+        maximum feasible rate.
 
         Implements abstract method schedule from BaseAlgorithm.
 
         See class documentation for description of the algorithm.
 
         Args:
-            active_sessions (List[EV]): see BaseAlgorithm
+            active_sessions (List[SessionInfo]): see BaseAlgorithm
 
         Returns:
             Dict[str, List[float]]: see BaseAlgorithm
         """
         infrastructure = self.interface.infrastructure_info()
-        active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
-        if self.estimate_max_rate:
-            active_sessions = apply_upper_bound_estimate(
-                self.max_rate_estimator, active_sessions
-            )
-        if self.uninterrupted_charging:
-            active_sessions = apply_minimum_charging_rate(
-                active_sessions, infrastructure, self.interface.period
-            )
-        if self.allow_overcharging:
-            warn("allow_overcharging is currently not supported.")
-            # active_sessions = inc_remaining_energy_to_min_allowable(
-            #     active_sessions, infrastructure, self.interface.period)
+        active_sessions = self.run_preprocessing(active_sessions, infrastructure)
         array_schedule = self.sorting_algorithm(active_sessions, infrastructure)
-        return format_array_schedule(array_schedule, infrastructure)
+        return self.run_postprocessing(array_schedule, infrastructure)
 
 
 class RoundRobin(SortedSchedulingAlgo):
@@ -265,31 +333,39 @@ class RoundRobin(SortedSchedulingAlgo):
 
     The argument sort_fn controlled how the EVs are sorted. This controls
     which  EVs will get potential higher charging rates when infrastructure
-    constrains become binding.
+    constraints become binding.
 
     Args:
-        sort_fn (Callable[List[EV]]): Function which takes in a list of EVs
-            and returns a list of the same EVs but sorted according to some
-            metric.
+        sort_fn (Callable[[List[SessionInfo], Interface], List[SessionInfo]]): Function
+            which takes in a list of EVs and returns a list of the same EVs but sorted
+            according to some metric.
         continuous_inc (float): Increment to use when pilot signal is
             continuously controllable.
     """
 
+    continuous_inc: float
+
     def __init__(
         self,
-        sort_fn,
-        estimate_max_rate=False,
-        max_rate_estimator=None,
-        uninterrupted_charging=False,
-        continuous_inc=0.1,
-        allow_overcharging=False,
-    ):
+        sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]],
+        estimate_max_rate: bool = False,
+        max_rate_estimator: Optional[UpperBoundEstimatorBase] = None,
+        uninterrupted_charging: bool = False,
+        continuous_inc: float = 0.1,
+        allow_overcharging: bool = False,
+    ) -> None:
         super().__init__(
-            sort_fn, estimate_max_rate, max_rate_estimator, uninterrupted_charging
+            sort_fn,
+            estimate_max_rate,
+            max_rate_estimator,
+            uninterrupted_charging,
+            allow_overcharging,
         )
         self.continuous_inc = continuous_inc
 
-    def round_robin(self, active_sessions, infrastructure):
+    def round_robin(
+        self, active_sessions: List[SessionInfo], infrastructure: InfrastructureInfo
+    ) -> np.ndarray:
         """ Schedule EVs using a round robin based equal sharing scheme.
 
         Implements abstract method schedule from BaseAlgorithm.
@@ -297,12 +373,13 @@ class RoundRobin(SortedSchedulingAlgo):
         See class documentation for description of the algorithm.
 
         Args:
-            active_sessions (List[EV]): see BaseAlgorithm
+            active_sessions (List[SessionInfo]): see BaseAlgorithm
             infrastructure (InfrastructureInfo): Description of electrical
                 infrastructure.
 
         Returns:
-            Dict[str, List[float]]: see BaseAlgorithm
+            np.array[Union[float, int]]: Array of charging rates, where each
+                row is the charging rates for a specific session.
         """
         queue = deque(self._sort_fn(active_sessions, self.interface))
         schedule = np.zeros(infrastructure.num_stations)
@@ -315,7 +392,7 @@ class RoundRobin(SortedSchedulingAlgo):
             if infrastructure.is_continuous[i]:
                 allowable_pilots[i] = np.arange(
                     session.min_rates[0],
-                    session.max_rates[0] + 1e-7,
+                    session.max_rates[0] + self.continuous_inc / 2,
                     self.continuous_inc,
                 )
             ub = min(
@@ -325,7 +402,8 @@ class RoundRobin(SortedSchedulingAlgo):
             )
             lb = max(0, session.min_rates[0])
             # Remove any charging rates which are not feasible.
-            allowable_pilots[i] = [a for a in allowable_pilots[i] if lb <= a <= ub]
+            allowable_pilots[i] = allowable_pilots[i][lb <= allowable_pilots[i]]
+            allowable_pilots[i] = allowable_pilots[i][allowable_pilots[i] <= ub]
             # All charging rates should start at their lower bound
             schedule[i] = allowable_pilots[i][0] if len(allowable_pilots[i]) > 0 else 0
 
@@ -346,90 +424,88 @@ class RoundRobin(SortedSchedulingAlgo):
                     schedule[i] = allowable_pilots[i][rate_idx[i]]
         return schedule
 
-    def schedule(self, active_sessions):
-        """ Schedule EVs using a round robin based equal sharing scheme.
+    def schedule(self, active_sessions: List[SessionInfo]) -> Dict[str, List[float]]:
+        """ Schedule EVs by first sorting them by sort_fn, then allocating them their
+        maximum feasible rate.
 
         Implements abstract method schedule from BaseAlgorithm.
 
         See class documentation for description of the algorithm.
 
         Args:
-            active_sessions (List[EV]): see BaseAlgorithm
+            active_sessions (List[SessionInfo]): see BaseAlgorithm
 
         Returns:
             Dict[str, List[float]]: see BaseAlgorithm
         """
         infrastructure = self.interface.infrastructure_info()
-        active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
-        if self.estimate_max_rate:
-            active_sessions = apply_upper_bound_estimate(
-                self.max_rate_estimator, active_sessions
-            )
-        if self.uninterrupted_charging:
-            active_sessions = apply_minimum_charging_rate(
-                active_sessions, infrastructure, self.interface.period
-            )
-        if self.allow_overcharging:
-            warn("allow_overcharging is currently not supported.")
-            # active_sessions = inc_remaining_energy_to_min_allowable(
-            #     active_sessions, infrastructure, self.interface.period)
+        active_sessions = self.run_preprocessing(active_sessions, infrastructure)
         array_schedule = self.round_robin(active_sessions, infrastructure)
-        return format_array_schedule(array_schedule, infrastructure)
+        return self.run_postprocessing(array_schedule, infrastructure)
 
 
 # -------------------- Sorting Functions --------------------------
-def first_come_first_served(evs, iface):
+# noinspection PyUnusedLocal
+def first_come_first_served(
+    evs: List[SessionInfo], iface: Interface
+) -> List[SessionInfo]:
     """ Sort EVs by arrival time in increasing order.
 
     Args:
-        evs (List[EV]): List of EVs to be sorted.
+        evs (List[SessionInfo]): List of EVs to be sorted.
         iface (Interface): Interface object. (not used in this case)
 
     Returns:
-        List[EV]: List of EVs sorted by arrival time in increasing order.
+        List[SessionInfo]: List of EVs sorted by arrival time in increasing order.
     """
     return sorted(evs, key=lambda x: x.arrival)
 
 
-def last_come_first_served(evs, iface):
+# noinspection PyUnusedLocal
+def last_come_first_served(
+    evs: List[SessionInfo], iface: Interface
+) -> List[SessionInfo]:
     """ Sort EVs by arrival time in reverse order.
     Args:
-       evs (List[EV]): List of EVs to be sorted.
+       evs (List[SessionInfo]): List of EVs to be sorted.
        iface (Interface): Interface object. (not used in this case)
     Returns:
-       List[EV]: List of EVs sorted by arrival time in decreasing order.
+       List[SessionInfo]: List of EVs sorted by arrival time in decreasing order.
     """
     return sorted(evs, key=lambda x: x.arrival, reverse=True)
 
 
-def earliest_deadline_first(evs, iface):
-    """ Sort EVs by departure time in increasing order.
+# noinspection PyUnusedLocal
+def earliest_deadline_first(
+    evs: List[SessionInfo], iface: Interface
+) -> List[SessionInfo]:
+    """ Sort EVs by estimated departure time in increasing order.
 
     Args:
-        evs (List[EV]): List of EVs to be sorted.
+        evs (List[SessionInfo]): List of EVs to be sorted.
         iface (Interface): Interface object. (not used in this case)
 
     Returns:
-        List[EV]: List of EVs sorted by departure time in increasing order.
+        List[SessionInfo]: List of EVs sorted by estimated departure time in increasing order.
     """
-    return sorted(evs, key=lambda x: x.departure)
+    return sorted(evs, key=lambda x: x.estimated_departure)
 
 
-def least_laxity_first(evs, iface):
+def least_laxity_first(evs: List[SessionInfo], iface: Interface) -> List[SessionInfo]:
     """ Sort EVs by laxity in increasing order.
 
     Laxity is a measure of the charging flexibility of an EV. Here we define laxity as:
-        LAX_i(t) = (departure_i - t) - (remaining_demand_i(t) / max_rate_i)
+        LAX_i(t) = (estimated_departure_i - t) - (remaining_demand_i(t) / max_rate_i)
 
     Args:
-        evs (List[EV]): List of EVs to be sorted.
+        evs (List[SessionInfo]): List of EVs to be sorted.
         iface (Interface): Interface object.
 
     Returns:
-        List[EV]: List of EVs sorted by laxity in increasing order.
+        List[SessionInfo]: List of EVs sorted by laxity in increasing order.
     """
 
-    def laxity(ev):
+    def laxity(ev: SessionInfo) -> float:
         """ Calculate laxity of the EV.
 
         Args:
@@ -438,7 +514,7 @@ def least_laxity_first(evs, iface):
         Returns:
             float: The laxity of the EV.
         """
-        lax = (ev.departure - iface.current_time) - (
+        lax = (ev.estimated_departure - iface.current_time) - (
             iface.remaining_amp_periods(ev) / iface.max_pilot_signal(ev.station_id)
         )
         return lax
@@ -446,23 +522,27 @@ def least_laxity_first(evs, iface):
     return sorted(evs, key=laxity)
 
 
-def largest_remaining_processing_time(evs, iface):
-    """ Sort EVs in decreasing order by the time taken to finish charging them at the EVSE's maximum rate.
+def largest_remaining_processing_time(
+    evs: List[SessionInfo], iface: Interface
+) -> List[SessionInfo]:
+    """ Sort EVs in decreasing order by the time taken to finish charging them at the
+    EVSE's maximum rate.
 
     Args:
-        evs (List[EV]): List of EVs to be sorted.
+        evs (List[SessionInfo]): List of SessionInfo objects to be sorted.
         iface (Interface): Interface object.
 
     Returns:
-        List[EV]: List of EVs sorted by remaining processing time in decreasing order.
+        List[SessionInfo]: List of EVs sorted by remaining processing time in
+            decreasing order.
     """
 
-    def remaining_processing_time(ev):
-        """ Calculate minimum time needed to fully charge the EV based its remaining energy request and the EVSE's max
-            charging rate.
+    def remaining_processing_time(ev: SessionInfo) -> float:
+        """ Calculate minimum time needed to fully charge the EV based its remaining
+        energy request and the EVSE's max charging rate.
 
         Args:
-            ev (EV): An EV object.
+            ev (SessionInfo): A SessionInfo object.
 
         Returns:
             float: The minimum remaining processing time of the EV.

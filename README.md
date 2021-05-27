@@ -2,12 +2,13 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/c357a20f61f941688c157ce21de905b7)](https://www.codacy.com/manual/Caltech_ACN/acnportal?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=zach401/acnportal&amp;utm_campaign=Badge_Grade)
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 [![DOI](https://zenodo.org/badge/134629497.svg)](https://zenodo.org/badge/latestdoi/134629497)
-</p>
 
 # ACN Portal
 
 The ACN Portal is a suite of research tools developed at Caltech to accelerate the pace of large-scale EV charging research.
 Checkout the documentation at <https://acnportal.readthedocs.io/en/latest/>.
+
+For more information about the ACN Portal and EV reasearch at Caltech check out <https://ev.caltech.edu>.
 
 ## ACN-Data
 
@@ -37,7 +38,7 @@ See the `tutorials` directory for jupyter notebooks that you can
 run to learn some of the functionality of `acnportal`. These
 tutorials are also included on the readthedocs page. Additional
 demos and case studies can be found at
-<https://github.com/zach401/ACN-Sim-Demo>
+<https://github.com/caltech-netlab/acnportal-experiments>
 We also have a video series of `acnportal` demos, which can
 be found at TODO.
 

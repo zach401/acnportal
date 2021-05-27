@@ -1,4 +1,6 @@
 from builtins import property
+from typing import Optional, Dict, Any, Tuple
+
 from ..base import BaseSimObj
 
 
@@ -121,6 +123,10 @@ class EV(BaseSimObj):
         """ Return the maximum charging power of the battery."""
         return self._battery.max_charging_power
 
+    def update_station_id(self, station_id):
+        """ Method to update the station where EV will charge. """
+        self._station_id = station_id
+
     def charge(self, pilot, voltage, period):
         """ Method to "charge" the ev.
 
@@ -146,7 +152,9 @@ class EV(BaseSimObj):
         self._energy_delivered = 0
         self._battery.reset()
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict = {}
         nn_attr_lst = [
@@ -169,7 +177,12 @@ class EV(BaseSimObj):
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """ Implements BaseSimObj._from_dict. """
         # noinspection PyProtectedMember
         battery, loaded_dict = BaseSimObj._build_from_id(

@@ -5,8 +5,8 @@ from unittest import TestCase
 from acnportal import acnsim
 from acnportal.algorithms import BaseAlgorithm, UncontrolledCharging
 from acnportal.acnsim.base import ErrorAllWrapper
-from .serialization_extensions import NamedEvent, DefaultNamedEvent
-from .serialization_extensions import SetAttrEvent, BatteryListEvent
+from tests.serialization_extensions import NamedEvent, DefaultNamedEvent
+from tests.serialization_extensions import SetAttrEvent, BatteryListEvent
 
 import os
 import numpy as np
@@ -87,7 +87,7 @@ class TestJSONIO(TestCase):
         # Events
         cls.event = acnsim.Event(0)
         cls.plugin_event1 = acnsim.PluginEvent(10, cls.ev1)
-        cls.unplug_event = acnsim.UnplugEvent(20, "PS-001", "EV-001")
+        cls.unplug_event = acnsim.UnplugEvent(20, cls.ev1)
         cls.recompute_event1 = acnsim.RecomputeEvent(30)
         cls.plugin_event2 = acnsim.PluginEvent(40, cls.ev2)
         cls.plugin_event3 = acnsim.PluginEvent(50, cls.ev3)
@@ -118,6 +118,7 @@ class TestJSONIO(TestCase):
         cls.network.constraint_matrix = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         cls.network.magnitudes = np.array([32, 32, 32])
         cls.network.constraint_index = ["C1", "C2", "C3"]
+        _ = cls.network._update_info_store()
         cls.empty_network = acnsim.ChargingNetwork()
 
         # Simulator
@@ -199,19 +200,14 @@ class TestJSONIO(TestCase):
             ],
             "Event": ["timestamp", "event_type", "precedence"],
             "PluginEvent": ["timestamp", "event_type", "precedence"],
-            "UnplugEvent": [
-                "timestamp",
-                "event_type",
-                "precedence",
-                "station_id",
-                "session_id",
-            ],
+            "UnplugEvent": ["timestamp", "event_type", "precedence"],
             "RecomputeEvent": ["timestamp", "event_type", "precedence"],
             "EventQueue": ["_timestep"],
             "ChargingNetwork": [
                 "constraint_index",
                 "violation_tolerance",
                 "relative_tolerance",
+                "_station_ids_dict",
             ],
             "Simulator": [
                 "period",
@@ -277,7 +273,8 @@ class TestJSONIO(TestCase):
         self.assertEqual(getattr(getattr(event_loaded, "ev"), "_session_id"), "EV-001")
 
     def test_unplug_event_json(self):
-        _ = self._obj_compare_helper(self.unplug_event)
+        event_loaded = self._obj_compare_helper(self.unplug_event)
+        self.assertEqual(getattr(getattr(event_loaded, "ev"), "_session_id"), "EV-001")
 
     def test_recompute_event_json(self):
         _ = self._obj_compare_helper(self.recompute_event1)
@@ -309,12 +306,19 @@ class TestJSONIO(TestCase):
         empty_network_loaded = self._obj_compare_helper(self.empty_network)
         self.assertIsInstance(empty_network_loaded, acnsim.ChargingNetwork)
 
-        network_np_fields = ["magnitudes", "_voltages", "_phase_angles"]
+        network_np_fields = [
+            "magnitudes",
+            "_voltages",
+            "_phase_angles",
+            "max_pilot_signals",
+            "min_pilot_signals",
+            "is_continuous",
+        ]
         for field in network_np_fields:
             np.testing.assert_equal(
                 getattr(self.empty_network, field), getattr(empty_network_loaded, field)
             )
-        extra_simple_attributes = ["constraint_matrix", "_EVSEs"]
+        extra_simple_attributes = ["constraint_matrix", "_EVSEs", "allowable_rates"]
         for attribute in extra_simple_attributes:
             self.assertEqual(
                 getattr(self.empty_network, attribute),
@@ -330,6 +334,9 @@ class TestJSONIO(TestCase):
             "magnitudes",
             "_voltages",
             "_phase_angles",
+            "max_pilot_signals",
+            "min_pilot_signals",
+            "is_continuous",
         ]
         for field in network_np_fields:
             np.testing.assert_equal(
@@ -341,6 +348,11 @@ class TestJSONIO(TestCase):
         ):
             self.assertEqual(station_id, station_id_l)
             self.assertEqual(evse.station_id, evse_l.station_id)
+
+        for allowable_rates_array, allowable_rates_array_loaded in zip(
+            self.network.allowable_rates, network_loaded.allowable_rates
+        ):
+            np.testing.assert_equal(allowable_rates_array, allowable_rates_array_loaded)
 
     def _sim_compare_helper(self, sim):
         simulator_loaded = self._obj_compare_helper(sim)
@@ -607,3 +619,39 @@ class TestJSONIOTypes(TestJSONIO):
         input_str_io = io.StringIO(output_str)
         battery_loaded = acnsim.Battery.from_json(input_str_io)
         self.assertEqual(self.battery.__dict__, battery_loaded.__dict__)
+
+
+class TestLegacyObjJSONInput(TestCase):
+    def test_legacy_unplug_event_json(self) -> None:
+        """ Tests that UnplugEvents from <0.2.2 can be loaded.
+
+        In acnportal v0.2.2, UnplugEvent had session_id and station_id attributes
+        instead of an ev attribute.
+
+        Returns:
+            None
+        """
+        with self.assertWarns(UserWarning):
+            unplug_loaded: acnsim.UnplugEvent = acnsim.UnplugEvent.from_json(
+                os.path.join(os.path.dirname(__file__), "old_unplug.json")
+            )
+        self.assertIsInstance(unplug_loaded, acnsim.UnplugEvent)
+        self.assertEqual(unplug_loaded.event_type, "Unplug")
+        self.assertEqual(unplug_loaded.timestamp, 11)
+        self.assertEqual(unplug_loaded.precedence, 0)
+
+        # Check that UnplugEvent's EV is partially loaded
+        self.assertEqual(getattr(getattr(unplug_loaded, "ev"), "_session_id"), "EV-001")
+        self.assertEqual(getattr(getattr(unplug_loaded, "ev"), "_station_id"), "PS-001")
+
+        for attribute in [
+            "arrival",
+            "departure",
+            "requested_energy",
+            "estimated_departure",
+            "battery",
+            "energy_delivered",
+            "current_charging_rate",
+        ]:
+            with self.assertRaises(AttributeError):
+                getattr(unplug_loaded.ev, attribute)

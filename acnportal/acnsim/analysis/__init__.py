@@ -218,7 +218,9 @@ def datetimes_array(sim):
 
     The resolution of the datetimes list is equal to the period of the
     simulation, and the number of datetimes in the returned list is
-    equal to teh number of iterations of the simulation.
+    equal to the number of iterations of the simulation.
+
+    Note that timezone information is not included with the datetime array.
 
     Args:
         sim (Simulator): A Simulator object which has been run.
@@ -232,11 +234,12 @@ def datetimes_array(sim):
     """
     if not sim.event_queue.empty():
         warnings.warn(
-            "Simulation incomplete; not all datetimes will be " "included.", UserWarning
+            "Simulation incomplete; not all datetimes will be included.", UserWarning
         )
+    no_tz_start: datetime = sim.start.replace(tzinfo=None)
     return np.array(
         [
-            np.datetime64(sim.start + datetime.timedelta(minutes=sim.period * i))
+            np.datetime64(no_tz_start + datetime.timedelta(minutes=sim.period * i))
             for i in range(sim.iteration)
         ]
     )

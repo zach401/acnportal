@@ -1,3 +1,5 @@
+from typing import Optional, Dict, Any, Tuple
+
 import numpy as np
 import warnings
 from ..base import BaseSimObj
@@ -86,7 +88,9 @@ class Battery(BaseSimObj):
             self._current_charge = init_charge
         self._current_charging_power = 0
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict = {}
         nn_attr_lst = [
@@ -106,7 +110,12 @@ class Battery(BaseSimObj):
         out_obj._current_charge = attribute_dict["_current_charge"]
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             attribute_dict["_capacity"],
@@ -307,7 +316,9 @@ class Linear2StageBattery(Battery):
         if self._soc < self._transition_soc:
             charge_power = min([pilot * voltage / 1000, self._max_power, rate_to_full])
             if self._noise_level > 0:
-                charge_power -= abs(np.random.normal(0, self._noise_level))
+                charge_power = max(
+                    charge_power - abs(np.random.normal(0, self._noise_level)), 0
+                )
         else:
             charge_power = min(
                 [
@@ -317,7 +328,12 @@ class Linear2StageBattery(Battery):
                 ]
             )
             if self._noise_level > 0:
-                charge_power += np.random.normal(0, self._noise_level)
+                charge_power = min(
+                    max(charge_power + np.random.normal(0, self._noise_level), 0),
+                    pilot * voltage / 1000,
+                    self._max_power,
+                    rate_to_full,
+                )
                 # ensure that noise does not cause the battery to violate any hard limits.
                 charge_power = min(
                     [
@@ -331,7 +347,9 @@ class Linear2StageBattery(Battery):
         self._current_charging_power = charge_power
         return charge_power * 1000 / voltage
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
         attribute_dict["_noise_level"] = self._noise_level
@@ -340,7 +358,12 @@ class Linear2StageBattery(Battery):
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             attribute_dict["_capacity"],
