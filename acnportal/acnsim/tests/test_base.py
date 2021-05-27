@@ -1,9 +1,10 @@
+import json
 import unittest
 
 import numpy as np
 
-from .. import ChargingNetwork
-from ..base import ErrorAllWrapper
+from acnportal.acnsim import ChargingNetwork
+from acnportal.acnsim.base import ErrorAllWrapper, NpEncoder
 
 
 class TestErrorAllWrapper(unittest.TestCase):
@@ -32,6 +33,20 @@ class TestErrorAllWrapper(unittest.TestCase):
     def test_network_function_error(self):
         with self.assertRaises(TypeError):
             _ = self.network_wrapper.is_feasible(np.array([[0]]))
+
+
+class TestNpEncoder(unittest.TestCase):
+    def test_integer_dump(self):
+        test_uint32 = np.uint32(2)
+        self.assertEqual(json.dumps(test_uint32, cls=NpEncoder), "2")
+
+    def test_floating_dump(self):
+        test_float32 = np.float32(2)
+        self.assertEqual(json.dumps(test_float32, cls=NpEncoder), "2.0")
+
+    def test_ndarray_dump(self):
+        test_ndarray = np.array([1, 2])
+        self.assertEqual(json.dumps(test_ndarray, cls=NpEncoder), "[1, 2]")
 
 
 if __name__ == "__main__":

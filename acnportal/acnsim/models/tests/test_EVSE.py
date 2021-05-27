@@ -132,7 +132,7 @@ class TestFiniteRatesEVSE(TestEVSE):
         self.assertEqual(self.evse.max_rate, self.max_rate)
 
     def test_min_rate_finite_rates_evse(self):
-        self.assertEqual(self.evse.min_rate, 0)
+        self.assertEqual(self.evse.min_rate, 8)
 
     def test_allowable_pilot_signals(self):
         self.assertEqual(

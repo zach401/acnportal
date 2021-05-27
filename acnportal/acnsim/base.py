@@ -1,9 +1,13 @@
+# coding=utf-8
 """
 This module contains a base class shared by all ACN-Sim objects.
 """
 import json
 import operator
 import os
+from typing import Optional, Dict, Any, Tuple
+
+import numpy as np
 
 # noinspection PyProtectedMember
 from pydoc import locate
@@ -69,6 +73,18 @@ class ErrorAllWrapper:
     @property
     def data(self):
         return self._data
+
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, o):  # pylint: disable=E0202
+        if isinstance(o, np.integer):
+            return int(o)
+        elif isinstance(o, np.floating):
+            return float(o)
+        elif isinstance(o, np.ndarray):
+            return o.tolist()
+        else:
+            json.JSONEncoder.default(self, o)
 
 
 class BaseSimObj:
@@ -146,15 +162,15 @@ class BaseSimObj:
         if isinstance(path_or_buf, str):
             fh, _ = get_handle(path_or_buf, "w")
             try:
-                json.dump(json_serializable_data, fh)
+                json.dump(json_serializable_data, fh, cls=NpEncoder)
                 # Add a newline to the EOF.
                 fh.write("\n")
             finally:
                 fh.close()
         elif path_or_buf is None:
-            return json.dumps(json_serializable_data)
+            return json.dumps(json_serializable_data, cls=NpEncoder)
         else:
-            json.dump(json_serializable_data, path_or_buf)
+            json.dump(json_serializable_data, path_or_buf, cls=NpEncoder)
             # Add a newline to the EOF.
             path_or_buf.write("\n")
 
@@ -315,7 +331,9 @@ class BaseSimObj:
             context_dict,
         )
 
-    def _to_dict(self, context_dict=None):
+    def _to_dict(
+        self, context_dict: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """ Converts the object's attributes into a JSON serializable
         dict. Each ACN-Sim object defines this method differently.
 
@@ -634,14 +652,28 @@ class BaseSimObj:
                         loaded_attr_value = attribute_dict[attr]
                     # If the attribute was originally JSON serializable,
                     # this is correct loading.
-                    setattr(out_obj, attr, loaded_attr_value)
+                    try:
+                        setattr(out_obj, attr, loaded_attr_value)
+                    except AttributeError:
+                        # attr could be protected for out_obj. Warn if it is.
+                        warnings.warn(
+                            f"Attribute {attr} is protected for object of class "
+                            f"{out_obj.__class__}. Not setting {attr} to "
+                            f"{loaded_attr_value}. Please see {out_obj.__class__} "
+                            f"implementation for more info."
+                        )
 
         # Add this object to the dictionary of loaded objects.
         loaded_dict[obj_id] = out_obj
         return out_obj, loaded_dict
 
     @classmethod
-    def _from_dict(cls, attribute_dict, context_dict, loaded_dict=None):
+    def _from_dict(
+        cls,
+        attribute_dict: Dict[str, Any],
+        context_dict: Dict[str, Any],
+        loaded_dict: Optional[Dict[str, "BaseSimObj"]] = None,
+    ) -> Tuple["BaseSimObj", Dict[str, "BaseSimObj"]]:
         """ Converts a JSON serializable representation of an ACN-Sim
         object into an actual ACN-Sim object.
 
