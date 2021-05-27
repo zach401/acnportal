@@ -5,7 +5,7 @@ This module contains a base class shared by all ACN-Sim objects.
 import json
 import operator
 import os
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, Type
 
 import numpy as np
 
@@ -333,7 +333,7 @@ class BaseSimObj:
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """ Converts the object's attributes into a JSON serializable
         dict. Each ACN-Sim object defines this method differently.
 
@@ -352,7 +352,9 @@ class BaseSimObj:
         raise NotImplementedError
 
     @staticmethod
-    def _build_from_id(obj_id, context_dict, loaded_dict=None):
+    def _build_from_id(
+        obj_id, context_dict, loaded_dict=None
+    ) -> Tuple["BaseSimObj", Dict[str, "BaseSimObj"]]:
         """
         Given an object ID and a dictionary mapping object ID's to JSON
         serializable representations of ACN-Sim objects, returns the ACN-Sim
@@ -391,7 +393,9 @@ class BaseSimObj:
 
         # Get the class of this object from the context_dict.
         obj_type = context_dict[obj_id]["class"]
-        obj_class = locate(obj_type)
+        # locate outputs an object in general, though a BaseSimObj class is expected
+        # here. Mypy will ignore this.
+        obj_class: Type["BaseSimObj"] = locate(obj_type)  # type: ignore
 
         # 'version' is None since we've already checked the version of the
         # parent object.
@@ -673,7 +677,7 @@ class BaseSimObj:
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, "BaseSimObj"]] = None,
-    ) -> Tuple["BaseSimObj", Dict[str, "BaseSimObj"]]:
+    ) -> Tuple["BaseSimObj", Optional[Dict[str, "BaseSimObj"]]]:
         """ Converts a JSON serializable representation of an ACN-Sim
         object into an actual ACN-Sim object.
 

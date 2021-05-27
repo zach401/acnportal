@@ -186,7 +186,7 @@ class BaseEVSE(BaseSimObj):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict = {}
         nn_attr_lst = ["_station_id", "_current_pilot", "is_continuous"]
@@ -223,7 +223,7 @@ class BaseEVSE(BaseSimObj):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(attribute_dict["_station_id"])
         return cls._from_dict_helper(out_obj, attribute_dict, context_dict, loaded_dict)
@@ -295,7 +295,7 @@ class EVSE(BaseEVSE):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
         attribute_dict["_max_rate"] = self._max_rate
@@ -309,7 +309,7 @@ class EVSE(BaseEVSE):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             attribute_dict["_station_id"],
@@ -401,7 +401,7 @@ class DeadbandEVSE(BaseEVSE):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
         attribute_dict["_max_rate"] = self._max_rate
@@ -414,7 +414,7 @@ class DeadbandEVSE(BaseEVSE):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             attribute_dict["_station_id"],
@@ -500,7 +500,7 @@ class FiniteRatesEVSE(BaseEVSE):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
         attribute_dict["allowable_rates"] = self.allowable_rates
@@ -512,7 +512,7 @@ class FiniteRatesEVSE(BaseEVSE):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(attribute_dict["_station_id"], attribute_dict["allowable_rates"])
         return cls._from_dict_helper(out_obj, attribute_dict, context_dict, loaded_dict)
