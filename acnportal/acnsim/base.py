@@ -14,7 +14,7 @@ from pydoc import locate
 import warnings
 import pkg_resources
 import pandas
-from pandas.io.common import stringify_path, get_handle, get_filepath_or_buffer
+from pandas.io.common import stringify_path, get_handle, _get_filepath_or_buffer
 import numpy
 
 __NOT_SERIALIZED_FLAG__ = "__NOT_SERIALIZED__"
@@ -160,7 +160,7 @@ class BaseSimObj:
             )
         path_or_buf = stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
-            fh, _ = get_handle(path_or_buf, "w")
+            fh = get_handle(path_or_buf, "w").handle
             try:
                 json.dump(json_serializable_data, fh, cls=NpEncoder)
                 # Add a newline to the EOF.
@@ -421,7 +421,9 @@ class BaseSimObj:
         """
         # The code here is from pandas 1.0.1, io.json.from_json(), with
         # modifications.
-        filepath_or_buffer, _, _, should_close = get_filepath_or_buffer(path_or_buf)
+        ioargs = _get_filepath_or_buffer(path_or_buf)
+        filepath_or_buffer = ioargs.filepath_or_buffer
+        should_close = ioargs.should_close
 
         exists = False
         if isinstance(filepath_or_buffer, str):
@@ -431,7 +433,7 @@ class BaseSimObj:
                 pass
 
         if exists:
-            filepath_or_buffer, _ = get_handle(filepath_or_buffer, "r")
+            filepath_or_buffer = get_handle(filepath_or_buffer, "r").handle
             should_close = True
 
         if isinstance(filepath_or_buffer, str):
