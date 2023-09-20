@@ -14,7 +14,17 @@ from pydoc import locate
 import warnings
 import pkg_resources
 import pandas
-from pandas.io.common import stringify_path, get_handle, _get_filepath_or_buffer
+
+PD_BACKWARDS_COMPAT_VERSION = "1.2"
+if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
+    warnings.warn(
+        f"Compatability with pandas <=1.2 may not be supported in "
+        f"a future version of acnportal.",
+        DeprecationWarning,
+    )
+    from pandas.io.common import stringify_path, get_handle, get_filepath_or_buffer
+else:
+    from pandas.io.common import stringify_path, get_handle, _get_filepath_or_buffer
 import numpy
 
 __NOT_SERIALIZED_FLAG__ = "__NOT_SERIALIZED__"
@@ -133,7 +143,7 @@ class BaseSimObj:
         return out_arg_lst
 
     def to_json(self, path_or_buf=None):
-        """ Returns a JSON string representing self.
+        """Returns a JSON string representing self.
         Currently, only non-compressed file types are supported as the
         output file type.
 
@@ -160,7 +170,11 @@ class BaseSimObj:
             )
         path_or_buf = stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
-            fh = get_handle(path_or_buf, "w").handle
+            if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
+                fh, _ = get_handle(path_or_buf, "w")
+            else:
+                fh = get_handle(path_or_buf, "w").handle
+
             try:
                 json.dump(json_serializable_data, fh, cls=NpEncoder)
                 # Add a newline to the EOF.
@@ -334,7 +348,7 @@ class BaseSimObj:
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """ Converts the object's attributes into a JSON serializable
+        """Converts the object's attributes into a JSON serializable
         dict. Each ACN-Sim object defines this method differently.
 
         Args:
@@ -411,7 +425,7 @@ class BaseSimObj:
 
     @classmethod
     def from_json(cls, path_or_buf=None):
-        """ Returns an ACN-Sim object loaded from in_registry.
+        """Returns an ACN-Sim object loaded from in_registry.
         Note URLs have not been tested as path_or_buf input.
 
         Args:
@@ -421,9 +435,12 @@ class BaseSimObj:
         """
         # The code here is from pandas 1.0.1, io.json.from_json(), with
         # modifications.
-        ioargs = _get_filepath_or_buffer(path_or_buf)
-        filepath_or_buffer = ioargs.filepath_or_buffer
-        should_close = ioargs.should_close
+        if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
+            filepath_or_buffer, _, _, should_close = get_filepath_or_buffer(path_or_buf)
+        else:
+            ioargs = _get_filepath_or_buffer(path_or_buf)
+            filepath_or_buffer = ioargs.filepath_or_buffer
+            should_close = ioargs.should_close
 
         exists = False
         if isinstance(filepath_or_buffer, str):
@@ -433,7 +450,11 @@ class BaseSimObj:
                 pass
 
         if exists:
-            filepath_or_buffer = get_handle(filepath_or_buffer, "r").handle
+            if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
+                filepath_or_buffer, _ = get_handle(filepath_or_buffer, "r")
+            else:
+                filepath_or_buffer = get_handle(filepath_or_buffer, "r").handle
+
             should_close = True
 
         if isinstance(filepath_or_buffer, str):
@@ -676,7 +697,7 @@ class BaseSimObj:
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, "BaseSimObj"]] = None,
     ) -> Tuple["BaseSimObj", Dict[str, "BaseSimObj"]]:
-        """ Converts a JSON serializable representation of an ACN-Sim
+        """Converts a JSON serializable representation of an ACN-Sim
         object into an actual ACN-Sim object.
 
         Args:
