@@ -255,7 +255,7 @@ class ChargingNetwork(BaseSimObj):
         if pd.__version__ > "1.4.0":
             if len(constraint_frame) == 0:
                 constraint_frame_ = current.to_frame().T
-                for col in constraint_frame_:
+                for col in constraint_frame:
                     if col not in constraint_frame_:
                         constraint_frame_[col] = 0
                 constraint_frame = constraint_frame_
