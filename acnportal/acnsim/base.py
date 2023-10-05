@@ -2,6 +2,8 @@
 """
 This module contains a base class shared by all ACN-Sim objects.
 """
+from __future__ import annotations
+
 import json
 import operator
 import os
@@ -24,8 +26,86 @@ if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
     )
     from pandas.io.common import stringify_path, get_handle, get_filepath_or_buffer
 else:
-    from pandas.io.common import stringify_path, get_handle, _get_filepath_or_buffer
-import numpy
+    import mmap
+    from typing import Literal, Optional, Union
+
+    from pandas.io.common import (
+        get_compression_method,
+        get_handle,
+        infer_compression,
+        IOArgs,
+        stringify_path,
+    )
+
+    # compression keywords and compression
+    CompressionDict = dict[str, Any]
+    CompressionOptions = Optional[
+        Union[
+            Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"], CompressionDict
+        ]
+    ]
+    FilePath = Union[str, "PathLike[str]"]
+
+    # Adapted from https://github.com/pandas-dev/pandas/blob/main/pandas/io/common.py
+    def _expand_user(filepath_or_buffer: str) -> str:
+        """
+        Return the argument with an initial component of ~ or ~user
+        replaced by that user's home directory.
+        """
+        if isinstance(filepath_or_buffer, str):
+            return os.path.expanduser(filepath_or_buffer)
+        return filepath_or_buffer
+
+    def _get_filepath_or_buffer(
+        filepath_or_buffer: FilePath,
+        encoding: str = "utf-8",
+        compression: CompressionOptions | None = None,
+        mode: str = "r",
+    ) -> IOArgs:
+        """
+        Returns an IOArgs object from filepath.
+
+        Parameters
+        ----------
+        filepath_or_buffer : filepath (str, py.path.local or pathlib.Path)
+        compression_options : type of compression in CompressionOptions
+        encoding : the encoding to use to decode bytes, default is 'utf-8'
+        mode : str, optional
+
+        Returns the dataclass IOArgs.
+        """
+        filepath_or_buffer = stringify_path(filepath_or_buffer)
+
+        # handle compression dict
+        compression_method, compression = get_compression_method(compression)
+        compression_method = infer_compression(filepath_or_buffer, compression_method)
+        compression = dict(compression, method=compression_method)
+
+        if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
+            return IOArgs(
+                filepath_or_buffer=_expand_user(filepath_or_buffer),
+                encoding=encoding,
+                compression=compression,
+                should_close=False,
+                mode=mode,
+            )
+
+        # is_file_like requires (read | write) & __iter__ but __iter__ is only
+        # needed for read_csv(engine=python)
+        if not (
+            hasattr(filepath_or_buffer, "read") or hasattr(filepath_or_buffer, "write")
+        ):
+            msg = f"Invalid file path or buffer object type: {type(filepath_or_buffer)}"
+            raise ValueError(msg)
+
+        return IOArgs(
+            filepath_or_buffer=filepath_or_buffer,
+            encoding=encoding,
+            compression=compression,
+            should_close=False,
+            mode=mode,
+        )
+
 
 __NOT_SERIALIZED_FLAG__ = "__NOT_SERIALIZED__"
 
@@ -331,7 +411,7 @@ class BaseSimObj:
         if first_call:
             acnportal_version = pkg_resources.require("acnportal")[0].version
             dependency_versions = {
-                "numpy": numpy.__version__,
+                "numpy": np.__version__,
                 "pandas": pandas.__version__,
             }
 
@@ -592,7 +672,7 @@ class BaseSimObj:
 
         if dependency_versions is not None:
             current_dependency_versions = {
-                "numpy": numpy.__version__,
+                "numpy": np.__version__,
                 "pandas": pandas.__version__,
             }
             for pkg in dependency_versions.keys():
