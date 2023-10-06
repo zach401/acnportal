@@ -1,6 +1,6 @@
 import copy
 from datetime import datetime
-from typing import Dict
+from typing import Optional, Dict, Any, Tuple, List, Type
 
 import warnings
 import json
@@ -37,6 +37,10 @@ class Simulator(BaseSimObj):
     """
 
     period: float
+    ev_history: Dict[str, EV]
+    event_history: List[Event]
+    schedule_history: Optional[Dict[int, Dict[str, List[float]]]]
+    max_recompute: Optional[int]
 
     def __init__(
         self,
@@ -83,6 +87,10 @@ class Simulator(BaseSimObj):
         if scheduler is not None:
             self.max_recompute = scheduler.max_recompute
             self.scheduler.register_interface(interface_type(self))
+
+    def get_interface(self, interface_type: type) -> Interface:
+        """ Generates and returns an Interface to this Simulator. TODO Tests for this."""
+        return interface_type(self)
 
     @property
     def iteration(self):
@@ -349,7 +357,7 @@ class Simulator(BaseSimObj):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """
         Implements BaseSimObj._to_dict. Certain simulator attributes are
         not serialized completely as they are not ACN-Sim objects
@@ -431,7 +439,7 @@ class Simulator(BaseSimObj):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """
         Implements BaseSimObj._from_dict. Certain simulator attributes
         are not loaded completely as they are not ACN-Sim objects
@@ -451,6 +459,8 @@ class Simulator(BaseSimObj):
         stored. The Simulator provides a method to set the scheduler
         after the Simulator is loaded.
 
+        Warnings are issued if unexpected object types are encountered. Typing is
+        ignored for these cases.
         """
         # noinspection PyProtectedMember
         network, loaded_dict = BaseSimObj._build_from_id(
@@ -461,10 +471,13 @@ class Simulator(BaseSimObj):
         events, loaded_dict = BaseSimObj._build_from_id(
             attribute_dict["event_queue"], context_dict, loaded_dict=loaded_dict
         )
-
-        scheduler_cls = locate(attribute_dict["scheduler"])
+        # locate outputs an object in general, though a BaseSimObj class is expected
+        # here. Mypy will ignore this.
+        scheduler_cls: Type["BaseAlgorithm"] = locate(  # type: ignore
+            attribute_dict["scheduler"]
+        )
         try:
-            scheduler = scheduler_cls()
+            scheduler: BaseAlgorithm = scheduler_cls()
         except TypeError:
             warnings.warn(
                 f"Scheduler {attribute_dict['scheduler']} "
@@ -507,30 +520,42 @@ class Simulator(BaseSimObj):
         out_obj.pilot_signals = np.array(attribute_dict["pilot_signals"])
         out_obj.charging_rates = np.array(attribute_dict["charging_rates"])
 
-        ev_history = {}
+        ev_history: Dict[str, EV] = {}
         for session_id, ev in attribute_dict["ev_history"].items():
-            # noinspection PyProtectedMember
-            ev_elt, loaded_dict = BaseSimObj._build_from_id(
+            ev_elt: EV
+            ev_elt, loaded_dict = BaseSimObj._build_from_id(  # type: ignore
                 ev, context_dict, loaded_dict=loaded_dict
             )
+            if not isinstance(ev_elt, EV):
+                warnings.warn(
+                    f"Got an element of type {ev_elt} when loading ev_history, which "
+                    f"is not an instance of EV or a subclass. Loaded "
+                    f"object may not function correctly."
+                )
             ev_history[session_id] = ev_elt
         out_obj.ev_history = ev_history
 
-        event_history = []
+        event_history: List[Event] = []
         for past_event in attribute_dict["event_history"]:
-            # noinspection PyProtectedMember
-            loaded_event, loaded_dict = BaseSimObj._build_from_id(
+            loaded_event: Event
+            loaded_event, loaded_dict = BaseSimObj._build_from_id(  # type: ignore
                 past_event, context_dict, loaded_dict=loaded_dict
             )
+            if not isinstance(loaded_event, Event):
+                warnings.warn(
+                    f"Got an element of type {loaded_event} when loading ev_history,"
+                    f"which is not an instance of EV or a subclass. Loaded "
+                    f"object may not function correctly."
+                )
             event_history.append(loaded_event)
         out_obj.event_history = event_history
 
         return out_obj, loaded_dict
 
-    def update_scheduler(self, new_scheduler):
+    def update_scheduler(self, new_scheduler, interface_type: type = Interface):
         """ Updates a Simulator's schedule. """
         self.scheduler = new_scheduler
-        self.scheduler.register_interface(Interface(self))
+        self.scheduler.register_interface(interface_type(self))
         self.max_recompute = new_scheduler.max_recompute
 
 

@@ -2,7 +2,7 @@
 """ Tests for objects of the interface module. """
 from typing import List
 from unittest import TestCase
-from unittest.mock import create_autospec, patch, Mock
+from unittest.mock import create_autospec, patch
 import numpy.testing as nptest
 import numpy as np
 
@@ -278,6 +278,9 @@ class TestInterface(TestCase):
 
     def test_init(self) -> None:
         self.assertIs(self.interface._simulator, self.simulator)
+        nptest.assert_equal(self.network.constraint_matrix, np.eye(4))
+        nptest.assert_equal(self.network.magnitudes, np.ones(4))
+        self.assertEqual(self.network.constraint_index, ["C1", "C2", "C3", "C4"])
 
     def test_violation_tolerance(self) -> None:
         self.assertEqual(
@@ -362,9 +365,9 @@ class TestInterface(TestCase):
 
     def test_is_feasible(self) -> None:
         # Mock network's is_feasible function to check its call signature later
-        self.network.is_feasible = create_autospec(self.network.is_feasible)
-        self.interface.is_feasible({"PS-001": [1, 2], "PS-002": [4, 5]})
-        network_is_feasible_args = self.network.is_feasible.call_args
+        with patch.object(self.network, "is_feasible") as is_feasible:
+            self.interface.is_feasible({"PS-001": [1, 2], "PS-002": [4, 5]})
+        network_is_feasible_args = is_feasible.call_args
         # Check that the call to the network's is_feasible method has the correct
         # arguments.
         np.testing.assert_allclose(
@@ -380,14 +383,14 @@ class TestInterface(TestCase):
 
     def test_is_feasible_with_options(self) -> None:
         # Mock network's is_feasible function to check its call signature later
-        self.network.is_feasible = create_autospec(self.network.is_feasible)
-        self.interface.is_feasible(
-            {"PS-001": [1, 2], "PS-002": [4, 5]},
-            linear=True,
-            violation_tolerance=1e-3,
-            relative_tolerance=1e-5,
-        )
-        network_is_feasible_args = self.network.is_feasible.call_args
+        with patch.object(self.network, "is_feasible") as is_feasible:
+            self.interface.is_feasible(
+                {"PS-001": [1, 2], "PS-002": [4, 5]},
+                linear=True,
+                violation_tolerance=1e-3,
+                relative_tolerance=1e-5,
+            )
+        network_is_feasible_args = is_feasible.call_args
         # Check that the call to the network's is_feasible method has the correct
         # arguments.
         np.testing.assert_allclose(

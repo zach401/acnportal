@@ -189,15 +189,24 @@ class ChargingNetwork(BaseSimObj):
         Returns:
             None
         """
-        # Only allow registering of EVSEs before any constraints have been added.
-        if self.constraint_matrix is not None:
+        # Only allow registering of EVSEs before any constraints have been added, with
+        # the exception of overwriting an EVSE already registered.
+        if self.constraint_matrix is not None and evse.station_id not in self._EVSEs:
             raise EVSERegistrationError(
                 "Attempting to register an EVSE after constraints have been added. "
-                "Please register all EVSEs with the network before adding constraints."
+                "Please register all EVSEs with the network before adding constraints. "
+                "You may also overwrite an existing EVSE after constraints have been "
+                "added."
             )
+        # If EVSE is already registered, overwrite voltages and phase angles rather
+        # than appending.
+        if evse.station_id in self._EVSEs:
+            self._voltages[self.station_ids.index(evse.station_id)] = voltage
+            self._phase_angles[self.station_ids.index(evse.station_id)] = phase_angle
+        else:
+            self._voltages = np.append(self._voltages, voltage)
+            self._phase_angles = np.append(self._phase_angles, phase_angle)
         self._EVSEs[evse.station_id] = evse
-        self._voltages = np.append(self._voltages, voltage)
-        self._phase_angles = np.append(self._phase_angles, phase_angle)
         # Cached information-storing objects for use by Interface.
         _ = self._update_info_store()
 
@@ -314,12 +323,11 @@ class ChargingNetwork(BaseSimObj):
         Returns:
             None
         """
-        if new_name is None:
-            new_name: str = name
+        new_name_processed: str = name if new_name is None else new_name
         if name not in self.constraint_index:
             raise KeyError(f"Cannot update constraint {name}: not found in network.")
         self.remove_constraint(name)
-        self.add_constraint(current, limit, name=new_name)
+        self.add_constraint(current, limit, name=new_name_processed)
         # Cached information-storing objects for use by Interface.
         _ = self._update_info_store()
 
@@ -453,16 +461,23 @@ class ChargingNetwork(BaseSimObj):
         Returns:
             np.ndarray: Aggregate currents subject to the given constraints.
         """
+        # If there are no constraints, throw an error as this function is not well-
+        # defined.
+        # TODO: Test the no constraint case for is_feasible and constraint_currents.
+        if self.constraint_matrix is None:
+            raise ValueError("Add constraints before calling constraint currents.")
+
         schedule_matrix: np.ndarray = np.array(input_schedule)
         # Convert list of constraint id's to list of indices in constraint matrix
+        constraint_indices: List[int]
         if constraints is not None:
-            constraint_indices: List[int] = [
+            constraint_indices = [
                 i
                 for i in range(len(self.constraint_index))
                 if self.constraint_index[i] in constraints
             ]
         else:
-            constraint_indices: List[int] = list(range(len(self.constraint_index)))
+            constraint_indices = list(range(len(self.constraint_index)))
 
         # If we only want the constraint currents at specific time indices,
         # index schedule_matrix columns using these indices
@@ -546,8 +561,8 @@ class ChargingNetwork(BaseSimObj):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """Implements BaseSimObj._to_dict."""
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
+        """ Implements BaseSimObj._to_dict. """
 
         attribute_dict = {}
         # Serialize non-nested attributes.
@@ -587,14 +602,14 @@ class ChargingNetwork(BaseSimObj):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
-        """Implements BaseSimObj._from_dict."""
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
+        """ Implements BaseSimObj._from_dict. """
         out_obj = cls(
             violation_tolerance=attribute_dict["violation_tolerance"],
             relative_tolerance=attribute_dict["relative_tolerance"],
         )
 
-        evses = {}
+        evses = OrderedDict()
         for station_id, evse in attribute_dict["_EVSEs"].items():
             # noinspection PyProtectedMember
             evse_elt, loaded_dict = BaseSimObj._build_from_id(
