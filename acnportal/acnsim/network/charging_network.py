@@ -97,7 +97,7 @@ class ChargingNetwork(BaseSimObj):
 
     @property
     def current_charging_rates(self) -> np.ndarray:
-        """ Return the current actual charging rate of all EVSEs in the network. If
+        """Return the current actual charging rate of all EVSEs in the network. If
         no EV is attached to a given EVSE, that EVSE's charging rate is 0. In the
         returned array, the charging rates are given in the same order as the list of
         EVSEs given by station_ids
@@ -115,7 +115,7 @@ class ChargingNetwork(BaseSimObj):
 
     @property
     def station_ids(self) -> List[str]:
-        """ Return the IDs of all registered EVSEs.
+        """Return the IDs of all registered EVSEs.
 
         Returns:
             List[str]: List of all registered EVSE IDs.
@@ -124,7 +124,7 @@ class ChargingNetwork(BaseSimObj):
 
     @property
     def active_evs(self) -> List[EV]:
-        """ Return all EVs which are connected to an EVSE and which are not already
+        """Return all EVs which are connected to an EVSE and which are not already
         fully charged.
 
         Returns:
@@ -138,7 +138,7 @@ class ChargingNetwork(BaseSimObj):
 
     @property
     def active_station_ids(self) -> List[str]:
-        """ Return IDs for all stations which have an active EV attached.
+        """Return IDs for all stations which have an active EV attached.
 
         Returns:
             List[str]: List of the station_id of all stations which have an
@@ -152,7 +152,7 @@ class ChargingNetwork(BaseSimObj):
 
     @property
     def voltages(self) -> Dict[str, float]:
-        """ Return dictionary of voltages for all EVSEs in the network.
+        """Return dictionary of voltages for all EVSEs in the network.
 
         Returns:
             Dict[str, float]: Dictionary mapping EVSE ids their input voltage. [V]
@@ -163,7 +163,7 @@ class ChargingNetwork(BaseSimObj):
 
     @property
     def phase_angles(self) -> Dict[str, float]:
-        """ Return dictionary of phase angles for all EVSEs in the network.
+        """Return dictionary of phase angles for all EVSEs in the network.
 
         Returns:
             Dict[str, float]: Dictionary mapping EVSE ids their input phase angle. [
@@ -175,7 +175,7 @@ class ChargingNetwork(BaseSimObj):
         }
 
     def register_evse(self, evse: BaseEVSE, voltage: float, phase_angle: float) -> None:
-        """ Register an EVSE with the network so it will be accessible to the rest of
+        """Register an EVSE with the network so it will be accessible to the rest of
         the simulation. This can only be called before any constraints have been
         registered in order to prevent dimensionality mismatch between the EVSE list
         and the
@@ -211,7 +211,7 @@ class ChargingNetwork(BaseSimObj):
         _ = self._update_info_store()
 
     def constraints_as_df(self) -> pd.DataFrame:
-        """ Returns the network constraints in a pandas DataFrame.
+        """Returns the network constraints in a pandas DataFrame.
 
         The index is the constraint IDs, and the columns are station IDs. The
         magnitudes (constraint limits) must be accessed separately.
@@ -228,7 +228,7 @@ class ChargingNetwork(BaseSimObj):
     def add_constraint(
         self, current: Current, limit: float, name: Optional[str] = None
     ) -> None:
-        """ Add an additional constraint to the constraint DataFrame.
+        """Add an additional constraint to the constraint DataFrame.
 
         Args:
             current (Current): Aggregate current which is constrained.
@@ -260,7 +260,27 @@ class ChargingNetwork(BaseSimObj):
         # Make a DataFrame for the constraint matrix for easy addition of the new
         # constraint
         constraint_frame: pd.DataFrame = self.constraints_as_df()
-        constraint_frame = constraint_frame.append(current).fillna(0)
+
+        if pd.__version__ > "1.4.0":
+            if len(constraint_frame) == 0:
+                constraint_frame_ = current.to_frame().T
+                for col in constraint_frame:
+                    if col not in constraint_frame_:
+                        constraint_frame_[col] = 0
+                constraint_frame = constraint_frame_
+            else:
+                constraint_frame = pd.concat(
+                    [constraint_frame, current.to_frame().T]
+                ).fillna(0)
+        else:
+            constraint_frame = constraint_frame.append(current).fillna(0)
+
+            warnings.warn(
+                f"Compatability with pandas <=1.4.0 may not be supported in "
+                f"a future version of acnportal.",
+                DeprecationWarning,
+            )
+
         # Maintain a list of constraint ids for use with constraint_current.
         self.constraint_index = list(constraint_frame.index)
         # Update the numpy matrix of constraints by reconstructing it from
@@ -272,7 +292,7 @@ class ChargingNetwork(BaseSimObj):
         _ = self._update_info_store()
 
     def remove_constraint(self, name: str) -> None:
-        """ Remove a network constraint.
+        """Remove a network constraint.
 
         Args:
             name (str): Name of constraint to remove.
@@ -292,7 +312,7 @@ class ChargingNetwork(BaseSimObj):
     def update_constraint(
         self, name: str, current: Current, limit: float, new_name: Optional[str] = None
     ) -> None:
-        """ Update a network constraint with a new aggregate current, limit, and name.
+        """Update a network constraint with a new aggregate current, limit, and name.
 
         Args:
             name (str): Name of constraint to update.
@@ -312,7 +332,7 @@ class ChargingNetwork(BaseSimObj):
         _ = self._update_info_store()
 
     def plugin(self, ev: EV, station_id: str = None) -> None:
-        """ Attach EV to a specific EVSE.
+        """Attach EV to a specific EVSE.
 
         Args:
             ev (EV): EV object which will be attached to the EVSE.
@@ -337,7 +357,7 @@ class ChargingNetwork(BaseSimObj):
             raise KeyError("Station {0} not found.".format(ev.station_id))
 
     def unplug(self, station_id: str, session_id: str = None) -> None:
-        """ Detach EV from a specific EVSE.
+        """Detach EV from a specific EVSE.
 
         Args:
             station_id (str): ID of the EVSE.
@@ -374,7 +394,7 @@ class ChargingNetwork(BaseSimObj):
             raise KeyError("Station {0} not found.".format(station_id))
 
     def get_ev(self, station_id: str) -> EV:
-        """ Return the EV attached to the specified EVSE.
+        """Return the EV attached to the specified EVSE.
 
         Args:
             station_id (str): ID of the EVSE.
@@ -389,7 +409,7 @@ class ChargingNetwork(BaseSimObj):
             raise KeyError("Station {0} not found.".format(station_id))
 
     def update_pilots(self, pilots: np.ndarray, i: int, period: float) -> None:
-        """ Update the pilot signal sent to each EV. Also triggers the EVs to charge
+        """Update the pilot signal sent to each EV. Also triggers the EVs to charge
         at the specified rate.
 
         Note that if a pilot is not sent to an EVSE the associated EV WILL NOT charge
@@ -422,7 +442,7 @@ class ChargingNetwork(BaseSimObj):
         time_indices: Optional[List[int]] = None,
         linear: bool = False,
     ):
-        """ Return the aggregate currents subject to the given constraints. If
+        """Return the aggregate currents subject to the given constraints. If
         constraints=None, return all aggregate currents.
 
         Args:
@@ -485,7 +505,7 @@ class ChargingNetwork(BaseSimObj):
         violation_tolerance: Optional[float] = None,
         relative_tolerance: Optional[float] = None,
     ) -> bool:
-        """ Return if a set of current magnitudes for each load are feasible.
+        """Return if a set of current magnitudes for each load are feasible.
 
         For a given constraint, the larger of the violation_tolerance
         and relative_tolerance is used to evaluate feasibility.
@@ -536,7 +556,7 @@ class ChargingNetwork(BaseSimObj):
         )
 
     def post_charging_update(self):
-        """ Hook to define actions to take after the charging update. """
+        """Hook to define actions to take after the charging update."""
         pass
 
     def _to_dict(
@@ -639,10 +659,10 @@ class ChargingNetwork(BaseSimObj):
 
 
 class StationOccupiedError(Exception):
-    """ Exception which is raised when trying to add an EV to an EVSE which is
-    already occupied. """
+    """Exception which is raised when trying to add an EV to an EVSE which is
+    already occupied."""
 
 
 class EVSERegistrationError(Exception):
-    """ Exception which is raised when trying to add an EVSE to the network after
-    constraints have already been added. """
+    """Exception which is raised when trying to add an EVSE to the network after
+    constraints have already been added."""
