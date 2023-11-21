@@ -2,6 +2,8 @@
 """
 This module contains a base class shared by all ACN-Sim objects.
 """
+from __future__ import annotations
+
 import json
 import operator
 import os
@@ -14,8 +16,96 @@ from pydoc import locate
 import warnings
 import pkg_resources
 import pandas
-from pandas.io.common import stringify_path, get_handle, get_filepath_or_buffer
-import numpy
+
+PD_BACKWARDS_COMPAT_VERSION = "1.2"
+if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
+    warnings.warn(
+        f"Compatability with pandas <=1.2 may not be supported in "
+        f"a future version of acnportal.",
+        DeprecationWarning,
+    )
+    from pandas.io.common import stringify_path, get_handle, get_filepath_or_buffer
+else:
+    import mmap
+    from typing import Literal, Optional, Union
+
+    from pandas.io.common import (
+        get_compression_method,
+        get_handle,
+        infer_compression,
+        IOArgs,
+        stringify_path,
+    )
+
+    # compression keywords and compression
+    CompressionDict = Dict[str, Any]
+    CompressionOptions = Optional[
+        Union[
+            Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"], CompressionDict
+        ]
+    ]
+    FilePath = Union[str, "PathLike[str]"]
+
+    # Adapted from https://github.com/pandas-dev/pandas/blob/main/pandas/io/common.py
+    def _expand_user(filepath_or_buffer: str) -> str:
+        """
+        Return the argument with an initial component of ~ or ~user
+        replaced by that user's home directory.
+        """
+        if isinstance(filepath_or_buffer, str):
+            return os.path.expanduser(filepath_or_buffer)
+        return filepath_or_buffer
+
+    def _get_filepath_or_buffer(
+        filepath_or_buffer: FilePath,
+        encoding: str = "utf-8",
+        compression: CompressionOptions | None = None,
+        mode: str = "r",
+    ) -> IOArgs:
+        """
+        Returns an IOArgs object from filepath.
+
+        Parameters
+        ----------
+        filepath_or_buffer : filepath (str, py.path.local or pathlib.Path)
+        compression_options : type of compression in CompressionOptions
+        encoding : the encoding to use to decode bytes, default is 'utf-8'
+        mode : str, optional
+
+        Returns the dataclass IOArgs.
+        """
+        filepath_or_buffer = stringify_path(filepath_or_buffer)
+
+        # handle compression dict
+        compression_method, compression = get_compression_method(compression)
+        compression_method = infer_compression(filepath_or_buffer, compression_method)
+        compression = dict(compression, method=compression_method)
+
+        if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
+            return IOArgs(
+                filepath_or_buffer=_expand_user(filepath_or_buffer),
+                encoding=encoding,
+                compression=compression,
+                should_close=False,
+                mode=mode,
+            )
+
+        # is_file_like requires (read | write) & __iter__ but __iter__ is only
+        # needed for read_csv(engine=python)
+        if not (
+            hasattr(filepath_or_buffer, "read") or hasattr(filepath_or_buffer, "write")
+        ):
+            msg = f"Invalid file path or buffer object type: {type(filepath_or_buffer)}"
+            raise ValueError(msg)
+
+        return IOArgs(
+            filepath_or_buffer=filepath_or_buffer,
+            encoding=encoding,
+            compression=compression,
+            should_close=False,
+            mode=mode,
+        )
+
 
 __NOT_SERIALIZED_FLAG__ = "__NOT_SERIALIZED__"
 
@@ -133,7 +223,7 @@ class BaseSimObj:
         return out_arg_lst
 
     def to_json(self, path_or_buf=None):
-        """ Returns a JSON string representing self.
+        """Returns a JSON string representing self.
         Currently, only non-compressed file types are supported as the
         output file type.
 
@@ -160,7 +250,11 @@ class BaseSimObj:
             )
         path_or_buf = stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
-            fh, _ = get_handle(path_or_buf, "w")
+            if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
+                fh, _ = get_handle(path_or_buf, "w")
+            else:
+                fh = get_handle(path_or_buf, "w").handle
+
             try:
                 json.dump(json_serializable_data, fh, cls=NpEncoder)
                 # Add a newline to the EOF.
@@ -317,7 +411,7 @@ class BaseSimObj:
         if first_call:
             acnportal_version = pkg_resources.require("acnportal")[0].version
             dependency_versions = {
-                "numpy": numpy.__version__,
+                "numpy": np.__version__,
                 "pandas": pandas.__version__,
             }
 
@@ -334,7 +428,7 @@ class BaseSimObj:
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """ Converts the object's attributes into a JSON serializable
+        """Converts the object's attributes into a JSON serializable
         dict. Each ACN-Sim object defines this method differently.
 
         Args:
@@ -411,7 +505,7 @@ class BaseSimObj:
 
     @classmethod
     def from_json(cls, path_or_buf=None):
-        """ Returns an ACN-Sim object loaded from in_registry.
+        """Returns an ACN-Sim object loaded from in_registry.
         Note URLs have not been tested as path_or_buf input.
 
         Args:
@@ -421,7 +515,12 @@ class BaseSimObj:
         """
         # The code here is from pandas 1.0.1, io.json.from_json(), with
         # modifications.
-        filepath_or_buffer, _, _, should_close = get_filepath_or_buffer(path_or_buf)
+        if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
+            filepath_or_buffer, _, _, should_close = get_filepath_or_buffer(path_or_buf)
+        else:
+            ioargs = _get_filepath_or_buffer(path_or_buf)
+            filepath_or_buffer = ioargs.filepath_or_buffer
+            should_close = ioargs.should_close
 
         exists = False
         if isinstance(filepath_or_buffer, str):
@@ -431,7 +530,11 @@ class BaseSimObj:
                 pass
 
         if exists:
-            filepath_or_buffer, _ = get_handle(filepath_or_buffer, "r")
+            if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
+                filepath_or_buffer, _ = get_handle(filepath_or_buffer, "r")
+            else:
+                filepath_or_buffer = get_handle(filepath_or_buffer, "r").handle
+
             should_close = True
 
         if isinstance(filepath_or_buffer, str):
@@ -569,7 +672,7 @@ class BaseSimObj:
 
         if dependency_versions is not None:
             current_dependency_versions = {
-                "numpy": numpy.__version__,
+                "numpy": np.__version__,
                 "pandas": pandas.__version__,
             }
             for pkg in dependency_versions.keys():
@@ -674,7 +777,7 @@ class BaseSimObj:
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, "BaseSimObj"]] = None,
     ) -> Tuple["BaseSimObj", Dict[str, "BaseSimObj"]]:
-        """ Converts a JSON serializable representation of an ACN-Sim
+        """Converts a JSON serializable representation of an ACN-Sim
         object into an actual ACN-Sim object.
 
         Args:
