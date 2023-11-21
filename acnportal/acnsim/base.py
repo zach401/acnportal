@@ -38,7 +38,7 @@ else:
     )
 
     # compression keywords and compression
-    CompressionDict = dict[str, Any]
+    CompressionDict = Dict[str, Any]
     CompressionOptions = Optional[
         Union[
             Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"], CompressionDict
