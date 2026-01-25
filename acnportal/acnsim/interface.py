@@ -129,9 +129,9 @@ class SessionInfo:
 
     @property
     def remaining_time(self) -> int:
-        """ Return the time remaining until the EV represented by this Session departs,
-        or the time between the EV's estimated departure and arrival if the EV has not arrived
-        yet. If the EV has already departed, return 0.
+        """ Return the time remaining until the estimated departure of the EV represented by 
+        this Session, or the time between the EV's estimated departure and arrival if the EV 
+        has not arrived yet. If the EV has already departed, return 0.
         """
         remaining = min(
             self.estimated_departure - self.arrival, self.estimated_departure - self.current_time
