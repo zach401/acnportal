@@ -41,13 +41,13 @@ class TestSessionInfo(TestCase):
     def test_kwarg_order(self) -> None:
         """ Tests that the order of overflow of kwargs for SessionInfo is maintained.
         """
-        s = SessionInfo("PS-001", "01", 10, 4, 5, 60, 63, 6, [8.0] * 54, [32.0] * 54)
+        s = SessionInfo("PS-001", "01", 10, 4, 5, 60, 63, 6, [8.0] * 57, [32.0] * 57)
         self.assertEqual(s.estimated_departure, 63)
         self.assertEqual(s.current_time, 6)
         nptest.assert_array_equal(s.min_rates, 8.0)
-        self.assertEqual(s.min_rates.shape, (54,))
+        self.assertEqual(s.min_rates.shape, (57,))
         nptest.assert_array_equal(s.max_rates, 32.0)
-        self.assertEqual(s.max_rates.shape, (54,))
+        self.assertEqual(s.max_rates.shape, (57,))
 
     def test_valid_inputs_distinct_estimated_departure(self) -> None:
         s = SessionInfo("PS-001", "01", 10, 4, 5, 60, estimated_departure=63)
@@ -60,7 +60,7 @@ class TestSessionInfo(TestCase):
         )
         self.assertEqual(s.current_time, 6)
         self.assertEqual(s.arrival_offset, 0)
-        self.assertEqual(s.remaining_time, 54)
+        self.assertEqual(s.remaining_time, 57)
 
     def test_valid_inputs_nonzero_current_time_less_than_arrival(self) -> None:
         s = SessionInfo(
@@ -68,13 +68,13 @@ class TestSessionInfo(TestCase):
         )
         self.assertEqual(s.current_time, 4)
         self.assertEqual(s.arrival_offset, 1)
-        self.assertEqual(s.remaining_time, 55)
+        self.assertEqual(s.remaining_time, 58)
 
     def test_proper_length_min_rates(self) -> None:
         s = SessionInfo(
-            "PS-001", "01", 10, 4, 5, 10, estimated_departure=12, min_rates=[8.0] * 5
+            "PS-001", "01", 10, 4, 5, 10, estimated_departure=12, min_rates=[8.0] * 7
         )
-        self.assertEqual(s.min_rates.shape, (5,))
+        self.assertEqual(s.min_rates.shape, (7,))
         nptest.assert_array_equal(s.min_rates, 8.0)
 
     def test_min_rates_too_short(self) -> None:
@@ -87,7 +87,7 @@ class TestSessionInfo(TestCase):
                 5,
                 10,
                 estimated_departure=12,
-                min_rates=[8.0] * 4,
+                min_rates=[8.0] * 6,
             )
 
     def test_min_rates_too_long(self) -> None:
@@ -100,14 +100,14 @@ class TestSessionInfo(TestCase):
                 5,
                 10,
                 estimated_departure=12,
-                min_rates=[8.0] * 6,
+                min_rates=[8.0] * 8,
             )
 
     def test_proper_length_max_rates(self) -> None:
         s = SessionInfo(
-            "PS-001", "01", 10, 4, 5, 10, estimated_departure=12, max_rates=[8.0] * 5
+            "PS-001", "01", 10, 4, 5, 10, estimated_departure=12, max_rates=[8.0] * 7
         )
-        self.assertEqual(s.max_rates.shape, (5,))
+        self.assertEqual(s.max_rates.shape, (7,))
         nptest.assert_array_equal(s.max_rates, 8.0)
 
     def test_max_rates_too_short(self) -> None:
@@ -120,7 +120,7 @@ class TestSessionInfo(TestCase):
                 5,
                 10,
                 estimated_departure=12,
-                max_rates=[8.0] * 4,
+                max_rates=[8.0] * 6,
             )
 
     def test_max_rates_too_long(self) -> None:
@@ -133,7 +133,7 @@ class TestSessionInfo(TestCase):
                 5,
                 10,
                 estimated_departure=12,
-                max_rates=[8.0] * 6,
+                max_rates=[8.0] * 8,
             )
 
 
