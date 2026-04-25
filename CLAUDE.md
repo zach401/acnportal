@@ -34,7 +34,7 @@ CI runs `pytest` against Python 3.8–3.11. PRs should target the `dev` branch, 
 
 ## Architecture Overview
 
-ACN Portal is a Python research toolkit for EV charging. It has three main packages under `acnportal/`:
+ACN Portal is a Python research toolkit for EV charging. The main packages live under `acnportal/`:
 
 ### `acnsim` — Simulation engine
 
@@ -89,7 +89,7 @@ The return value maps `station_id → list of pilot signals`, one entry per futu
 
 - **Docstrings**: Google-style. Place class docstrings on the class declaration, not in `__init__`.
 - **Imports**: Use relative imports within the package (`from .models import EV`, not `from acnportal.acnsim.models import EV`).
-- **Private attributes**: Prefix with `_`. Cross-module access of private attributes is allowed but must be commented with the reason and a `# noqa` or `# noinspection` annotation.
+- **Private attributes**: Prefix with `_`. Cross-module access of private attributes is allowed but must be suppressed with a `# noinspection PyProtectedMember` annotation and a comment explaining why.
 - **Type hints**: Required on all new code.
 - **f-strings**: Prefer over `.format()`.
 - **LSP compliance**: Test subclasses should inherit from a shared `TestCase` subclass rather than directly from `unittest.TestCase` to ensure substitutability.
