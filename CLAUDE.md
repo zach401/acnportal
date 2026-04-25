@@ -83,7 +83,7 @@ The return value maps `station_id → list of pilot signals`, one entry per futu
 
 ### `contrib` — Community extensions
 
-`contrib/acnsim/network/stochastic_network.py` provides a `StochasticNetwork` that adds random noise to constraint limits for robustness testing.
+`contrib/acnsim/network/stochastic_network.py` provides a `StochasticNetwork` that overrides `plugin()` to assign arriving EVs to a randomly chosen available EVSE rather than a fixed station. EVs that arrive when all stations are occupied are held in a waiting queue and assigned when a spot opens up.
 
 ## Key Conventions
 
