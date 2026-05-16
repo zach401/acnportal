@@ -105,7 +105,7 @@ class Battery(BaseSimObj):
         return attribute_dict, context_dict
 
     @classmethod
-    def _from_dict_helper(cls, out_obj, attribute_dict):
+    def _from_dict_helper(cls, out_obj, attribute_dict, context_dict=None, loaded_dict=None):
         out_obj._current_charging_power = attribute_dict["_current_charging_power"]
         out_obj._current_charge = attribute_dict["_current_charge"]
 

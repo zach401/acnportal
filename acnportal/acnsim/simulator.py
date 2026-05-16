@@ -1,19 +1,17 @@
 import copy
+import inspect
 from datetime import datetime
 from typing import Dict
 
 import warnings
 import json
 
-# noinspection PyProtectedMember
-from pydoc import locate
-
 from .events import *
 from .events import UnplugEvent
 from .interface import Interface
 from .interface import InvalidScheduleError
 from acnportal.algorithms import BaseAlgorithm
-from .base import BaseSimObj
+from .base import BaseSimObj, _load_class
 
 
 class Simulator(BaseSimObj):
@@ -375,9 +373,32 @@ class Simulator(BaseSimObj):
         )
         attribute_dict["event_queue"] = registry["id"]
 
-        attribute_dict["scheduler"] = (
-            f"{self.scheduler.__module__}." f"{self.scheduler.__class__.__name__}"
+        scheduler_name = (
+            f"{self.scheduler.__module__}.{self.scheduler.__class__.__name__}"
         )
+        attribute_dict["scheduler"] = scheduler_name
+        # Warn at serialize time if the scheduler needs constructor args and
+        # therefore cannot be reconstructed automatically on load.
+        try:
+            sig = inspect.signature(self.scheduler.__class__.__init__)
+            required_params = [
+                p for name, p in sig.parameters.items()
+                if name != "self"
+                and p.default is inspect.Parameter.empty
+                and p.kind not in (
+                    inspect.Parameter.VAR_POSITIONAL,
+                    inspect.Parameter.VAR_KEYWORD,
+                )
+            ]
+            if required_params:
+                warnings.warn(
+                    f"Scheduler {scheduler_name} requires constructor arguments "
+                    f"and cannot be automatically reconstructed on load. "
+                    f"Call update_scheduler() after loading to restore it.",
+                    UserWarning,
+                )
+        except (ValueError, TypeError):
+            pass
 
         attribute_dict["start"] = self.start.strftime("%H:%M:%S.%f %d%m%Y")
 
@@ -385,11 +406,15 @@ class Simulator(BaseSimObj):
             json.dumps(self.signals)
         except TypeError:
             warnings.warn(
-                "Not serializing signals as value types"
-                "are not natively JSON serializable.",
+                "Not serializing signals as value types "
+                "are not natively JSON serializable. "
+                "Set signals manually after loading.",
                 UserWarning,
             )
-            attribute_dict["signals"] = None
+            attribute_dict["signals"] = [
+                "__NOT_SERIALIZED__",
+                repr(self.signals),
+            ]
         else:
             attribute_dict["signals"] = self.signals
 
@@ -462,18 +487,33 @@ class Simulator(BaseSimObj):
             attribute_dict["event_queue"], context_dict, loaded_dict=loaded_dict
         )
 
-        scheduler_cls = locate(attribute_dict["scheduler"])
+        try:
+            scheduler_cls = _load_class(attribute_dict["scheduler"])
+        except ValueError:
+            scheduler_cls = None
         try:
             scheduler = scheduler_cls()
         except TypeError:
             warnings.warn(
                 f"Scheduler {attribute_dict['scheduler']} "
                 f"requires constructor inputs. Setting "
-                f"scheduler to BaseAlgorithm instead."
+                f"scheduler to BaseAlgorithm instead. "
+                f"Call update_scheduler() to restore it."
             )
             scheduler = BaseAlgorithm()
 
         start = datetime.strptime(attribute_dict["start"], "%H:%M:%S.%f %d%m%Y")
+
+        # Signals stored as ["__NOT_SERIALIZED__", repr] when not JSON-serializable.
+        raw_signals = attribute_dict["signals"]
+        if (
+            isinstance(raw_signals, list)
+            and len(raw_signals) == 2
+            and raw_signals[0] == "__NOT_SERIALIZED__"
+        ):
+            signals = None
+        else:
+            signals = raw_signals
 
         out_obj = cls(
             network,
@@ -481,7 +521,7 @@ class Simulator(BaseSimObj):
             events,
             start,
             period=attribute_dict["period"],
-            signals=attribute_dict["signals"],
+            signals=signals,
             verbose=attribute_dict["verbose"],
         )
         scheduler.register_interface(Interface(out_obj))

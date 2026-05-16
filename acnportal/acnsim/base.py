@@ -4,106 +4,62 @@ This module contains a base class shared by all ACN-Sim objects.
 """
 from __future__ import annotations
 
+import importlib
+import importlib.metadata
 import json
 import operator
 import os
+import pathlib
 from typing import Optional, Dict, Any, Tuple
 
 import numpy as np
-
-# noinspection PyProtectedMember
-from pydoc import locate
 import warnings
-import pkg_resources
-import pandas
 
-PD_BACKWARDS_COMPAT_VERSION = "1.2"
-if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
-    warnings.warn(
-        f"Compatability with pandas <=1.2 may not be supported in "
-        f"a future version of acnportal.",
-        DeprecationWarning,
-    )
-    from pandas.io.common import stringify_path, get_handle, get_filepath_or_buffer
-else:
-    import mmap
-    from typing import Literal, Optional, Union
+try:
+    from packaging.version import Version as _PkgVersion
 
-    from pandas.io.common import (
-        get_compression_method,
-        get_handle,
-        infer_compression,
-        IOArgs,
-        stringify_path,
-    )
+    def _major_version_changed(v1: str, v2: str) -> bool:
+        """Return True only if the major version differs between v1 and v2."""
+        try:
+            return _PkgVersion(v1).major != _PkgVersion(v2).major
+        except Exception:
+            return v1 != v2
 
-    # compression keywords and compression
-    CompressionDict = Dict[str, Any]
-    CompressionOptions = Optional[
-        Union[
-            Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"], CompressionDict
-        ]
-    ]
-    FilePath = Union[str, "PathLike[str]"]
+except ImportError:
+    def _major_version_changed(v1: str, v2: str) -> bool:  # type: ignore[misc]
+        return v1 != v2
 
-    # Adapted from https://github.com/pandas-dev/pandas/blob/main/pandas/io/common.py
-    def _expand_user(filepath_or_buffer: str) -> str:
-        """
-        Return the argument with an initial component of ~ or ~user
-        replaced by that user's home directory.
-        """
-        if isinstance(filepath_or_buffer, str):
-            return os.path.expanduser(filepath_or_buffer)
-        return filepath_or_buffer
 
-    def _get_filepath_or_buffer(
-        filepath_or_buffer: FilePath,
-        encoding: str = "utf-8",
-        compression: CompressionOptions | None = None,
-        mode: str = "r",
-    ) -> IOArgs:
-        """
-        Returns an IOArgs object from filepath.
+def _stringify_path(path_or_buf):
+    """Convert a pathlib.Path to str; leave everything else unchanged."""
+    if isinstance(path_or_buf, pathlib.Path):
+        return os.fspath(path_or_buf)
+    return path_or_buf
 
-        Parameters
-        ----------
-        filepath_or_buffer : filepath (str, py.path.local or pathlib.Path)
-        compression_options : type of compression in CompressionOptions
-        encoding : the encoding to use to decode bytes, default is 'utf-8'
-        mode : str, optional
 
-        Returns the dataclass IOArgs.
-        """
-        filepath_or_buffer = stringify_path(filepath_or_buffer)
+def _load_class(dotted_name: str):
+    """Load a class from its fully-qualified dotted name.
 
-        # handle compression dict
-        compression_method, compression = get_compression_method(compression)
-        compression_method = infer_compression(filepath_or_buffer, compression_method)
-        compression = dict(compression, method=compression_method)
-
-        if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
-            return IOArgs(
-                filepath_or_buffer=_expand_user(filepath_or_buffer),
-                encoding=encoding,
-                compression=compression,
-                should_close=False,
-                mode=mode,
-            )
-
-        # is_file_like requires (read | write) & __iter__ but __iter__ is only
-        # needed for read_csv(engine=python)
-        if not (
-            hasattr(filepath_or_buffer, "read") or hasattr(filepath_or_buffer, "write")
-        ):
-            msg = f"Invalid file path or buffer object type: {type(filepath_or_buffer)}"
-            raise ValueError(msg)
-
-        return IOArgs(
-            filepath_or_buffer=filepath_or_buffer,
-            encoding=encoding,
-            compression=compression,
-            should_close=False,
-            mode=mode,
+    Raises ValueError with a clear message if the module or class is not found,
+    rather than silently returning None (as pydoc.locate does).
+    """
+    module_path, _, class_name = dotted_name.rpartition(".")
+    if not module_path:
+        raise ValueError(
+            f"Cannot load class '{dotted_name}': expected 'module.ClassName' format."
+        )
+    try:
+        module = importlib.import_module(module_path)
+    except ModuleNotFoundError as exc:
+        raise ValueError(
+            f"Cannot load class '{dotted_name}': module '{module_path}' not found."
+        ) from exc
+    try:
+        return getattr(module, class_name)
+    except AttributeError:
+        raise ValueError(
+            f"Cannot load class '{dotted_name}': "
+            f"'{class_name}' not found in '{module_path}'."
         )
 
 
@@ -165,6 +121,10 @@ class ErrorAllWrapper:
         return self._data
 
 
+_INFINITY_SENTINEL = "__INFINITY__"
+_NEG_INFINITY_SENTINEL = "__NEG_INFINITY__"
+
+
 class NpEncoder(json.JSONEncoder):
     def default(self, o):  # pylint: disable=E0202
         if isinstance(o, np.integer):
@@ -174,7 +134,43 @@ class NpEncoder(json.JSONEncoder):
         elif isinstance(o, np.ndarray):
             return o.tolist()
         else:
-            json.JSONEncoder.default(self, o)
+            return json.JSONEncoder.default(self, o)
+
+    def encode(self, o):
+        # Replace float inf/-inf with sentinel strings before encoding.
+        # This produces valid JSON (RFC 8259) instead of the non-standard
+        # `Infinity` literal that Python's json module otherwise emits.
+        return super().encode(_replace_infinities(o))
+
+    def iterencode(self, o, _one_shot=False):
+        return super().iterencode(_replace_infinities(o), _one_shot)
+
+
+def _replace_infinities(obj):
+    """Recursively replace float inf values with sentinel strings."""
+    if isinstance(obj, float):
+        if obj == float("inf"):
+            return _INFINITY_SENTINEL
+        if obj == float("-inf"):
+            return _NEG_INFINITY_SENTINEL
+    elif isinstance(obj, dict):
+        return {k: _replace_infinities(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_replace_infinities(v) for v in obj]
+    return obj
+
+
+def _restore_infinities(obj):
+    """Recursively restore sentinel strings back to float inf values."""
+    if obj == _INFINITY_SENTINEL:
+        return float("inf")
+    if obj == _NEG_INFINITY_SENTINEL:
+        return float("-inf")
+    elif isinstance(obj, dict):
+        return {k: _restore_infinities(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_restore_infinities(v) for v in obj]
+    return obj
 
 
 class BaseSimObj:
@@ -231,8 +227,6 @@ class BaseSimObj:
             path_or_buf (FilePathOrBuffer): File path or object. If not
             specified, the result is returned as a string.
         """
-        # The code here is from pandas 1.0.1, io.json.to_json(), with
-        # modifications.
         json_serializable_data = self._to_registry()[0]
         if json_serializable_data["version"] is None:
             warnings.warn(
@@ -248,24 +242,15 @@ class BaseSimObj:
                 f"dependency version check.",
                 UserWarning,
             )
-        path_or_buf = stringify_path(path_or_buf)
+        path_or_buf = _stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
-            if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
-                fh, _ = get_handle(path_or_buf, "w")
-            else:
-                fh = get_handle(path_or_buf, "w").handle
-
-            try:
+            with open(path_or_buf, "w", encoding="utf-8") as fh:
                 json.dump(json_serializable_data, fh, cls=NpEncoder)
-                # Add a newline to the EOF.
                 fh.write("\n")
-            finally:
-                fh.close()
         elif path_or_buf is None:
             return json.dumps(json_serializable_data, cls=NpEncoder)
         else:
             json.dump(json_serializable_data, path_or_buf, cls=NpEncoder)
-            # Add a newline to the EOF.
             path_or_buf.write("\n")
 
     def _to_registry(self, context_dict=None):
@@ -407,13 +392,16 @@ class BaseSimObj:
         # Check versions of acnportal and certain dependencies.
         # We only need to check the versions if the context dict is
         # empty, indicating the first level of the recursive call.
-        acnportal_version, dependency_versions = None, None
+        acnportal_version, dependency_versions, schema_version = None, None, None
         if first_call:
-            acnportal_version = pkg_resources.require("acnportal")[0].version
+            try:
+                acnportal_version = importlib.metadata.version("acnportal")
+            except importlib.metadata.PackageNotFoundError:
+                acnportal_version = None
             dependency_versions = {
                 "numpy": np.__version__,
-                "pandas": pandas.__version__,
             }
+            schema_version = 1
 
         return (
             {
@@ -421,6 +409,7 @@ class BaseSimObj:
                 "context_dict": context_dict,
                 "version": acnportal_version,
                 "dependency_versions": dependency_versions,
+                "schema_version": schema_version,
             },
             context_dict,
         )
@@ -485,7 +474,7 @@ class BaseSimObj:
 
         # Get the class of this object from the context_dict.
         obj_type = context_dict[obj_id]["class"]
-        obj_class = locate(obj_type)
+        obj_class = _load_class(obj_type)
 
         # 'version' is None since we've already checked the version of the
         # parent object.
@@ -496,6 +485,7 @@ class BaseSimObj:
                 "context_dict": context_dict,
                 "version": None,
                 "dependency_versions": None,
+                "schema_version": None,
             },
             loaded_dict=loaded_dict,
         )
@@ -513,37 +503,22 @@ class BaseSimObj:
                 str, path object or file-like object. Any valid string
                 path is acceptable.
         """
-        # The code here is from pandas 1.0.1, io.json.from_json(), with
-        # modifications.
-        if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
-            filepath_or_buffer, _, _, should_close = get_filepath_or_buffer(path_or_buf)
-        else:
-            ioargs = _get_filepath_or_buffer(path_or_buf)
-            filepath_or_buffer = ioargs.filepath_or_buffer
-            should_close = ioargs.should_close
+        path_or_buf = _stringify_path(path_or_buf)
 
-        exists = False
-        if isinstance(filepath_or_buffer, str):
+        if isinstance(path_or_buf, str):
             try:
-                exists = os.path.exists(filepath_or_buffer)
+                exists = os.path.exists(path_or_buf)
             except (TypeError, ValueError):
-                pass
-
-        if exists:
-            if pandas.__version__ < PD_BACKWARDS_COMPAT_VERSION:
-                filepath_or_buffer, _ = get_handle(filepath_or_buffer, "r")
+                exists = False
+            if exists:
+                with open(path_or_buf, "r", encoding="utf-8") as fh:
+                    out_registry = json.load(fh)
             else:
-                filepath_or_buffer = get_handle(filepath_or_buffer, "r").handle
-
-            should_close = True
-
-        if isinstance(filepath_or_buffer, str):
-            should_close = False
-            out_registry = json.loads(filepath_or_buffer)
+                out_registry = json.loads(path_or_buf)
         else:
-            out_registry = json.load(filepath_or_buffer)
-        if should_close:
-            filepath_or_buffer.close()
+            out_registry = json.load(path_or_buf)
+
+        out_registry = _restore_infinities(out_registry)
 
         if out_registry["version"] is None:
             warnings.warn(
@@ -662,8 +637,11 @@ class BaseSimObj:
         # Check current versions of acnportal and certain dependencies
         # against serialized versions.
         if acnportal_version is not None:
-            current_version = pkg_resources.require("acnportal")[0].version
-            if current_version != acnportal_version:
+            try:
+                current_version = importlib.metadata.version("acnportal")
+            except importlib.metadata.PackageNotFoundError:
+                current_version = None
+            if current_version is not None and _major_version_changed(current_version, acnportal_version):
                 warnings.warn(
                     f"Version {acnportal_version} of input acnportal "
                     f"object does not match current version "
@@ -673,10 +651,9 @@ class BaseSimObj:
         if dependency_versions is not None:
             current_dependency_versions = {
                 "numpy": np.__version__,
-                "pandas": pandas.__version__,
             }
             for pkg in dependency_versions.keys():
-                if current_dependency_versions[pkg] != dependency_versions[pkg]:
+                if pkg in current_dependency_versions and current_dependency_versions[pkg] != dependency_versions[pkg]:
                     warnings.warn(
                         f"Current version of dependency {pkg} does not "
                         f"match serialized version. "

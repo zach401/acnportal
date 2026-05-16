@@ -70,7 +70,11 @@ class Event(BaseSimObj):
 
     @classmethod
     def _from_dict_helper(
-        cls, out_obj: "Event", attribute_dict: Dict[str, Any]
+        cls,
+        out_obj: "Event",
+        attribute_dict: Dict[str, Any],
+        context_dict=None,
+        loaded_dict=None,
     ) -> None:
         out_obj.event_type = attribute_dict["event_type"]
         out_obj.precedence = attribute_dict["precedence"]
