@@ -4,7 +4,8 @@ Sorting-based scheduling algorithms.
 """
 from collections import deque
 from copy import copy
-from typing import Callable, List, Optional, Dict
+from typing import List, Optional, Dict, Union
+from typing_extensions import Protocol
 
 import numpy as np
 
@@ -21,6 +22,17 @@ from .preprocessing import (
 from warnings import warn
 
 from acnportal.acnsim.interface import SessionInfo, InfrastructureInfo, Interface
+
+
+class SortFuncCallback(Protocol):
+    """
+    As Mypy can't distinguish bound methods (with "self" as the first arg) from Callable
+    attributes, we use a Protocol-like type hint to annotate
+    SortedSchedulingAlgo._sort_fn.
+    """
+
+    def __call__(self, evs: List[SessionInfo], iface: Interface) -> List[SessionInfo]:
+        pass
 
 
 class SortedSchedulingAlgo(BaseAlgorithm):
@@ -43,15 +55,15 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             same SessionInfo objects but sorted according to some metric.
     """
 
-    _sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]]
+    _sort_fn: SortFuncCallback
     estimate_max_rate: bool
-    max_rate_estimator: Optional[UpperBoundEstimatorBase]
+    _max_rate_estimator: Optional[UpperBoundEstimatorBase]
     uninterrupted_charging: bool
     allow_overcharging: bool
 
     def __init__(
         self,
-        sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]],
+        sort_fn: SortFuncCallback,
         estimate_max_rate: bool = False,
         max_rate_estimator: Optional[UpperBoundEstimatorBase] = None,
         uninterrupted_charging: bool = False,
@@ -63,11 +75,46 @@ class SortedSchedulingAlgo(BaseAlgorithm):
         # next period.
         self.max_recompute = 1
         self.estimate_max_rate = estimate_max_rate
-        self.max_rate_estimator = max_rate_estimator
+        self._max_rate_estimator = max_rate_estimator
         self.uninterrupted_charging = uninterrupted_charging
         self.allow_overcharging = allow_overcharging
 
+    @property
+    def max_rate_estimator(self) -> Optional[UpperBoundEstimatorBase]:
+        """
+        Return max_rate_estimator or None if there isn't any provided.
+
+        Returns:
+            Optional[UpperBoundEstimatorBase]: max_rate_estimator of this algorithm or
+                None if none is given.
+
+        """
+        return self._max_rate_estimator
+
+    @max_rate_estimator.setter
+    def max_rate_estimator(self, max_rate_estimator: UpperBoundEstimatorBase) -> None:
+        self._max_rate_estimator = max_rate_estimator
+
     def register_interface(self, interface: Interface) -> None:
+        """ Register interface to the _simulator/physical system.
+
+        This interface is the only connection between the algorithm and what it
+            is controlling. Its purpose is to abstract the underlying
+            network so that the same algorithms can run on a simulated
+            environment or a physical one.
+
+        Args:
+            interface (Interface): An interface to the underlying network
+                whether simulated or real.
+
+        Returns:
+            None
+        """
+        self._interface = interface
+        if self.max_rate_estimator is not None:
+            self.max_rate_estimator.register_interface(interface)
+
+    def register_max_rate_estimator(self, interface: Interface) -> None:
         """ Register interface to the _simulator/physical system.
 
         This interface is the only connection between the algorithm and what it
@@ -106,16 +153,25 @@ class SortedSchedulingAlgo(BaseAlgorithm):
                 "allow_overcharging is currently not supported. It will be added in a "
                 "future release."
             )
-        active_sessions: List[SessionInfo] = remove_finished_sessions(
+        active_sessions = remove_finished_sessions(
             active_sessions, infrastructure, self.interface.period
         )
         active_sessions = enforce_pilot_limit(active_sessions, infrastructure)
         if self.estimate_max_rate:
-            active_sessions: List[SessionInfo] = apply_upper_bound_estimate(
-                self.max_rate_estimator, active_sessions
-            )
+            if self.max_rate_estimator is not None:
+                active_sessions = apply_upper_bound_estimate(
+                    self.max_rate_estimator, active_sessions
+                )
+            else:
+                # TODO: Test raised error.
+                raise (
+                    ValueError(
+                        "Register an UpperBoundEstimator before running the "
+                        "algorithm if you wish to estimate max rate."
+                    )
+                )
         if self.uninterrupted_charging:
-            active_sessions: List[SessionInfo] = apply_minimum_charging_rate(
+            active_sessions = apply_minimum_charging_rate(
                 active_sessions, infrastructure, self.interface.period
             )
         return active_sessions
@@ -156,25 +212,30 @@ class SortedSchedulingAlgo(BaseAlgorithm):
             ub: float = min(
                 session.max_rates[0], self.interface.remaining_amp_periods(session)
             )
-            lb: float = max(0, session.min_rates[0])
+            lb = max(0, session.min_rates[0])
+            charging_rate: float
             if infrastructure.is_continuous[station_index]:
-                charging_rate: float = self.max_feasible_rate(
+                charging_rate = self.max_feasible_rate(
                     station_index, ub, schedule, infrastructure, eps=0.01, lb=lb
                 )
             else:
-                allowable = [
-                    a
-                    for a in infrastructure.allowable_pilots[station_index]
-                    if lb <= a <= ub
-                ]
-
-                if len(allowable) == 0:
+                # Check for the case where allowable_pilots is a List of Nones and set
+                # charging rate to 0 in that case. TODO: Test this case
+                curr_allowable_pilots: Optional[
+                    np.ndarray
+                ] = infrastructure.allowable_pilots[station_index]
+                if curr_allowable_pilots is None:
                     charging_rate = 0
                 else:
-                    charging_rate = self.discrete_max_feasible_rate(
-                        station_index, allowable, schedule, infrastructure
-                    )
-            schedule[station_index] = charging_rate
+                    allowable = [a for a in curr_allowable_pilots if lb <= a <= ub]
+
+                    if len(allowable) == 0:
+                        charging_rate = 0
+                    else:
+                        charging_rate = self.discrete_max_feasible_rate(
+                            station_index, allowable, schedule, infrastructure
+                        )
+            schedule[station_index] = max(charging_rate, schedule[station_index])
         return schedule
 
     @staticmethod
@@ -347,7 +408,7 @@ class RoundRobin(SortedSchedulingAlgo):
 
     def __init__(
         self,
-        sort_fn: Callable[[List[SessionInfo], Interface], List[SessionInfo]],
+        sort_fn: SortFuncCallback,
         estimate_max_rate: bool = False,
         max_rate_estimator: Optional[UpperBoundEstimatorBase] = None,
         uninterrupted_charging: bool = False,
@@ -384,7 +445,15 @@ class RoundRobin(SortedSchedulingAlgo):
         queue = deque(self._sort_fn(active_sessions, self.interface))
         schedule = np.zeros(infrastructure.num_stations)
         rate_idx = np.zeros(infrastructure.num_stations, dtype=int)
-        allowable_pilots = infrastructure.allowable_pilots.copy()
+        # TODO: Again, this might be a list of Nones, with elements non-iterable.
+        # TODO: This could give speed issues due to the excessive copying.
+        intermediate_allowable_pilots: Union[
+            List[np.ndarray], List[None]
+        ] = infrastructure.allowable_pilots.copy()
+        # Initialize allowable_pilots with a placeholder of correct type.
+        allowable_pilots: List[np.ndarray] = [np.array(0)] * len(
+            intermediate_allowable_pilots
+        )
         for session in queue:
             i = infrastructure.get_station_index(session.station_id)
             # If pilot signal is continuous discretize it with increments of
@@ -395,6 +464,14 @@ class RoundRobin(SortedSchedulingAlgo):
                     session.max_rates[0] + self.continuous_inc / 2,
                     self.continuous_inc,
                 )
+            elif intermediate_allowable_pilots[i] is None:
+                # TODO: Test this error case.
+                raise ValueError(
+                    "An allowable pilots array must be provided if the "
+                    "EVSE is non-continuous."
+                )
+            else:
+                allowable_pilots[i] = intermediate_allowable_pilots[i]
             ub = min(
                 session.max_rates[0],
                 infrastructure.max_pilot[i],

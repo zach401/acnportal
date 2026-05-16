@@ -1,6 +1,7 @@
 # coding=utf-8
 """ Tests for ChargingNetwork functionality. """
 from collections import OrderedDict
+from typing import Tuple
 from unittest import TestCase
 from unittest.mock import Mock, create_autospec, patch
 
@@ -45,13 +46,25 @@ class TestChargingNetwork(TestCase):
         with self.assertRaises(EVSERegistrationError):
             self.network.register_evse(EVSE("PS-002"), 100, 150)
 
-    def test_register_evse(self) -> None:
+    def test_register_evse_constraints_added_overwrite(self) -> None:
+        evse1 = EVSE("PS-001")
+        self.network.register_evse(evse1, 240, -30)
+        self.network.add_constraint(Current(["PS-001"]), 10)
+        self.network.register_evse(EVSE("PS-001"), 100, 150)
+
+    def _evse_registration(self) -> Tuple[EVSE, EVSE, EVSE]:
         evse1 = EVSE("PS-001")
         self.network.register_evse(evse1, 240, -30)
         evse2 = EVSE("PS-002")
         evse3 = EVSE("PS-003")
         self.network.register_evse(evse3, 100, 150)
         self.network.register_evse(evse2, 140, 90)
+        np.testing.assert_allclose(self.network._phase_angles, np.array([-30, 150, 90]))
+        np.testing.assert_allclose(self.network._voltages, np.array([240, 100, 140]))
+        return evse1, evse2, evse3
+
+    def test_register_evse(self) -> None:
+        evse1, evse2, evse3 = self._evse_registration()
         self.assertIn("PS-001", self.network._EVSEs)
         self.assertIs(self.network._EVSEs["PS-001"], evse1)
         self.assertIn("PS-002", self.network._EVSEs)
@@ -59,18 +72,21 @@ class TestChargingNetwork(TestCase):
         self.assertIn("PS-003", self.network._EVSEs)
         self.assertIs(self.network._EVSEs["PS-003"], evse3)
         self.assertEqual(self.network.station_ids, ["PS-001", "PS-003", "PS-002"])
-        np.testing.assert_allclose(self.network._phase_angles, np.array([-30, 150, 90]))
-        np.testing.assert_allclose(self.network._voltages, np.array([240, 100, 140]))
+
+    def test_register_evse_overwrite(self) -> None:
+        evse1, evse2, evse3 = self._evse_registration()
+        self.network.register_evse(evse1, 208, 120)
+        np.testing.assert_allclose(self.network._phase_angles, np.array([120, 150, 90]))
+        np.testing.assert_allclose(self.network._voltages, np.array([208, 100, 140]))
 
     def test_plugin_station_exists(self) -> None:
         evse = EVSE("PS-001")
-        evse.plugin = Mock(evse.plugin)
         self.network.register_evse(evse, 240, 0)
         ev = create_autospec(EV)
         ev.station_id = "PS-001"
-        self.network.plugin(ev)
-        # noinspection PyUnresolvedReferences
-        evse.plugin.assert_called_once()
+        with patch.object(evse, "plugin") as plugin:
+            self.network.plugin(ev)
+        plugin.assert_called_once()
 
     def test_plugin_station_does_not_exist(self) -> None:
         ev = create_autospec(EV)
@@ -138,16 +154,13 @@ class TestChargingNetwork(TestCase):
         self.network.register_evse(evse2, 240, 0)
         evse3 = EVSE("PS-003")
         self.network.register_evse(evse3, 240, 0)
-        evse1.set_pilot = create_autospec(evse1.set_pilot)
-        evse2.set_pilot = create_autospec(evse2.set_pilot)
-        evse3.set_pilot = create_autospec(evse3.set_pilot)
-        self.network.update_pilots(np.array([[24, 16], [16, 24], [0, 0]]), 0, 5)
-        # noinspection PyUnresolvedReferences
-        evse1.set_pilot.assert_any_call(24, 240, 5)
-        # noinspection PyUnresolvedReferences
-        evse2.set_pilot.assert_any_call(16, 240, 5)
-        # noinspection PyUnresolvedReferences
-        evse3.set_pilot.assert_any_call(0, 240, 5)
+        with patch.object(evse1, "set_pilot") as set_pilot1, patch.object(
+            evse2, "set_pilot"
+        ) as set_pilot2, patch.object(evse3, "set_pilot") as set_pilot3:
+            self.network.update_pilots(np.array([[24, 16], [16, 24], [0, 0]]), 0, 5)
+        set_pilot1.assert_any_call(24, 240, 5)
+        set_pilot2.assert_any_call(16, 240, 5)
+        set_pilot3.assert_any_call(0, 240, 5)
 
     def _accessor_test_setup(self) -> None:
         evse1 = EVSE("PS-001")

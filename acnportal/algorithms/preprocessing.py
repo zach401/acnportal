@@ -106,7 +106,7 @@ def apply_upper_bound_estimate(
 def apply_minimum_charging_rate(
     active_sessions: List[SessionInfo],
     infrastructure: InfrastructureInfo,
-    period: int,
+    period: float,
     override: float = float("inf"),
 ) -> List[SessionInfo]:
     """ Modify active_sessions so that min_rates[0] is equal to the greater of
@@ -119,7 +119,7 @@ def apply_minimum_charging_rate(
             all active charging sessions.
         infrastructure (InfrastructureInfo): Description of the charging
             infrastructure.
-        period (int): Length of each time period in minutes.
+        period (float): Length of each time period in minutes.
         override (float): Alternative minimum pilot which overrides the EVSE
             minimum if the EVSE minimum is greater than override.
 

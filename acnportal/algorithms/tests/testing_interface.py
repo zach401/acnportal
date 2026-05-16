@@ -24,7 +24,9 @@ class TestingInterface(Interface):
     data: Dict[str, Any]
 
     def __init__(self, data: Dict[str, Any]) -> None:
-        super().__init__(None)
+        # Just for this test case, we don't actually input a Simulator to __init__,
+        # since all the data is hard-coded.
+        super().__init__(None)  # type: ignore
         self.data = data
 
     def _get_or_error(self, field: str) -> Any:
@@ -202,8 +204,8 @@ class TestingInterface(Interface):
         self,
         load_currents: Dict[str, List[float]],
         linear: bool = False,
-        violation_tolerance: float = 1e-5,
-        relative_tolerance: float = 1e-7,
+        violation_tolerance: Optional[float] = 1e-5,
+        relative_tolerance: Optional[float] = 1e-7,
     ) -> bool:
         """ Return if a set of current magnitudes for each load are feasible.
 
@@ -231,6 +233,11 @@ class TestingInterface(Interface):
             bool: If load_currents is feasible at time t according to this set of
                 constraints.
         """
+        if violation_tolerance is None:
+            violation_tolerance = 1e-5
+        if relative_tolerance is None:
+            relative_tolerance = 1e-7
+
         if len(load_currents) == 0:
             return True
         # Check that all schedules are the same length

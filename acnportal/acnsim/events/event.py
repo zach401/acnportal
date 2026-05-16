@@ -59,7 +59,7 @@ class Event(BaseSimObj):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict = {
             "timestamp": self.timestamp,
@@ -81,7 +81,7 @@ class Event(BaseSimObj):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """ Implements BaseSimObj._from_dict. """
         out_obj = cls(attribute_dict["timestamp"])
         cls._from_dict_helper(out_obj, attribute_dict)
@@ -115,7 +115,7 @@ class EVEvent(Event):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
         """ Implements BaseSimObj._to_dict. """
         attribute_dict, context_dict = super()._to_dict(context_dict)
         # Plugin-specific attributes
@@ -132,7 +132,7 @@ class EVEvent(Event):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """ Implements BaseSimObj._from_dict. """
         # noinspection PyProtectedMember
         ev, loaded_dict = BaseSimObj._build_from_id(
@@ -176,7 +176,7 @@ class UnplugEvent(EVEvent):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
         """ Implements BaseSimObj._from_dict. """
         # noinspection PyProtectedMember
         try:

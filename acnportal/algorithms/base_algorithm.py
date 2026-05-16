@@ -3,7 +3,11 @@
 Abstract base algorithm for scheduled charging.
 """
 import time
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from acnportal.acnsim import Interface
+    from acnportal.acnsim.interface import SessionInfo
 
 
 class BaseAlgorithm:
