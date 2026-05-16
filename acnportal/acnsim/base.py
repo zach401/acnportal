@@ -38,7 +38,7 @@ else:
     )
 
     # compression keywords and compression
-    CompressionDict = dict[str, Any]
+    CompressionDict = Dict[str, Any]
     CompressionOptions = Optional[
         Union[
             Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"], CompressionDict
@@ -427,8 +427,8 @@ class BaseSimObj:
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
-        """ Converts the object's attributes into a JSON serializable
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Converts the object's attributes into a JSON serializable
         dict. Each ACN-Sim object defines this method differently.
 
         Args:
@@ -780,8 +780,8 @@ class BaseSimObj:
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, "BaseSimObj"]] = None,
-    ) -> Tuple["BaseSimObj", Optional[Dict[str, "BaseSimObj"]]]:
-        """ Converts a JSON serializable representation of an ACN-Sim
+    ) -> Tuple["BaseSimObj", Dict[str, "BaseSimObj"]]:
+        """Converts a JSON serializable representation of an ACN-Sim
         object into an actual ACN-Sim object.
 
         Args:

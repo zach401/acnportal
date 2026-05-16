@@ -561,8 +561,8 @@ class ChargingNetwork(BaseSimObj):
 
     def _to_dict(
         self, context_dict: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]]]:
-        """ Implements BaseSimObj._to_dict. """
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Implements BaseSimObj._to_dict."""
 
         attribute_dict = {}
         # Serialize non-nested attributes.
@@ -602,8 +602,8 @@ class ChargingNetwork(BaseSimObj):
         attribute_dict: Dict[str, Any],
         context_dict: Dict[str, Any],
         loaded_dict: Optional[Dict[str, BaseSimObj]] = None,
-    ) -> Tuple[BaseSimObj, Optional[Dict[str, BaseSimObj]]]:
-        """ Implements BaseSimObj._from_dict. """
+    ) -> Tuple[BaseSimObj, Dict[str, BaseSimObj]]:
+        """Implements BaseSimObj._from_dict."""
         out_obj = cls(
             violation_tolerance=attribute_dict["violation_tolerance"],
             relative_tolerance=attribute_dict["relative_tolerance"],
