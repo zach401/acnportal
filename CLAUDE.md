@@ -47,11 +47,6 @@ The central object is `Simulator` (`acnportal/acnsim/simulator.py`). It owns a `
 
 **Algorithm ↔ Simulator decoupling via `Interface`** (`acnportal/acnsim/interface.py`): Algorithms never touch the `Simulator` directly. Instead, they interact only through an `Interface` object registered during setup (`scheduler.register_interface(Interface(sim))`). The interface exposes `active_sessions()` (returning `SessionInfo` objects), `infrastructure_info()`, `is_feasible()`, and price/demand-charge signals. This means the same algorithm class can run on simulated or real hardware without changes.
 
-**Model layer** (`acnportal/acnsim/models/`):
-- `EV` — tracks arrival, departure, requested/delivered energy, and delegates to a `Battery` for SoC updates.
-- `BaseEVSE` / subclasses (`acnportal/acnsim/models/evse.py`) — represent individual charging stations with `min_rate`/`max_rate` and discrete-or-continuous pilot signal support.
-- `Battery` hierarchy (`acnportal/acnsim/models/battery.py`) — models charge acceptance.
-
 **Network** (`acnportal/acnsim/network/charging_network.py`): `ChargingNetwork` holds an `OrderedDict` of EVSEs and a linear constraint matrix relating individual station currents to aggregate currents (per phase, per transformer, etc.). `is_feasible()` checks whether a proposed schedule violates any network constraint. Pre-built real-world site topologies live in `acnportal/acnsim/network/sites/`.
 
 **Events** (`acnportal/acnsim/events/`): `PluginEvent`, `UnplugEvent`, `RecomputeEvent` extend `Event`. Events are stored in a priority-queue `EventQueue`. `acndata_events.py` builds event queues from real ACN-Data session records; `stochastic_events.py` generates synthetic arrivals.
