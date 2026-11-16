@@ -501,6 +501,25 @@ class TestThirtyStationsRR(TestThirtyStationsBase):
         super().setUp()
         self.algo = RoundRobin(first_come_first_served)
 
+
+class TestTwoStationsPriorityFirst(TestTwoStationsBase):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
+        super().setUp()
+        self.algo = SortedSchedulingAlgo(
+            priority_first(least_laxity_first, {"1": 1.0})
+        )
+
+
+class TestThirtyStationsPriorityFirst(TestThirtyStationsBase):
+    # noinspection PyMissingOrEmptyDocstring
+    def setUp(self) -> None:
+        super().setUp()
+        self.algo = SortedSchedulingAlgo(
+            priority_first(least_laxity_first, {"3": 2.0, "7": 1.0})
+        )
+
+
 class TestEarliestDeadlineFirstOrder(unittest.TestCase):
     def test_estimated_departure_matches_real(self):
         interface = two_station(limit=100, continuous=True, session_max_rate=32, estimated_departure=[11, 12])
@@ -529,6 +548,50 @@ class TestLeastLaxityFirstOrder(unittest.TestCase):
         sorted_sessions = least_laxity_first(interface.active_sessions(), interface)
         self.assertEqual(sorted_sessions[0].session_id, "1")
         self.assertEqual(sorted_sessions[1].session_id, "0")
+
+
+class TestPriorityFirstOrder(unittest.TestCase):
+    def test_priority_session_goes_first(self):
+        interface = two_station(
+            limit=100,
+            continuous=True,
+            session_max_rate=32,
+            estimated_departure=[11, 12],
+        )
+        sort_fn = priority_first(least_laxity_first, {"1": 1.0})
+        sorted_sessions = sort_fn(interface.active_sessions(), interface)
+        self.assertEqual([s.session_id for s in sorted_sessions], ["1", "0"])
+
+    def test_inner_order_kept_without_priority(self):
+        interface = two_station(
+            limit=100,
+            continuous=True,
+            session_max_rate=32,
+            estimated_departure=[12, 11],
+        )
+        sort_fn = priority_first(least_laxity_first, {})
+        sorted_sessions = sort_fn(interface.active_sessions(), interface)
+        expected = least_laxity_first(interface.active_sessions(), interface)
+        self.assertEqual(
+            [s.session_id for s in sorted_sessions], [s.session_id for s in expected]
+        )
+
+    def test_inner_order_kept_within_level(self):
+        interface = big_three_phase_network(num_sessions=6)
+        priority = {"0": 1.0, "4": 1.0}
+        sort_fn = priority_first(first_come_first_served, priority)
+        sessions = interface.active_sessions()
+        ids = [s.session_id for s in sort_fn(sessions, interface)]
+        inner = [s.session_id for s in first_come_first_served(sessions, interface)]
+        self.assertEqual(set(ids[:2]), {"0", "4"})
+        self.assertEqual(ids[:2], [i for i in inner if i in priority])
+        self.assertEqual(ids[2:], [i for i in inner if i not in priority])
+
+    def test_higher_priority_first(self):
+        interface = big_three_phase_network(num_sessions=6)
+        sort_fn = priority_first(first_come_first_served, {"2": 1.0, "5": 3.0})
+        ids = [s.session_id for s in sort_fn(interface.active_sessions(), interface)]
+        self.assertEqual(ids[:2], ["5", "2"])
 
 
 del BaseAlgorithmTest
