@@ -628,3 +628,45 @@ def largest_remaining_processing_time(
         return rpt
 
     return sorted(evs, key=remaining_processing_time, reverse=True)
+
+
+def priority_first(
+    sort_fn: SortFuncCallback, priority: Dict[str, float]
+) -> SortFuncCallback:
+    """ Return a sort function that places sessions with a higher declared priority
+    first and keeps the order of sort_fn within each priority level.
+
+    Useful when some vehicles must be charged first (for example a fleet or an
+    emergency vehicle). Sessions not listed in priority get priority 0.
+
+    Example:
+        SortedSchedulingAlgo(priority_first(least_laxity_first, {"session-7": 1}))
+
+    Args:
+        sort_fn (SortFuncCallback): Sort function used within each priority level,
+            for example least_laxity_first.
+        priority (Dict[str, float]): Priority of each session, by session_id. Higher
+            values are scheduled first.
+
+    Returns:
+        SortFuncCallback: Sort function to pass to SortedSchedulingAlgo or RoundRobin.
+    """
+
+    def sort_by_priority(
+        evs: List[SessionInfo], iface: Interface
+    ) -> List[SessionInfo]:
+        """ Sort EVs by sort_fn, then stably by decreasing priority.
+
+        Args:
+            evs (List[SessionInfo]): List of EVs to be sorted.
+            iface (Interface): Interface object.
+
+        Returns:
+            List[SessionInfo]: List of EVs sorted by decreasing priority, in sort_fn
+                order within each priority level.
+        """
+        return sorted(
+            sort_fn(evs, iface), key=lambda ev: -priority.get(ev.session_id, 0.0)
+        )
+
+    return sort_by_priority
